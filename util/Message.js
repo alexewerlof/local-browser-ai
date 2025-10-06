@@ -1,0 +1,50 @@
+import { md2html } from './markdown.js';
+import * as $ from './dom.js'
+
+const VALID_ROLES = ['assistant', 'user', 'system']
+
+export class Message {
+    constructor(role, content = '') {
+        this.el = $.h('div', {
+            class: [
+                'chat-container__chat',
+                `chat-container__chat--${role}`
+            ].join(' ')
+        })
+
+        this.role = role;
+        this.content = content;
+    }
+
+    get role() {
+        return this._role;
+    }
+
+    set role(value) {
+        if (!VALID_ROLES.includes(value)) {
+            throw new Error(`Invalid role: ${value}`)
+        }
+
+        this._role = value
+    }
+
+    get content() {
+        return this._content;
+    }
+
+    set content(value) {
+        if (typeof value !== 'string') {
+            throw new Error(`Invalid content: ${value}`)
+        }
+
+        this._content = value
+        this.el.innerHTML = md2html(value)
+    }
+
+    toJSON() {
+        return {
+            role: this.role,
+            content: this.content,
+        }
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt API Extension",
+  "version": "1.0",
+  "description": "A simple Browser extension for using the Prompt API.",
+  "permissions": [ "sidePanel" ],
+  "action": {
+    "default_title": "Open Prompt API Side Panel"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "side-panel.html"
+  }
+}

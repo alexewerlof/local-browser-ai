@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="side-panel.css">
+    <title>Chat Mock</title>
+</head>
+<body>
+    <div id="empty-announce"></div>
+    <div class="chat-container">
+        <div class="chat-container__chat chat-container__chat--user">
+            What is your name?
+        </div>
+        <div class="chat-container__chat chat-container__chat--assistant">
+            <h4>Assistant</h4>
+            I'm just a mock assistant.
+            <div class="chat-container__actions">
+                <button class="button--subtle">Redo</button>
+            </div>
+        </div>
+        <div class="chat-container__chat chat-container__chat--user">
+            This is interesting. I'm going to try a much longer prompt to see
+            how you would answer and render my text.
+            It's always interesting to learn more about an AI or language model as well
+            as experiment with it to see what we can learn.
+            It's an amazing and amusing journey. I wonder where these models end up and
+            what are their capabilities.
+            So, tell me, what is your favorite color?
+        </div>
+
+    </div>
+    <div>
+        <textarea id="prompt-input" placeholder="Type your prompt here..."></textarea>
+        <button id="submit-prompt-button">Submit</button>
+        <button id="stop-prompt-button">Stop</button>
+    </div>
+    <progress id="quota-usage-progress" min="0" max="100" value="30" title="Quota usage"></progress>
+</body>
+</html>

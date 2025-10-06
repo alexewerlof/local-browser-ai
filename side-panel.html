@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="side-panel.css">
+  <link rel="stylesheet" href="util/konsol.css">
+  <title>Side Panel</title>
+</head>
+<body>
+    <h1>Prompt API Side Panel</h1>
+    <button id="reload-button">Reload</button>
+    <button id="close-button">Close</button>
+    <div id="api-status">Checking availability...</div>
+    <div id="prompt-api-ui" hidden>
+        <fieldset id="prompt-api-init">
+            <legend>Prompt API</legend>
+            <label for="option-language">Language</label>
+            <select id="option-language">
+                <option value="en" selected>English</option>
+                <option value="es">Spanish</option>
+                <option value="ja">Japanese</option>
+            </select>
+            <label for="option-system-prompt">System Prompt</label>
+            <textarea id="option-system-prompt">You are a funny joke teller</textarea>
+            <br>
+            <fieldset>
+                <legend>Options</legend>
+                <label for="option-temperature">Temperature</label>
+                <input type="range" id="option-temperature" min="0" max="1"  value="0.1" step="0.1"/>
+                <label for="option-top-k">Top K</label>
+                <input type="range" id="option-top-k" min="1" max="128"  value="3" step="1" />
+            </fieldset>
+            <button id="init-button">Initialize</button>
+            <progress id="download-progress" min="0" max="1" value="0"></progress>
+            <span id="download-eta"></span>
+        </fieldset>
+        <div id="session-established" hidden>
+            <div>
+                <div id="chat-history" class="chat-container"></div>
+                <label for="prompt-input">Prompt</label>
+                <textarea id="prompt-input">Tell me a joke.</textarea>
+                <div>
+                    <span id="usage-stats">? Tokens</span>
+                    <button id="count-prompt-tokens" title="Count Prompt Tokens">🔃</button>
+                </div>
+                <br>
+                <button id="submit-prompt-button">Submit</button>
+                <button id="stop-prompt-button">Stop</button>
+                <br>
+                <label for="option-streaming">
+                    <input type="checkbox" id="option-streaming" />
+                    Streaming
+                </label>
+            </div>
+            <progress id="quota-usage-progress" min="0" max="" value="0" title="Quota usage"></progress>
+            <span id="quota-usage-text">Updating...</span>
+        </div>
+    </div>
+    <div id="log-container"></div>
+    <script type="module" src="side-panel.js"></script>
+</body>
+</html>

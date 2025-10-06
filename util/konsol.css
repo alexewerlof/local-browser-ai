@@ -1,0 +1,11 @@
+.log {
+    & time {
+        opacity: 0.5;
+    }
+
+    & .log-level {
+        font-weight: bold;
+        padding-left: 0.2em;
+        padding-right: 0.2em;
+    }
+}
