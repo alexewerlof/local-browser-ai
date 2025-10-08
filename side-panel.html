@@ -45,12 +45,14 @@
                 <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
                 <div class="prompt-controls">
                     <div id="usage-stats">? Tokens</div>
-                    <label for="option-streaming">
-                        <input type="checkbox" id="option-streaming" checked />
-                        Streaming
-                    </label>
-                    <button id="submit-prompt-button">Submit</button>
-                    <button id="stop-prompt-button" hidden>Stop</button>
+                    <div class="prompt-controls__actions">
+                        <label for="option-streaming">
+                            <input type="checkbox" id="option-streaming" checked />
+                            Streaming
+                        </label>
+                        <button id="submit-prompt-button">Submit</button>
+                        <button id="stop-prompt-button" hidden>Stop</button>
+                    </div>
                 </div>
             </fieldset>
             <progress id="quota-usage-progress" min="0" max="" value="0" title="Quota usage"></progress>

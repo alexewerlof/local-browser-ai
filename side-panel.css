@@ -104,6 +104,19 @@ hr {
 
 }
 
+.prompt-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--gap4);
+}
+
+.prompt-controls__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--gap4);
+}
+
 .chat-container {
     display: flex;
     flex-direction: column;
