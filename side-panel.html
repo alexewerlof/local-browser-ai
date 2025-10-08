@@ -31,27 +31,25 @@
                 <input type="range" id="option-top-k" min="1" max="128"  value="3" step="1" />
             </fieldset>
             <button id="init-button">Initialize</button>
+            <button id="init-stop-button">Stop</button>
             <progress id="download-progress" min="0" max="1" value="0"></progress>
             <span id="download-eta"></span>
         </fieldset>
         <div id="session-established" hidden>
-            <div>
-                <div id="chat-history" class="chat-container"></div>
+            <div id="chat-history" class="chat-container"></div>
+            <fieldset class="prompt-section">
                 <label for="prompt-input">Prompt</label>
-                <textarea id="prompt-input">Tell me a joke.</textarea>
-                <div>
-                    <span id="usage-stats">? Tokens</span>
-                    <button id="count-prompt-tokens" title="Count Prompt Tokens">🔃</button>
+                <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
+                <div class="prompt-controls">
+                    <div id="usage-stats">? Tokens</div>
+                    <label for="option-streaming">
+                        <input type="checkbox" id="option-streaming" />
+                        Streaming
+                    </label>
+                    <button id="submit-prompt-button">Submit</button>
+                    <button id="stop-prompt-button">Stop</button>
                 </div>
-                <br>
-                <button id="submit-prompt-button">Submit</button>
-                <button id="stop-prompt-button">Stop</button>
-                <br>
-                <label for="option-streaming">
-                    <input type="checkbox" id="option-streaming" />
-                    Streaming
-                </label>
-            </div>
+            </fieldset>
             <progress id="quota-usage-progress" min="0" max="" value="0" title="Quota usage"></progress>
             <span id="quota-usage-text">Updating...</span>
         </div>

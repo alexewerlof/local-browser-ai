@@ -9,8 +9,8 @@ import * as msg from './util/msg.js'
 // This is more efficient than repeatedly querying the DOM.
 const el = {
     apiStatus: $.id('api-status'),
-    btnCountPromptTokens: $.id('count-prompt-tokens'),
     btnInit: $.id('init-button'),
+    btnInitStop: $.id('init-stop-button'),
     btnClose: $.id('close-button'),
     btnReload: $.id('reload-button'),
     btnStopPrompt: $.id('stop-prompt-button'),
@@ -36,7 +36,8 @@ const el = {
 
 let session
 let estimator
-let controller
+let initController
+let submitController
 
 function getModelOptions() {
     const language = el.optLang.value;
@@ -111,6 +112,7 @@ $.click(el.btnInit, async () => {
     }
 
     try {
+        el.promptApiInit.disabled = true
         const modelOptions = getModelOptions()
         el.downloadEta.textContent = 'Checking availability'
         const availability = await LanguageModel?.availability(modelOptions)
@@ -125,18 +127,19 @@ $.click(el.btnInit, async () => {
         el.downloadProgress.value = 0
         el.downloadEta.textContent = 'Initializing...'
         estimator = new Estimator()
-        controller = new AbortController()
+        initController = new AbortController()
         console.debug('Creating session...')
         session = await LanguageModel.create({
             ...modelOptions,
             // It's better to keep the initializer stop signal separate from prompt() signal
-            signal: controller.signal,
+            signal: initController.signal,
             monitor,
         })
         console.debug('Session initialized.')
         el.promptApiInit.hidden = true
         updateSessionTokens()
         el.sessionEstablished.hidden = false
+        el.promptInput.focus()
         debouncedCountPromptTokens();
         session.addEventListener('quotaoverflow', () => {
             console.warn('Quota overflow')
@@ -144,7 +147,15 @@ $.click(el.btnInit, async () => {
     } catch (e) {
         console.error('Could not initialize session', e)
     }
-    controller = null
+    initController = null
+})
+
+$.click(el.btnInitStop, () => {
+    if (initController) {
+        console.debug('Stopping init')
+        initController.abort('User stopped init');
+    }
+    initController = null;
 })
 
 $.click(el.btnSubmitPrompt, async () => {
@@ -159,6 +170,7 @@ $.click(el.btnSubmitPrompt, async () => {
         debouncedCountPromptTokens();
 
         el.promptInput.value = ''
+        el.promptInput.disabled = true
 
         console.debug('Sending prompt')
         const userMessage = new Message('user', userPrompt)
@@ -168,7 +180,7 @@ $.click(el.btnSubmitPrompt, async () => {
         el.downloadEta.textContent = ''
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
         
-        controller = new AbortController()
+        submitController = new AbortController()
         
         const assistantMessage = new Message('assistant')
         
@@ -176,40 +188,37 @@ $.click(el.btnSubmitPrompt, async () => {
         
         if (el.optStreaming.checked) {
             const stream = session.promptStreaming(userPrompt, {
-                signal: controller.signal,
+                signal: submitController.signal,
                 monitor,
             })
             for await (const chunk of stream) {
-                console.debug(chunk)
+                // console.debug(chunk)
                 assistantMessage.content += chunk
             }
         } else {
             assistantMessage.content = await session.prompt(userPrompt, {
-                signal: controller.signal,
+                signal: submitController.signal,
                 monitor,
             })
         }
         updateSessionTokens();
-        controller = null;
         console.debug('Received response', assistantMessage)
     } catch (e) {
         console.error('Prompt failed:', e);
-        controller = null;
     }
+    submitController = null;
+    el.promptInput.disabled = false
+    el.promptInput.focus()
 });
 
 $.click(el.btnStopPrompt, () => {
-    if (controller) {
+    if (submitController) {
         console.debug('Stopping prompt')
-        controller.abort('User stopped prompt');
-        controller = null;
+        submitController.abort('User stopped prompt');
+        submitController = null;
     } else {
         console.debug('No abort signal exists')
     }
-});
-
-$.click(el.btnCountPromptTokens, () => {
-    debouncedCountPromptTokens();
 });
 
 $.on(el.promptInput, 'input', debouncedCountPromptTokens);
@@ -256,6 +265,7 @@ async function main() {
     }
 
     el.promptApiUi.hidden = false;
+    el.optSysPrompt.focus()
 
     const params = await LanguageModel.params()
     // maxTemperature
