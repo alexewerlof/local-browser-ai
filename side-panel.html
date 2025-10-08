@@ -31,23 +31,25 @@
                 <input type="range" id="option-top-k" min="1" max="128"  value="3" step="1" />
             </fieldset>
             <button id="init-button">Initialize</button>
-            <button id="init-stop-button">Stop</button>
+            <button id="init-stop-button" hidden>Stop</button>
+            <div id="init-loading-animation" class="loading-animation" hidden></div>
             <progress id="download-progress" min="0" max="1" value="0"></progress>
             <span id="download-eta"></span>
         </fieldset>
         <div id="session-established" hidden>
             <div id="chat-history" class="chat-container"></div>
+            <div id="chat-loading-animation" class="loading-animation" hidden></div>
             <fieldset class="prompt-section">
                 <label for="prompt-input">Prompt</label>
                 <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
                 <div class="prompt-controls">
                     <div id="usage-stats">? Tokens</div>
                     <label for="option-streaming">
-                        <input type="checkbox" id="option-streaming" />
+                        <input type="checkbox" id="option-streaming" checked />
                         Streaming
                     </label>
                     <button id="submit-prompt-button">Submit</button>
-                    <button id="stop-prompt-button">Stop</button>
+                    <button id="stop-prompt-button" hidden>Stop</button>
                 </div>
             </fieldset>
             <progress id="quota-usage-progress" min="0" max="" value="0" title="Quota usage"></progress>

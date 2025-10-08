@@ -17,6 +17,8 @@ const el = {
     btnSubmitPrompt: $.id('submit-prompt-button'),
     downloadEta: $.id('download-eta'),
     downloadProgress: $.id('download-progress'),
+    initLoadingAnimation: $.id('init-loading-animation'),
+    chatLoadingAnimation: $.id('chat-loading-animation'),
     optLang: $.id('option-language'),
     optStreaming: $.id('option-streaming'),
     optSysPrompt: $.id('option-system-prompt'),
@@ -128,6 +130,9 @@ $.click(el.btnInit, async () => {
         el.downloadEta.textContent = 'Initializing...'
         estimator = new Estimator()
         initController = new AbortController()
+        el.initLoadingAnimation.hidden = false
+        el.btnInit.hidden = true
+        el.btnInitStop.hidden = false
         console.debug('Creating session...')
         session = await LanguageModel.create({
             ...modelOptions,
@@ -148,6 +153,9 @@ $.click(el.btnInit, async () => {
         console.error('Could not initialize session', e)
     }
     initController = null
+    el.initLoadingAnimation.hidden = true
+    el.btnInit.hidden = false
+    el.btnInitStop.hidden = true
 })
 
 $.click(el.btnInitStop, () => {
@@ -159,6 +167,7 @@ $.click(el.btnInitStop, () => {
 })
 
 $.click(el.btnSubmitPrompt, async () => {
+    console.log('Submitting prompt...')
     try {
         if (!session) {
             throw new Error('No session')
@@ -167,6 +176,7 @@ $.click(el.btnSubmitPrompt, async () => {
         if (!userPrompt) {
             return
         }
+        el.chatLoadingAnimation.hidden = false
         debouncedCountPromptTokens();
 
         el.promptInput.value = ''
@@ -181,6 +191,8 @@ $.click(el.btnSubmitPrompt, async () => {
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
         
         submitController = new AbortController()
+        el.btnStopPrompt.hidden = false
+        el.btnSubmitPrompt.hidden = true
         
         const assistantMessage = new Message('assistant')
         
@@ -206,6 +218,9 @@ $.click(el.btnSubmitPrompt, async () => {
     } catch (e) {
         console.error('Prompt failed:', e);
     }
+    el.btnStopPrompt.hidden = true
+    el.btnSubmitPrompt.hidden = false
+    el.chatLoadingAnimation.hidden = true
     submitController = null;
     el.promptInput.disabled = false
     el.promptInput.focus()

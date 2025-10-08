@@ -6,7 +6,7 @@
     --text-color: #fff;
     --border-color: #4a5050;
     --user-chat-background: #333537;
-    --button-bacgkround: #4a5050;
+    --button-background: #4a5050;
     --button-activated-background: #5d6464;
     --gap: 0.25em;
     --gap2: calc(var(--gap) * 2);
@@ -36,7 +36,7 @@ label {
 
 button {
     border-radius: var(--border-radius);
-    background-color: var(--button-bacgkround);
+    background-color: var(--button-background);
     border: none;
     color: var(--text-color);
     padding: 0.5em 1em;
@@ -141,4 +141,24 @@ progress {
         border-radius: var(--border-radius);
         transition: width var(--animation-speed) ease-in-out;
     }
+}
+
+/* Inspired by https://css-loaders.com/dots/ */
+.loading-animation {
+    margin: var(--gap2) 0;
+    width: 60px;
+    aspect-ratio: 2;
+    --_g: no-repeat radial-gradient(circle closest-side, var(--border-color) 90%, transparent);
+    background: 
+            var(--_g) 0%   50%,
+            var(--_g) 50%  50%,
+            var(--_g) 100% 50%;
+    background-size: calc(100%/3) 50%;
+    animation: loader-animation 1s infinite linear;
+}
+@keyframes loader-animation {
+    20%{background-position:0%   0%, 50%  50%,100%  50%}
+    40%{background-position:0% 100%, 50%   0%,100%  50%}
+    60%{background-position:0%  50%, 50% 100%,100%   0%}
+    80%{background-position:0%  50%, 50%  50%,100% 100%}
 }
