@@ -1,5 +1,5 @@
 {
-  "name": "prompt-api-extension",
+  "name": "local-browser-ai",
   "version": "1.0.0",
   "description": "A simple Browser extension for using the Prompt API.",
   "main": "background.js",

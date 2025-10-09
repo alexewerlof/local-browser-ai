@@ -1,3 +1,3 @@
 This extension does not collect, use or share any user data.
 It doesn't even track the users.
-It's an open source project and you can see the code at https://github.com/alexewerlof/prompt-api-extension.
+It's an open source project and you can see the code at https://github.com/alexewerlof/local-browser-ai.

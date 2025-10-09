@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Prompt API Extension",
+  "name": "Local Browser AI",
   "version": "1.0",
   "description": "A simple Browser extension for using the Prompt API.",
   "icons": {
@@ -10,7 +10,7 @@
   },
   "permissions": [ "sidePanel" ],
   "action": {
-    "default_title": "Open Prompt API Side Panel"
+    "default_title": "Open Local Browser AI"
   },
   "background": {
     "service_worker": "background.js",
