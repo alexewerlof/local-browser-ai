@@ -203,6 +203,7 @@ $.click(el.btnSubmitPrompt, async () => {
                 signal: submitController.signal,
                 monitor,
             })
+            el.chatLoadingAnimation.hidden = true
             for await (const chunk of stream) {
                 // console.debug(chunk)
                 assistantMessage.content += chunk
