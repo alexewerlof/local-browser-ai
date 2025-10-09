@@ -16,6 +16,17 @@
     --animation-speed: 0.2s;
 }
 
+@media (prefers-color-scheme: light) {
+    :root {
+        --background-color: #fafcff;
+        --text-color: #1b1c1d;
+        --border-color: #ccc;
+        --user-chat-background: #f0f0f0;
+        --button-background: #e0e0e0;
+        --button-activated-background: #d0d0d0;
+    }
+}
+
 html, body {
     background-color: var(--background-color);
     color: var(--text-color);
