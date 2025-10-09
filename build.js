@@ -19,6 +19,7 @@ const FILES_TO_INCLUDE = [
 
 const DIRS_TO_INCLUDE = [
     'util', // This will include all files inside the util directory
+    'images',
 ];
 
 console.log(`Creating extension package: ${OUTPUT_FILENAME}`);

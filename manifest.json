@@ -3,6 +3,11 @@
   "name": "Prompt API Extension",
   "version": "1.0",
   "description": "A simple Browser extension for using the Prompt API.",
+  "icons": {
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
   "permissions": [ "sidePanel" ],
   "action": {
     "default_title": "Open Prompt API Side Panel"
