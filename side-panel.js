@@ -27,11 +27,12 @@ const el = {
     pastChats: $.id('chat-history'),
     promptApiInit: $.id('prompt-api-init'),
     promptApiUi: $.id('prompt-api-ui'),
+    promptTokens: $.id('prompt-tokens'),
+    inputUsage: $.id('input-usage'),
+    inputQuota: $.id('input-quota'),
     promptInput: $.id('prompt-input'),
-    quotaProgress: $.id('quota-usage-progress'),
-    quotaText: $.id('quota-usage-text'),
+    usageRatio: $.id('usage-ratio'),
     sessionEstablished: $.id('session-established'),
-    usageStats: $.id('usage-stats'),
 };
 
 // --- State ---
@@ -84,10 +85,9 @@ function updateSessionTokens() {
         return;
     }
     const { inputQuota, inputUsage } = session
-    el.quotaProgress.max = inputQuota
-    el.quotaProgress.value = inputUsage
-    const remainingPercentage = ((inputQuota - inputUsage) / inputQuota) * 100
-    el.quotaText.innerText = `${inputUsage} of ${inputQuota} (${remainingPercentage.toFixed(2)}% remaining)`
+    el.inputUsage.innerText = inputUsage
+    el.inputQuota.innerText = inputQuota
+    el.usageRatio.value = inputUsage / inputQuota
 }
 
 async function countPromptTokens() {
@@ -99,7 +99,7 @@ async function countPromptTokens() {
         console.debug('Counting prompt tokens')
         const promptTokenCount = await session.measureInputUsage(userPrompt, { /* accepts a signal too */ })
         console.debug('Prompt token count:', promptTokenCount)
-        el.usageStats.innerText = `${promptTokenCount} Tokens`
+        el.promptTokens.innerText = promptTokenCount
     } catch (e) {
         console.error('Failed to count prompt tokens:', e);
     }
@@ -225,6 +225,7 @@ $.click(el.btnSubmitPrompt, async () => {
     submitController = null;
     el.promptInput.disabled = false
     el.promptInput.focus()
+    debouncedCountPromptTokens()
 });
 
 $.click(el.btnStopPrompt, () => {

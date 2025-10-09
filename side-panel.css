@@ -43,14 +43,20 @@ button {
     cursor: pointer;
     transition: background-color var(--animation-speed) ease-in-out;
     border: 1px solid var(--border-color);
+    
+    &:hover {
+        background-color: var(--button-activated-background);
+    }
 
     &.button--subtle {
         background-color: transparent;
     }
 }
 
-button:hover {
-    background-color: var(--button-activated-background);
+.button-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--gap4);
 }
 
 fieldset {
@@ -167,9 +173,20 @@ progress {
     }
 }
 
+meter {
+    width: 100%;
+    box-sizing: border-box;
+
+    &::-webkit-meter-bar {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+    }
+}
+
 /* Inspired by https://css-loaders.com/dots/ */
 .loading-animation {
-    margin: var(--gap2) 0;
+    margin: 0;
     width: 60px;
     aspect-ratio: 2;
     --_g: no-repeat radial-gradient(circle closest-side, var(--border-color) 90%, transparent);

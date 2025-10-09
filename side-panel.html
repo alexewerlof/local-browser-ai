@@ -33,20 +33,31 @@
                 <input type="range" id="option-top-k" min="1" max="128"  value="3" step="1" />
             </fieldset>
             <hr class="spacer spacer--4" />
-            <button id="init-button">Initialize</button>
-            <button id="init-stop-button" hidden>Stop</button>
-            <div id="init-loading-animation" class="loading-animation" hidden></div>
+            <div class="button-bar">
+                <div id="init-loading-animation" class="loading-animation"></div>
+                <button id="init-button">Initialize</button>
+                <button id="init-stop-button" hidden>Stop</button>
+            </div>
+            
             <progress id="download-progress" min="0" max="1" value="0"></progress>
             <span id="download-eta"></span>
         </fieldset>
         <div id="session-established" hidden>
             <div id="chat-history" class="chat-container"></div>
             <div id="chat-loading-animation" class="loading-animation" hidden></div>
-            <fieldset class="prompt-section">
-                <label for="prompt-input">Prompt</label>
+            <div class="prompt-section">
                 <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
                 <div class="prompt-controls">
-                    <div id="usage-stats">? Tokens</div>
+                    <div title="Tokens">
+                        Prompt:
+                        <span id="prompt-tokens">?</span>,
+                        Usage:
+                        <span id="input-usage">?</span>,
+                        Quota:
+                        <span id="input-quota">?</span>
+                        <br>
+                        <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>
+                    </div>
                     <div class="prompt-controls__actions">
                         <label for="option-streaming">
                             <input type="checkbox" id="option-streaming" checked />
@@ -56,9 +67,7 @@
                         <button id="stop-prompt-button" hidden>Stop</button>
                     </div>
                 </div>
-            </fieldset>
-            <progress id="quota-usage-progress" min="0" max="" value="0" title="Quota usage"></progress>
-            <span id="quota-usage-text">Updating...</span>
+            </div>
         </div>
     </div>
     <div id="log-container"></div>
