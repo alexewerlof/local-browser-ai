@@ -267,6 +267,14 @@ $.on(el.promptInput, 'keydown', (e) => {
     }
 });
 
+$.on(el.optSysPrompt, 'keydown', (e) => {
+    // Submit on Enter, allow newline with Ctrl/Cmd+Enter
+    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        el.btnInit.click();
+    }
+});
+
 $.query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
     $.click(btn, () => {
         el.promptInput.value = btn.textContent
