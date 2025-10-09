@@ -33,6 +33,7 @@ const el = {
     promptInput: $.id('prompt-input'),
     usageRatio: $.id('usage-ratio'),
     sessionEstablished: $.id('session-established'),
+    chatPlaceholder: $.id('chat-placeholder'),
 };
 
 // --- State ---
@@ -176,6 +177,7 @@ $.click(el.btnSubmitPrompt, async () => {
         if (!userPrompt) {
             return
         }
+        el.chatPlaceholder.hidden = true
         el.chatLoadingAnimation.hidden = false
         debouncedCountPromptTokens();
 
@@ -264,6 +266,13 @@ $.on(el.promptInput, 'keydown', (e) => {
         el.btnSubmitPrompt.click();
     }
 });
+
+$.query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
+    $.click(btn, () => {
+        el.promptInput.value = btn.textContent
+        el.promptInput.focus()
+    })
+})
 
 async function main() {
     const modelOptions = getModelOptions();

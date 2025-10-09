@@ -2,6 +2,10 @@ export function id(elementId) {
     return document.getElementById(elementId);
 }
 
+export function query(selector) {
+    return Array.from(document.querySelectorAll(selector))
+}
+
 export function val(elementId) {
     return id(elementId).value;
 }

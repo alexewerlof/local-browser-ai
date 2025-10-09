@@ -7,11 +7,10 @@
   <title>Local Browser AI - Side Panel</title>
 </head>
 <body>
-    <h1>
-        Local Browser AI
-    </h1>
-    <button id="reload-button">Reload</button>
-    <button id="close-button">Close</button>
+    <div class="button-bar">
+        <button id="reload-button">Reload</button>
+        <button id="close-button">Close</button>
+    </div>
     <div id="api-status">Checking availability...</div>
     <div id="prompt-api-ui" hidden>
         <fieldset id="prompt-api-init">
@@ -34,7 +33,7 @@
             </fieldset>
             <hr class="spacer spacer--4" />
             <div class="button-bar">
-                <div id="init-loading-animation" class="loading-animation"></div>
+                <div id="init-loading-animation" class="loading-animation" hidden></div>
                 <button id="init-button">Initialize</button>
                 <button id="init-stop-button" hidden>Stop</button>
             </div>
@@ -43,6 +42,15 @@
             <span id="download-eta"></span>
         </fieldset>
         <div id="session-established" hidden>
+            <div id="chat-placeholder" class="chat-placeholder">
+                <img src="images/icon-128.png" alt="Logo" />
+                <div class="chat-placeholder__welcome">How can I help you?</div>
+                <div class="chat-placeholder__prompt-suggestions">
+                    <button>What can you help me with?</button>
+                    <button>What's in your training data?</button>
+                    <button>Write a poem about AI.</button>
+                </div>
+            </div>
             <div id="chat-history" class="chat-container"></div>
             <div id="chat-loading-animation" class="loading-animation" hidden></div>
             <div class="prompt-section">
