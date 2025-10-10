@@ -24,19 +24,32 @@ const DIRS_TO_INCLUDE = [
 
 console.log(`Creating extension package: ${OUTPUT_FILENAME}`);
 
-const output = fs.createWriteStream(OUTPUT_FILENAME);
-const archive = archiver('zip', { zlib: { level: 9 } });
+async function createPackage() {
+    const output = fs.createWriteStream(OUTPUT_FILENAME);
+    const archive = archiver('zip', { zlib: { level: 9 } });
 
-output.on('close', () => {
-    console.log(`Package created successfully. Total size: ${archive.pointer()} bytes.`);
-});
+    // Handle errors on the output stream (the file system stream)
+    output.on('error', (err) => {
+        console.error(`Output stream error: ${err.message}`);
+        throw err; // Re-throw to ensure the process exits with an error
+    });
 
-archive.on('error', (err) => { throw err; });
-archive.pipe(output);
+    output.on('close', () => {
+        console.log(`Package created successfully. Total size: ${archive.pointer()} bytes.`);
+    });
 
-FILES_TO_INCLUDE.forEach(file => archive.file(file, { name: file }));
-DIRS_TO_INCLUDE.forEach(dir => archive.directory(dir, dir, {
-    globOptions: { ignore: ['**/*.test.js'] }
-}));
+    archive.on('error', (err) => {
+        console.error(`Archiver error: ${err.message}`);
+        throw err;
+    });
+    archive.pipe(output);
 
-archive.finalize();
+    FILES_TO_INCLUDE.forEach(file => archive.file(file, { name: file }));
+    DIRS_TO_INCLUDE.forEach(dir => archive.directory(dir, dir, {
+        globOptions: { ignore: ['**/*.test.js'] }
+    }));
+
+    await archive.finalize();
+}
+
+createPackage();
