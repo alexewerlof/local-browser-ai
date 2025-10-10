@@ -280,14 +280,25 @@ footer {
     margin-top: var(--gap4);
     padding-top: var(--gap4);
     text-align: center;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--primary-color);
+
+    ul {
+        margin: 0;
+        padding: var(--gap2) 0;
+        list-style: none;
+        display: flex;
+        justify-content: center;
+
+        li {
+            padding: 0 var(--gap2);
+        }
+    }
 
     .flag {
-        height: 1.1em;
-        vertical-align: middle;
+        height: 1em;
     }
 
     .logo {
-        width: 20ex;
+        width: 12ex;
     }
 }
