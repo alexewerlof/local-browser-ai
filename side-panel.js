@@ -131,6 +131,7 @@ $.click(el.btnInit, async () => {
         el.downloadEta.textContent = 'Initializing...'
         estimator = new Estimator()
         initController = new AbortController()
+        el.downloadProgress.hidden = false
         el.initLoadingAnimation.hidden = false
         el.btnInit.hidden = true
         el.btnInitStop.hidden = false

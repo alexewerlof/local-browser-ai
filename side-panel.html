@@ -34,12 +34,12 @@
             <hr class="spacer spacer--4" />
             <div class="button-bar">
                 <div id="init-loading-animation" class="loading-animation" hidden></div>
-                <button id="init-button">Initialize</button>
-                <button id="init-stop-button" hidden>Stop</button>
+                <button id="init-button" class="cta">Initialize</button>
             </div>
             
-            <progress id="download-progress" min="0" max="1" value="0"></progress>
+            <progress id="download-progress" min="0" max="1" value="0" hidden></progress>
             <span id="download-eta"></span>
+            <button id="init-stop-button" hidden>Stop</button>
         </fieldset>
         <div id="session-established" hidden>
             <div id="chat-placeholder" class="chat-placeholder">
@@ -71,13 +71,27 @@
                             <input type="checkbox" id="option-streaming" checked />
                             Streaming
                         </label>
-                        <button id="submit-prompt-button">Submit</button>
+                        <button id="submit-prompt-button" class="cta">Submit</button>
                         <button id="stop-prompt-button" hidden>Stop</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <footer>
+        <img src="images/swedish-flag.svg" alt="Swedish Flag" class="flag"> Made in Sweden by
+        <a href="https://alexewerlof.com" target="_blank">Alex Ewerlöf</a>
+        <br>
+        <a href="https://blog.alexewerlof.com/p/local-browser-ai" target="_blank">Intro</a>
+        |
+        <a href="https://github.com/alexewerlof/local-browser-ai" target="_blank">Github</a>
+        |
+        <a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a>
+        |
+        <a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank">Privacy</a>
+        <br>
+        <img src="images/logo.png" class="logo">
+    </footer>
     <div id="log-container"></div>
     <script type="module" src="side-panel.js"></script>
 </body>

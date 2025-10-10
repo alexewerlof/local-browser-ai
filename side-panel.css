@@ -14,10 +14,8 @@
     --gap4: calc(var(--gap) * 4);
     --border-radius: var(--gap4);
     --animation-speed: 0.2s;
-}
 
-@media (prefers-color-scheme: light) {
-    :root {
+    @media (prefers-color-scheme: light) {
         --background-color: #fafcff;
         --text-color: #1b1c1d;
         --border-color: #ccc;
@@ -27,12 +25,22 @@
     }
 }
 
+
 html, body {
     background-color: var(--background-color);
     color: var(--text-color);
     padding: 0;
     margin: var(--gap);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    @media (min-width: 500px) {
+        font-size: 100%;
+    }
+}
+
+a {
+    color: var(--interactive-color);
+    text-decoration: none;
 }
 
 p {
@@ -46,6 +54,7 @@ label {
 }
 
 button {
+    font-size: inherit;
     border-radius: var(--border-radius);
     background-color: var(--button-background);
     border: none;
@@ -53,14 +62,13 @@ button {
     padding: 0.5em 1em;
     cursor: pointer;
     transition: background-color var(--animation-speed) ease-in-out;
-    border: 1px solid var(--border-color);
+
+    &.cta {
+        background-color: var(--interactive-color);
+    }
     
     &:hover {
-        background-color: var(--button-activated-background);
-    }
-
-    &.button--subtle {
-        background-color: transparent;
+        background-color: color-mix(in srgb, var(--button-background), white 10%);
     }
 }
 
@@ -245,4 +253,20 @@ meter {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+}
+
+footer {
+    margin-top: var(--gap4);
+    padding-top: var(--gap4);
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+
+    .flag {
+        height: 1.1em;
+        vertical-align: middle;
+    }
+
+    .logo {
+        width: 20ex;
+    }
 }
