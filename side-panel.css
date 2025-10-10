@@ -196,6 +196,27 @@ hr {
     }
 }
 
+.stat {
+    padding-right: var(--gap);
+
+    &[title] {
+        cursor: help;
+    }
+    
+    .value {
+        color: var(--primary-color);
+    }
+
+    .unit {
+        font-style: italic;
+    }
+
+    & + & {
+        padding-left: var(--gap);
+        border-left: 1px solid var(--border-color);
+    }
+}
+
 progress {
     -webkit-appearance: none;
     appearance: none;

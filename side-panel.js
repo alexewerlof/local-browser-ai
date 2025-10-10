@@ -31,6 +31,9 @@ const el = {
     inputUsage: $.id('input-usage'),
     inputQuota: $.id('input-quota'),
     promptInput: $.id('prompt-input'),
+    tokenPerSecond: $.id('token-per-second'),
+    duration: $.id('duration'),
+    timeToFirstToken: $.id('time-to-first-token'),
     usageRatio: $.id('usage-ratio'),
     sessionEstablished: $.id('session-established'),
     chatPlaceholder: $.id('chat-placeholder'),
@@ -201,6 +204,10 @@ $.click(el.btnSubmitPrompt, async () => {
         
         el.pastChats.appendChild(assistantMessage.el)
         
+        const inputUsageBefore = session.inputUsage
+        const startTimestamp = Date.now()
+        let firstTokenTimestamp
+
         if (el.optStreaming.checked) {
             const stream = session.promptStreaming(userPrompt, {
                 signal: submitController.signal,
@@ -209,6 +216,9 @@ $.click(el.btnSubmitPrompt, async () => {
             el.chatLoadingAnimation.hidden = true
             for await (const chunk of stream) {
                 // console.debug(chunk)
+                if (!firstTokenTimestamp) {
+                    firstTokenTimestamp = Date.now()
+                }
                 assistantMessage.content += chunk
             }
         } else {
@@ -216,7 +226,22 @@ $.click(el.btnSubmitPrompt, async () => {
                 signal: submitController.signal,
                 monitor,
             })
+            firstTokenTimestamp = Date.now()
         }
+
+        const duration = Date.now() - startTimestamp
+        const inputUsage = session.inputUsage - inputUsageBefore
+        console.log('duration', duration, 'inputUsage', inputUsage)
+        el.duration.innerText = duration
+        
+        const timeToFirstToken = firstTokenTimestamp - startTimestamp
+        console.log('timeToFirstToken', timeToFirstToken)
+        el.timeToFirstToken.innerText = timeToFirstToken
+
+        const tokenPerSecond = Math.round(1000 * inputUsage / (duration - timeToFirstToken))
+        console.log('tokenPerSecond', tokenPerSecond)
+        el.tokenPerSecond.innerText = tokenPerSecond
+
         updateSessionTokens();
         console.debug('Received response', assistantMessage)
     } catch (e) {
