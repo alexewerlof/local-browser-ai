@@ -112,6 +112,7 @@ async function countPromptTokens() {
 const debouncedCountPromptTokens = debounce(countPromptTokens, 300);
 
 $.click(el.btnInit, async () => {
+    // Note: no async call can happen in this function until LanguageModel.create() is called or it'll throw!
     if (!navigator.userActivation.isActive) {
         console.log('Not active')
         return
@@ -120,15 +121,6 @@ $.click(el.btnInit, async () => {
     try {
         el.promptApiInit.disabled = true
         const modelOptions = getModelOptions()
-        el.downloadEta.textContent = 'Checking availability'
-        const availability = await LanguageModel?.availability(modelOptions)
-        // Can be "available", "unavailable", "downloadable", "downloading"
-        el.downloadEta.textContent = `Model availability: ${availability}`
-        console.log("Availability check result:", availability)
-        if (availability === 'unavailable') {
-            return
-        }
-        
         console.log('Initializing session...')
         el.downloadProgress.value = 0
         el.downloadEta.textContent = 'Initializing...'
