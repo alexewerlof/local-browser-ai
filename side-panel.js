@@ -4,6 +4,7 @@ import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
+import manifestJson from './manifest.json' with { type: 'json' };
 
 // Cache DOM elements for quick and organized access using `el` (elements).
 // This is more efficient than repeatedly querying the DOM.
@@ -37,7 +38,10 @@ const el = {
     usageRatio: $.id('usage-ratio'),
     sessionEstablished: $.id('session-established'),
     chatPlaceholder: $.id('chat-placeholder'),
+    version: $.id('version'),
 };
+
+el.version.innerText = manifestJson.version
 
 // --- State ---
 
