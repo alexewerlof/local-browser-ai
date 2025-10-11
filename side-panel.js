@@ -135,6 +135,7 @@ btnInit.click(async () => {
             console.warn('Quota overflow')
         })
         updateSessionTokens()
+        downloadStatus.hide()
         sessionEstablished.show()
         promptInput.enable().focus()
         debouncedCountPromptTokens()
