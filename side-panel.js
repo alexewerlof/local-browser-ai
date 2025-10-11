@@ -223,7 +223,7 @@ btnSubmitPrompt.click(async () => {
         console.debug('timeToFirstToken', timeToFirstToken)
         statsTimeToFirstToken.txt = timeToFirstToken
 
-        const tokenPerSecond = Math.round(1000 * inputUsageDelta / (duration - timeToFirstToken))
+        const tokenPerSecond = Math.round(1000 * inputUsageDelta / (duration))
         console.debug('tokenPerSecond', tokenPerSecond)
         tokenPerSecondStatus.txt = tokenPerSecond
 
