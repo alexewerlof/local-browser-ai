@@ -44,6 +44,9 @@ npm test
 - [Prompt API proposal](https://github.com/webmachinelearning/prompt-api/blob/main/README.md)
 - [Chrome Developer Docs for extensions: Prompt API](https://developer.chrome.com/docs/extensions/ai/prompt-api)
 - [Chrome Developer Docs: Prompt API](https://developer.chrome.com/docs/ai/prompt-api)
+- [Chrome Generative AI Privacy, Terms and Policy](https://policies.google.com/terms/generative-ai/use-policy)
+- [Chrome: Built-in AI](https://developer.chrome.com/docs/ai/built-in)
+- [Microsoft: Prompt API](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api)
 
 ---
 ---
