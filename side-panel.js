@@ -287,7 +287,7 @@ optSysPrompt.on('keydown', (e) => {
 
 query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
     btn.click(() => {
-        promptInput.val = btn.textContent
+        promptInput.val = btn.txt
         promptInput.focus()
     })
 })
