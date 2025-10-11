@@ -35,8 +35,7 @@ const usageRatio = new Wrapper('usage-ratio')
 const sessionEstablished = new Wrapper('session-established')
 const chatPlaceholder = new Wrapper('chat-placeholder')
 const version = new Wrapper('version')
-
-// --- State ---
+const downloadStatus = new Wrapper('download-status')
 
 let session
 let estimator
@@ -116,41 +115,36 @@ btnInit.click(async () => {
     }
 
     try {
-        promptApiInit.disable()
         const modelOptions = getModelOptions()
         console.log('Initializing session...')
         downloadProgress.val = 0
         downloadEta.txt = 'Initializing...'
         estimator = new Estimator()
+        console.debug('Creating session... (may require download)')
+        promptApiInit.hide()
+        downloadStatus.show()
         initController = new AbortController()
-        downloadProgress.show()
-        initLoadingAnimation.show()
-        btnInit.hide()
-        btnInitStop.show()
-        console.debug('Creating session...')
         session = await LanguageModel.create({
             ...modelOptions,
-            // It's better to keep the initializer stop signal separate from prompt() signal
             signal: initController.signal,
             monitor,
         })
         console.debug('Session initialized.')
-        promptApiInit.hide()
+        initController = null
+        on(session, 'quotaoverflow', () => {
+            console.warn('Quota overflow')
+        })
         updateSessionTokens()
         sessionEstablished.show()
         promptInput.enable().focus()
         debouncedCountPromptTokens()
-        on(session, 'quotaoverflow', () => {
-            console.warn('Quota overflow')
-        })
     } catch (e) {
         console.error('Could not initialize session', e)
+        promptApiInit.show()
+        downloadStatus.hide()
+        sessionEstablished.hide()
+        session = null
     }
-
-    initController = null
-    initLoadingAnimation.hide()
-    btnInit.show()
-    btnInitStop.hide()
 })
 
 btnInitStop.click(() => {
@@ -291,7 +285,7 @@ optSysPrompt.on('keydown', (e) => {
 })
 
 query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
-    on(btn, 'click', () => {
+    btn.click(() => {
         promptInput.val = btn.textContent
         promptInput.focus()
     })
@@ -324,11 +318,12 @@ async function main() {
     optTemp.setAttr('max', params.maxTemperature)
     // defaultTemperature
     optTemp.val = params.defaultTemperature
+    console.debug(`LanguageModel temperature default: ${params.defaultTemperature}, Max: ${params.maxTemperature}`)
     // maxTopK
     optTopK.setAttr('max', params.maxTopK)
     // defaultTopK
     optTopK.val = params.defaultTopK
-    console.debug('Params analyzed')
+    console.debug(`LanguageModel topK default: ${params.defaultTopK}, Max: ${params.maxTopK}`)
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to

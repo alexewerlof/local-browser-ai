@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="side-panel.css">
-  <link rel="stylesheet" href="util/konsol.css">
   <title>Local Browser AI - Side Panel</title>
 </head>
 <body>
@@ -34,14 +33,19 @@
             </fieldset>
             <hr class="spacer spacer--4" />
             <div class="button-bar">
-                <div id="init-loading-animation" class="loading-animation" hidden></div>
                 <button id="init-button" class="cta">Initialize</button>
             </div>
-            
-            <progress id="download-progress" min="0" max="1" value="0" hidden></progress>
-            <span id="download-eta"></span>
-            <button id="init-stop-button" hidden>Stop</button>
         </fieldset>
+
+        <div id="download-status" hidden>
+            <div id="init-loading-animation" class="loading-animation"></div>
+            <progress id="download-progress" min="0" max="1" value="0"></progress>
+            <span id="download-eta">ETA</span>
+            <div class="button-bar">
+                <button id="init-stop-button">Stop</button>
+            </div>
+        </div>
+
         <div id="session-established" hidden>
             <div id="chat-placeholder" class="chat-placeholder">
                 <img src="images/icon-128.png" alt="Logo" />
