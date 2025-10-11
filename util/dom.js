@@ -62,8 +62,12 @@ export class Wrapper {
         return this
     }
 
-    attr(name, value) {
-        this.el[name] = value
+    getAttr(name) {
+        return this.el.getAttribute(name)
+    }
+
+    setAttr(name, value) {
+        this.el.setAttribute(name, value)
         return this
     }
 
@@ -82,19 +86,23 @@ export class Wrapper {
     }
 
     hide() {
-        return this.attr('hidden', true)
+        this.el.hidden = true
+        return this
     }
 
     show() {
-        return this.attr('hidden', false)
+        this.el.hidden = false
+        return this
     }
 
     disable() {
-        return this.attr('disabled', true)
+        this.el.disabled = true
+        return this
     }
 
     enable() {
-        return this.attr('disabled', false)
+        this.el.disabled = false
+        return this
     }
 
     focus() {
@@ -102,7 +110,12 @@ export class Wrapper {
         return this
     }
 
-    text() {
-        return this.attr('innerText', value)
+    get txt() {
+        return this.el.innerText
+    }
+
+    set txt(value) {
+        this.el.innerText = value
+        return this
     }
 }
