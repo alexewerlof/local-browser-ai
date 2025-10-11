@@ -4,7 +4,6 @@ import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
-import manifestJson from './manifest.json' with { type: 'json' };
 
 // Cache DOM elements for quick and organized access using `el` (elements).
 // This is more efficient than repeatedly querying the DOM.
@@ -40,8 +39,6 @@ const el = {
     chatPlaceholder: $.id('chat-placeholder'),
     version: $.id('version'),
 };
-
-el.version.innerText = manifestJson.version
 
 // --- State ---
 
@@ -305,6 +302,9 @@ $.query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
 })
 
 async function main() {
+    const manifestJson = chrome.runtime.getManifest()
+    el.version.innerText = manifestJson.version + (manifestJson.update_url ? '' : '*')
+
     const modelOptions = getModelOptions();
     const availability = await LanguageModel?.availability(modelOptions);
     console.debug('Availability:', availability)
