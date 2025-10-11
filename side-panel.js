@@ -161,7 +161,7 @@ $.click(el.btnInit, async () => {
 
 $.click(el.btnInitStop, () => {
     if (initController) {
-        console.debug('Stopping init')
+        console.log('Stopping init')
         initController.abort('User stopped init');
     }
     initController = null;
