@@ -13,7 +13,7 @@ This is the source code for [Local Browser AI](https://chromewebstore.google.com
 # Install
 
 - [Chrome Web Store](https://chromewebstore.google.com/detail/local-browser-ai/pdpikolagglmoahkmobpmloimhakkjmd)
-- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/becnhbaccnhaalnanlhjjboijablgjgj)
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/local-browser-ai/becnhbaccnhaalnanlhjjboijablgjgj)
 - For development, head over to [chrome://extensions/](chrome://extensions/) and click **`Load unpacked`** and point to where you have cloned this repo.
 
 ## Hardware requirements
