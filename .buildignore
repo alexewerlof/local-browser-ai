@@ -1,0 +1,24 @@
+# This file contains patterns for files and directories to exclude from the build package.
+# Lines starting with # are comments.
+
+# Ignore the build script itself
+build.js
+
+# Ignore build output
+*.zip
+
+# Ignore node-specific files
+**/*.test.js
+node_modules/**
+package.json
+package-lock.json
+
+# Ignore vs code files
+.vscode/**
+
+# Ignore development files and folders
+screenshots/**
+**/*.xcf
+.gitignore
+*.md
+AGENTS.md
