@@ -1,24 +1,23 @@
 import { MarkdownIt } from '../vendor/markdown-it.js'
-import { h, Wrapper } from './dom.js'
+import { createEl, Wrapper } from './dom.js'
 const md2html = MarkdownIt()
 
 const VALID_ROLES = ['assistant', 'user', 'system']
 
 export class Message extends Wrapper {
     constructor(role, content = '') {
-        super(h('div', {
-            class: [
-                'chat-container__chat',
-                `chat-container__chat--${role}`
-            ].join(' ')
-        }))
+        super(createEl('div'))
+        this.addClass(
+            'chat-container__chat',
+            `chat-container__chat--${role}`
+        )
 
-        this.role = role;
-        this.content = content;
+        this.role = role
+        this.content = content
     }
 
     get role() {
-        return this._role;
+        return this._role
     }
 
     set role(value) {
@@ -30,7 +29,7 @@ export class Message extends Wrapper {
     }
 
     get content() {
-        return this._content;
+        return this._content
     }
 
     set content(value) {

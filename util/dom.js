@@ -2,25 +2,16 @@ export function id(elementId) {
     return document.getElementById(elementId)
 }
 
+export function createEl(tagName) {
+    return document.createElement(tagName)
+}
+
 export function query(selector) {
     return Array.from(document.querySelectorAll(selector)).map(el => new Wrapper(el))
 }
 
 export function on(target, eventName, handler) {
     return target.addEventListener(eventName, handler)
-}
-
-export function h(tagName, attributes, ...children) {
-    const el = document.createElement(tagName)
-    if (attributes) {
-        for (const [key, value] of Object.entries(attributes)) {
-            el.setAttribute(key, value)
-        }
-    }
-    for (const child of children) {
-        el.appendChild(typeof child === 'string' ? text(child) : child)
-    }
-    return el
 }
 
 function unwrap(obj) {
@@ -63,6 +54,16 @@ export class Wrapper {
 
     setAttr(name, value) {
         this.el.setAttribute(name, value)
+        return this
+    }
+
+    addClass(...classNames) {
+        this.el.classList.add(...classNames)
+        return this
+    }
+
+    rmClass(...classNames) {
+        this.el.classList.remove(...classNames)
         return this
     }
 
