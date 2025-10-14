@@ -6,8 +6,7 @@
   "scripts": {
     "build": "npm t & node build.js",
     "test": "node --test",
-    "preversion": "npm t",
-    "postversion": "npm t"
+    "preversion": "npm t"
   },
   "keywords": [],
   "author": "",
