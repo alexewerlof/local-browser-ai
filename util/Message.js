@@ -1,5 +1,6 @@
-import { md2html } from './markdown.js';
+import { MarkdownIt } from '../vendor/markdown-it.js'
 import * as $ from './dom.js'
+const md2html = MarkdownIt()
 
 const VALID_ROLES = ['assistant', 'user', 'system']
 
@@ -38,7 +39,7 @@ export class Message {
         }
 
         this._content = value
-        this.el.innerHTML = md2html(value)
+        this.el.innerHTML = md2html.render(value)
     }
 
     toJSON() {

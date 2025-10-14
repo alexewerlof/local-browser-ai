@@ -39,6 +39,16 @@ We use the Node.js native testing framework.
 npm test
 ```
 
+## Dependency management
+
+We use npm as a package manager but since we don't want to build the entire code base (currently at least),
+the packages are exported to the `vendors` directory and updated using [update-vendors.js].
+
+It's a bit unconventional, I know, but it's my code base and I'm experimenting with tooling.
+
+The idea is for the main application code to go to the browser as is without any transformation.
+We'll see where we end up. 🙂
+
 ## References
 
 - [Prompt API proposal](https://github.com/webmachinelearning/prompt-api/blob/main/README.md)

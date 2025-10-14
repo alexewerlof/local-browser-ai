@@ -3,6 +3,7 @@
 
 # Ignore the build script itself
 build.js
+update-vendors.js
 
 # Ignore build output
 *.zip
