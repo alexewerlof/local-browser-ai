@@ -10,6 +10,23 @@ This is the source code for [Local Browser AI](https://chromewebstore.google.com
 
 👉 [Read the announcement **here**](https://blog.alexewerlof.com/p/local-browser-ai).
 
+# Metrics
+
+Inference timestamps:
+
+* `TStart`: timestamp of starting the inference
+* `TFirstTok`: timestamp of receiving the first token (when not streaming, it's equal to `TD`)
+* `TEnd`: timestamp of ending the inference (including if it was interrupted)
+
+Inference durations:
+
+| Duration | Streaming                  | Not Streaming        | Description                                |
+|:---------|:---------------------------|:---------------------|:-------------------------------------------|
+| `TD`     | `TD = TEnd - TStart`       | `TD = TEnd - TStart` | Total duration of inference.               |
+| `TTFT`   | `TTFT = TFirstTok - TStart`| `TD`                 | Time to first token.                       |
+| `ID`     | `TEnd - TFirstTok`         | `TD`                 | The total time it took to generate tokens. |
+| `TPS`    | `T / ID`                   | `T / ID`             | Tokens per second (during `ID`, not `TD`). |
+
 # Install
 
 - [Chrome Web Store](https://chromewebstore.google.com/detail/local-browser-ai/pdpikolagglmoahkmobpmloimhakkjmd)

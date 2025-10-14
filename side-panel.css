@@ -22,6 +22,10 @@
         --user-chat-background: #f0f0f0;
         --button-background: #e0e0e0;
         --button-activated-background: #d0d0d0;
+
+        button:hover {
+            filter: brightness(85%);
+        }
     }
 }
 
@@ -65,14 +69,15 @@ button {
     color: var(--text-color);
     padding: 0.5em 1em;
     cursor: pointer;
-    transition: background-color var(--animation-speed) ease-in-out;
+    transition: filter var(--animation-speed) ease-in-out;
 
     &.cta {
         background-color: var(--interactive-color);
     }
     
     &:hover {
-        background-color: color-mix(in srgb, var(--button-background), white 10%);
+        filter: brightness(125%);
+        box-shadow: 0 0 var(--gap2) 0 var(--interactive-color);
     }
 }
 
@@ -148,15 +153,35 @@ hr {
 
 .prompt-controls {
     display: flex;
+    align-items: center;
+    gap: var(--gap4);
+
+    .prompt-token-count {
+        flex-grow: 1;
+    }
+}
+
+.prompt-stats {
+    display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--gap4);
 }
 
-.prompt-controls__actions {
-    display: flex;
-    align-items: center;
-    gap: var(--gap4);
+.stat {
+    padding-right: var(--gap);
+
+    &[title] {
+        cursor: help;
+    }
+    
+    .value {
+        color: var(--primary-color);
+    }
+
+    .unit {
+        font-style: italic;
+    }
 }
 
 .chat-placeholder {
@@ -213,27 +238,6 @@ hr {
     }
 }
 
-.stat {
-    padding-right: var(--gap);
-
-    &[title] {
-        cursor: help;
-    }
-    
-    .value {
-        color: var(--primary-color);
-    }
-
-    .unit {
-        font-style: italic;
-    }
-
-    & + & {
-        padding-left: var(--gap);
-        border-left: 1px solid var(--border-color);
-    }
-}
-
 progress {
     -webkit-appearance: none;
     appearance: none;
@@ -270,7 +274,7 @@ meter {
 /* Inspired by https://css-loaders.com/dots/ */
 .loading-animation {
     margin: 0;
-    width: 60px;
+    width: 3em;
     aspect-ratio: 2;
     --_g: no-repeat radial-gradient(circle closest-side, var(--border-color) 90%, transparent);
     background: 

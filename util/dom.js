@@ -140,4 +140,13 @@ export class Wrapper {
         this.el.innerHTML = value
         return this
     }
+
+    get title() {
+        return this.el.title
+    }
+
+    set title(value) {
+        this.el.title = value
+        return this
+    }
 }

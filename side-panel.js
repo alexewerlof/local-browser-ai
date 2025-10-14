@@ -25,17 +25,22 @@ const pastChats = new Wrapper('chat-history')
 const promptApiInit = new Wrapper('prompt-api-init')
 const promptApiUi = new Wrapper('prompt-api-ui')
 const promptTokens = new Wrapper('prompt-tokens')
-const inputUsageStatus = new Wrapper('input-usage')
-const inputQuotaStatus = new Wrapper('input-quota')
 const promptInput = new Wrapper('prompt-input')
 const tokenPerSecondStatus = new Wrapper('token-per-second')
 const durationStatus = new Wrapper('duration')
+const promptStats = new Wrapper('prompt-stats')
 const statsTimeToFirstToken = new Wrapper('time-to-first-token')
+const statsInferenceDuration = new Wrapper('inference-duration')
 const usageRatio = new Wrapper('usage-ratio')
 const sessionEstablished = new Wrapper('session-established')
 const chatPlaceholder = new Wrapper('chat-placeholder')
 const version = new Wrapper('version')
 const downloadStatus = new Wrapper('download-status')
+
+optSysPrompt.val = [
+    'You are a funny joke teller who uses markdown format like bold, italic, bullet points, etc.',
+    'Use lots of emojis as appropriate.',
+].join('\n')
 
 let session
 let estimator
@@ -85,9 +90,9 @@ function updateSessionTokens() {
         return
     }
     const { inputQuota, inputUsage } = session
-    inputUsageStatus.txt = inputUsage
-    inputQuotaStatus.txt = inputQuota
     usageRatio.val = inputUsage / inputQuota
+    const remainingPercent = Math.round(100 * (inputQuota - inputUsage) / inputQuota)
+    usageRatio.title = `Used: ${ inputUsage } of ${ inputQuota } tokens. Remaining: ${remainingPercent}%`
 }
 
 async function countPromptTokens() {
@@ -193,15 +198,18 @@ btnSubmitPrompt.onClick(async () => {
         pastChats.append(assistantMessage)
         
         const inputUsageBefore = session.inputUsage
-        const startTimestamp = Date.now()
         let firstTokenTimestamp
-
-        if (optStreaming.el.checked) {
+        
+        const isStreaming = optStreaming.el.checked
+        console.debug('Streaming:', isStreaming)
+        
+        promptStats.hide()
+        const startTimestamp = Date.now()
+        if (isStreaming) {
             const stream = session.promptStreaming(userPrompt, {
                 signal: submitController.signal,
                 monitor,
             })
-            chatLoadingAnimation.hide()
             for await (const chunk of stream) {
                 // console.debug(chunk)
                 if (!firstTokenTimestamp) {
@@ -214,21 +222,26 @@ btnSubmitPrompt.onClick(async () => {
                 signal: submitController.signal,
                 monitor,
             })
-            firstTokenTimestamp = Date.now()
         }
+        const endTimestamp = Date.now()
 
-        const duration = Date.now() - startTimestamp
         const inputUsageDelta = session.inputUsage - inputUsageBefore
-        console.debug('duration', duration, 'inputUsage Delta', inputUsageDelta)
-        durationStatus.txt = duration
-        
-        const timeToFirstToken = firstTokenTimestamp - startTimestamp
+
+        const totDuration = endTimestamp - startTimestamp
+        durationStatus.txt = totDuration
+
+        const timeToFirstToken = isStreaming ? firstTokenTimestamp - startTimestamp : totDuration
         console.debug('timeToFirstToken', timeToFirstToken)
         statsTimeToFirstToken.txt = timeToFirstToken
+        
+        const inferenceDuration = isStreaming ? endTimestamp - firstTokenTimestamp : totDuration
+        console.debug('Inference Duration', inferenceDuration)
+        statsInferenceDuration.txt = inferenceDuration
 
-        const tokenPerSecond = Math.round(1000 * inputUsageDelta / (duration))
+        const tokenPerSecond = Math.round(1000 * inputUsageDelta / inferenceDuration)
         console.debug('tokenPerSecond', tokenPerSecond)
         tokenPerSecondStatus.txt = tokenPerSecond
+        promptStats.show()
 
         updateSessionTokens()
         console.debug('Received response', assistantMessage)
@@ -240,7 +253,7 @@ btnSubmitPrompt.onClick(async () => {
     btnStopPrompt.hide()
     btnSubmitPrompt.show()
     chatLoadingAnimation.hide()
-    promptInput.focus().enable()
+    promptInput.enable().focus()
     debouncedCountPromptTokens()
 })
 
@@ -262,6 +275,7 @@ btnClone.onClick(async () => {
     session = await session.clone()
     console.timeEnd('Session Clone')
     btnClone.hide()
+    promptStats.hide()
     pastChats.empty()
     updateSessionTokens()
     promptInput.focus().val = ''

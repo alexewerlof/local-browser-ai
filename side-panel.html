@@ -23,7 +23,7 @@
                 <option value="ja">Japanese</option>
             </select>
             <label for="option-system-prompt">System Prompt</label>
-            <textarea id="option-system-prompt">You are a funny joke teller</textarea>
+            <textarea id="option-system-prompt" rows="10"></textarea>
             <br>
             <fieldset>
                 <legend>Options</legend>
@@ -59,33 +59,33 @@
             </div>
             <div id="chat-history" class="chat-container"></div>
             <div id="chat-loading-animation" class="loading-animation" hidden></div>
+            <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>
             <div class="prompt-section">
                 <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
                 <div class="prompt-controls">
-                    <div title="Tokens">
-                        <span class="stat" title="Prompt Tokens">
-                            Prompt
-                            <span id="prompt-tokens" class="value">?</span>
-                            <span class="unit">tok</span>
-                        </span>
-                        <span class="stat" title="Input Usage and Quota">
-                            Usage
-                            <span id="input-usage" class="value">?</span>
-                            of
-                            <span id="input-quota" class="value">?</span>
-                            <span class="unit">tok</span>
-                        </span>
-                        <br>
-                        <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>
-                        <br>
-                        <span class="stat" title="Duration">
-                            D
-                            <span id="duration" class="value">?</span>
+                    <span class="stat prompt-token-count" title="Prompt Tokens">
+                        Prompt
+                        <output id="prompt-tokens" for="prompt-input" class="value">?</output>
+                        <span class="unit">tok</span>
+                    </span>
+                    <label for="option-streaming">
+                        <input type="checkbox" id="option-streaming" checked />
+                        Streaming
+                    </label>
+                    <button id="submit-prompt-button" class="cta">Submit</button>
+                    <button id="stop-prompt-button" hidden>Stop</button>
+                </div>
+                <hr class="spacer spacer--4" />
+                <div id="prompt-stats" hidden>
+                    <div title="Tokens" class="prompt-stats" hidden>
+                        <span class="stat" title="Time to first token">
+                            TTFT
+                            <span id="time-to-first-token" class="value">?</span>
                             <span class="unit">ms</span>
                         </span>
                         <span class="stat" title="Time to first token">
-                            TTF
-                            <span id="time-to-first-token" class="value">?</span>
+                            Inference
+                            <span id="inference-duration" class="value">?</span>
                             <span class="unit">ms</span>
                         </span>
                         <span class="stat" title="Token/s">
@@ -93,14 +93,11 @@
                             <span id="token-per-second" class="value">?</span>
                             <span class="unit">tok/s</span>
                         </span>
-                    </div>
-                    <div class="prompt-controls__actions">
-                        <label for="option-streaming">
-                            <input type="checkbox" id="option-streaming" checked />
-                            Streaming
-                        </label>
-                        <button id="submit-prompt-button" class="cta">Submit</button>
-                        <button id="stop-prompt-button" hidden>Stop</button>
+                        <span class="stat" title="Duration">
+                            Duration
+                            <span id="duration" class="value">?</span>
+                            <span class="unit">ms</span>
+                        </span>
                     </div>
                 </div>
             </div>
