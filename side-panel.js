@@ -96,8 +96,9 @@ async function countPromptTokens() {
     }
     try {
         const userPrompt = promptInput.val
-        console.debug('Counting prompt tokens')
+        console.time('Counting prompt tokens')
         const promptTokenCount = await session.measureInputUsage(userPrompt, { /* accepts a signal too */ })
+        console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
         promptTokens.txt = promptTokenCount
     } catch (e) {
@@ -124,11 +125,13 @@ btnInit.onClick(async () => {
         promptApiInit.hide()
         downloadStatus.show()
         initController = new AbortController()
+        console.time('LanguageModel.create()')
         session = await LanguageModel.create({
             ...modelOptions,
             signal: initController.signal,
             monitor,
         })
+        console.timeEnd('LanguageModel.create()')
         console.debug('Session initialized.')
         initController = null
         on(session, 'quotaoverflow', () => {
@@ -318,7 +321,9 @@ async function main() {
     }
 
     const modelOptions = getModelOptions()
+    console.time('LanguageModel.availability()')
     const availability = await LanguageModel?.availability(modelOptions)
+    console.timeEnd('LanguageModel.availability()')
     console.debug('Availability:', availability)
 
     if (!availability) {
@@ -336,9 +341,8 @@ async function main() {
     optSysPrompt.focus()
 
     const params = await LanguageModel.params()
-    console.debug('LanguageModel params:')
-    console.debug(`Temperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
-    console.debug(`Top K: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
+    console.debug(`\tTemperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
+    console.debug(`\tTop K: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
 
     // maxTemperature
     optTemp.setAttr('max', params.maxTemperature)
@@ -348,7 +352,6 @@ async function main() {
     optTopK.setAttr('max', params.maxTopK)
     // defaultTopK
     optTopK.val = params.defaultTopK
-    console.debug(`LanguageModel topK default: ${params.defaultTopK}, Max: ${params.maxTopK}`)
     return ''
 }
 
