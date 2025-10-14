@@ -14,7 +14,6 @@ const btnStopPrompt = new Wrapper('stop-prompt-button')
 const btnSubmitPrompt = new Wrapper('submit-prompt-button')
 const downloadEta = new Wrapper('download-eta')
 const downloadProgress = new Wrapper('download-progress')
-const initLoadingAnimation = new Wrapper('init-loading-animation')
 const chatLoadingAnimation = new Wrapper('chat-loading-animation')
 const optLang = new Wrapper('option-language')
 const optStreaming = new Wrapper('option-streaming')
@@ -296,6 +295,10 @@ async function main() {
     const manifestJson = chrome.runtime.getManifest()
     version.txt = manifestJson.version + (manifestJson.update_url ? '' : '*')
 
+    if (typeof globalThis.LanguageModel !== 'function') {
+        return `LanguageModel is not supported in this environment.`
+    }
+
     const modelOptions = getModelOptions()
     const availability = await LanguageModel?.availability(modelOptions)
     console.debug('Availability:', availability)
@@ -325,12 +328,13 @@ async function main() {
     // defaultTopK
     optTopK.val = params.defaultTopK
     console.debug(`LanguageModel topK default: ${params.defaultTopK}, Max: ${params.maxTopK}`)
+    return ''
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to
 // wait for DOMContentLoaded. The script will execute after the DOM is parsed.
 try {
-    await main()
+    apiStatus.txt = await main()
 } catch (e) {
-    apiStatus.txt = String(e)
+    apiStatus.txt = `Error: ${e}`
 }
