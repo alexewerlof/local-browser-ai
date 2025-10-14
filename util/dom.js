@@ -71,7 +71,7 @@ export class Wrapper {
         return this
     }
 
-    click(handler) {
+    onClick(handler) {
         return this.on('click', handler)
     }
 
@@ -102,6 +102,11 @@ export class Wrapper {
 
     focus() {
         this.el.focus()
+        return this
+    }
+
+    click() {
+        this.el.click()
         return this
     }
 

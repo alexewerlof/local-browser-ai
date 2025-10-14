@@ -107,7 +107,7 @@ async function countPromptTokens() {
 
 const debouncedCountPromptTokens = debounce(countPromptTokens, 300)
 
-btnInit.click(async () => {
+btnInit.onClick(async () => {
     // Note: no async call can happen in this function until LanguageModel.create() is called or it'll throw!
     if (!navigator.userActivation.isActive) {
         console.log('Not active')
@@ -148,7 +148,7 @@ btnInit.click(async () => {
     }
 })
 
-btnInitStop.click(() => {
+btnInitStop.onClick(() => {
     if (initController) {
         console.log('Stopping init')
         initController.abort('User stopped init')
@@ -156,7 +156,7 @@ btnInitStop.click(() => {
     initController = null
 })
 
-btnSubmitPrompt.click(async () => {
+btnSubmitPrompt.onClick(async () => {
     console.log('Submitting prompt...')
     try {
         if (!session) {
@@ -241,7 +241,7 @@ btnSubmitPrompt.click(async () => {
     debouncedCountPromptTokens()
 })
 
-btnStopPrompt.click(() => {
+btnStopPrompt.onClick(() => {
     if (submitController) {
         console.debug('Stopping prompt')
         submitController.abort('User stopped prompt')
@@ -252,7 +252,7 @@ btnStopPrompt.click(() => {
     }
 })
 
-btnClone.click(async () => {
+btnClone.onClick(async () => {
     console.debug('New session')
     btnClone.disable()
     console.time('Session Clone')
@@ -277,12 +277,12 @@ on(window, 'unhandledrejection', (e) => {
     console.error('unhandledrejection', e)
 })
 
-btnReload.click(() => {
+btnReload.onClick(() => {
     console.debug('Reloading...')
     location.reload()
 })
 
-btnClose.click(() => {
+btnClose.onClick(() => {
     window.close()
 })
 
@@ -290,7 +290,7 @@ promptInput.on('keydown', (e) => {
     // Submit on Enter, allow newline with Ctrl/Cmd+Enter
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault()
-        btnSubmitPrompt.el.click()
+        btnSubmitPrompt.click()
     }
 })
 
@@ -298,12 +298,12 @@ optSysPrompt.on('keydown', (e) => {
     // Submit on Enter, allow newline with Ctrl/Cmd+Enter
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault()
-        btnInit.el.click()
+        btnInit.click()
     }
 })
 
 query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
-    btn.click(() => {
+    btn.onClick(() => {
         promptInput.val = btn.txt
         promptInput.focus()
     })
