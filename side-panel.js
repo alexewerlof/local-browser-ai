@@ -175,7 +175,7 @@ btnSubmitPrompt.click(async () => {
 
         console.debug('Sending prompt')
         const userMessage = new Message('user', userPrompt)
-        pastChats.el.appendChild(userMessage.el)
+        pastChats.append(userMessage)
 
         downloadProgress.val = 0
         downloadEta.txt = ''
@@ -187,7 +187,7 @@ btnSubmitPrompt.click(async () => {
         
         const assistantMessage = new Message('assistant')
         
-        pastChats.el.appendChild(assistantMessage.el)
+        pastChats.append(assistantMessage)
         
         const inputUsageBefore = session.inputUsage
         const startTimestamp = Date.now()

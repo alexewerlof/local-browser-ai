@@ -23,6 +23,19 @@ export function h(tagName, attributes, ...children) {
     return el
 }
 
+function unwrap(obj) {
+    if (!obj || typeof obj !== 'object') {
+        throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
+    }
+    if (obj instanceof Wrapper) {
+        return obj.el
+    }
+    if (obj instanceof HTMLElement) {
+        return obj
+    }
+    throw new TypeError(`Only Wrapper or HTMLElement descendants can be unwrapped. Got ${obj} (${typeof obj})}`)
+}
+
 export class Wrapper {
     constructor(ref) {
         if (typeof ref !== 'string' && !(ref instanceof HTMLElement)) {
@@ -97,12 +110,28 @@ export class Wrapper {
         return this
     }
 
+    append(...children) {
+        for (const child of children) {
+            this.el.appendChild(unwrap(child))
+        }
+        return this
+    }
+
     get txt() {
         return this.el.innerText
     }
 
     set txt(value) {
         this.el.innerText = value
+        return this
+    }
+
+    get html() {
+        return this.el.innerHTML
+    }
+
+    set html(value) {
+        this.el.innerHTML = value
         return this
     }
 }

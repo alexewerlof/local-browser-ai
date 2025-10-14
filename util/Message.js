@@ -1,17 +1,17 @@
 import { MarkdownIt } from '../vendor/markdown-it.js'
-import * as $ from './dom.js'
+import { h, Wrapper } from './dom.js'
 const md2html = MarkdownIt()
 
 const VALID_ROLES = ['assistant', 'user', 'system']
 
-export class Message {
+export class Message extends Wrapper {
     constructor(role, content = '') {
-        this.el = $.h('div', {
+        super(h('div', {
             class: [
                 'chat-container__chat',
                 `chat-container__chat--${role}`
             ].join(' ')
-        })
+        }))
 
         this.role = role;
         this.content = content;
@@ -39,7 +39,7 @@ export class Message {
         }
 
         this._content = value
-        this.el.innerHTML = md2html.render(value)
+        this.html = md2html.render(value)
     }
 
     toJSON() {
