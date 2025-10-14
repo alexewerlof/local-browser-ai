@@ -6,6 +6,7 @@ import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
 
 const apiStatus = new Wrapper('api-status')
+const btnClone = new Wrapper('new-session-button')
 const btnInit = new Wrapper('init-button')
 const btnInitStop = new Wrapper('init-stop-button')
 const btnClose = new Wrapper('close-button')
@@ -228,6 +229,7 @@ btnSubmitPrompt.click(async () => {
 
         updateSessionTokens()
         console.debug('Received response', assistantMessage)
+        btnClone.show()
     } catch (e) {
         console.error('Prompt failed:', e)
     }
@@ -244,9 +246,25 @@ btnStopPrompt.click(() => {
         console.debug('Stopping prompt')
         submitController.abort('User stopped prompt')
         submitController = null
+        btnClone.show()
     } else {
         console.debug('No abort signal exists')
     }
+})
+
+btnClone.click(async () => {
+    console.debug('New session')
+    btnClone.disable()
+    console.time('Session Clone')
+    session = await session.clone()
+    console.timeEnd('Session Clone')
+    btnClone.hide()
+    pastChats.empty()
+    updateSessionTokens()
+    promptInput.focus().val = ''
+    debouncedCountPromptTokens()
+    chatPlaceholder.show()
+    btnClone.enable()
 })
 
 promptInput.on('input', debouncedCountPromptTokens)

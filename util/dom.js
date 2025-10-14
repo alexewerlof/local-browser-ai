@@ -92,6 +92,11 @@ export class Wrapper {
         return this
     }
 
+    empty() {
+        this.el.innerHTML = ''
+        return this
+    }
+
     get txt() {
         return this.el.innerText
     }
