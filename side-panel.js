@@ -318,11 +318,14 @@ async function main() {
     optSysPrompt.focus()
 
     const params = await LanguageModel.params()
+    console.debug('LanguageModel params:')
+    console.debug(`Temperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
+    console.debug(`Top K: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
+
     // maxTemperature
     optTemp.setAttr('max', params.maxTemperature)
     // defaultTemperature
     optTemp.val = params.defaultTemperature
-    console.debug(`LanguageModel temperature default: ${params.defaultTemperature}, Max: ${params.maxTemperature}`)
     // maxTopK
     optTopK.setAttr('max', params.maxTopK)
     // defaultTopK
