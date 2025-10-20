@@ -9,9 +9,17 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
-  "permissions": [ "sidePanel" ],
+  "permissions": [
+    "sidePanel",
+    "scripting",
+    "activeTab",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
-    "default_title": "Open Local Browser AI"
+    "default_title": "Toggle Local Browser AI"
   },
   "background": {
     "service_worker": "background.js",

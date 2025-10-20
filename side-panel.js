@@ -4,6 +4,7 @@ import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
+import { html2markdown } from './markdown.js'
 
 const apiStatus = new Wrapper('api-status')
 const btnClone = new Wrapper('new-session-button')
@@ -142,6 +143,11 @@ btnInit.onClick(async () => {
         on(session, 'quotaoverflow', () => {
             console.warn('Quota overflow')
         })
+        const port = chrome.runtime.connect({ name: 'side-panel' })
+        // Notify the background script that the side panel is ready.
+        port.postMessage({ type: 'side-panel-ready' })
+        port.onMessage.addListener(onPortMessage)
+
         updateSessionTokens()
         downloadStatus.hide()
         sessionEstablished.show()
@@ -256,6 +262,34 @@ btnSubmitPrompt.onClick(async () => {
     promptInput.enable().focus()
     debouncedCountPromptTokens()
 })
+
+async function onPortMessage(message) {
+    console.debug('Received message from port:', JSON.stringify(message, null, 2))
+    if (message.command !== 'add') {
+        console.log('Unknown command:', message.command)
+        return
+    }
+    if (!session) {
+        console.log(`No session to append: "${message}"`)
+        return
+    }
+    try {
+        const content = message.format === 'text' ? message.payload : html2markdown(message.payload)
+        console.log(content)
+        console.time('session.append()')
+        await session.append([
+            msg.user(content),
+        ])
+        console.timeEnd('session.append()')
+        updateSessionTokens()
+        console.log('Appended message successfully')
+    } catch (error) {
+        if (error instanceof QuotaExceededError) {
+            alert('Too large to add to this session.')
+        }
+        console.log(error)
+    }
+}
 
 btnStopPrompt.onClick(() => {
     if (submitController) {
