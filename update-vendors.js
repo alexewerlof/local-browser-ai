@@ -5,7 +5,7 @@ import packageJson from './package.json' with { type: 'json' }
 const CONFIG_KEY = '_vendor'
 const VENDOR_DIR = 'vendor'
 
-console.log(`Updating vendors for: ${packageJson.name}`)
+const resolveDir = process.cwd()
 
 function normalizedConfig(name, config) {
     if (typeof name !== 'string') {
@@ -25,7 +25,7 @@ function normalizedConfig(name, config) {
             }
         case 'object': {
             const what = config.what || '*'
-            const where = config.from || `'${name}'`
+            const where = config.where || name
             return {
                 contents: `export ${what} from '${where}'`,
                 define: config.define || {},
@@ -43,7 +43,7 @@ function getConfig(name) {
         define,
         stdin: {
             contents,
-            resolveDir: process.cwd(),
+            resolveDir,
             loader: 'js',
         },
         outfile: join(VENDOR_DIR, `${name}.js`),
@@ -51,8 +51,7 @@ function getConfig(name) {
 }
 
 const dependencies = Object.keys(packageJson.dependencies)
-console.log('Updating vendors for:', packageJson.name)
-console.log('Dependencies:', dependencies.join(', '))
+console.log(`Updating ${VENDOR_DIR} for ${dependencies.length} deps: ${dependencies.join(', ')}`)
 
 try {
     console.time('Build')

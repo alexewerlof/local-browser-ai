@@ -4,6 +4,8 @@
   "description": "A simple Browser extension for using the Prompt API.",
   "main": "background.js",
   "scripts": {
+    "update-vendors": "node update-vendors.js",
+    "postinstall": "npm run update-vendors",
     "build": "npm t & node build.js",
     "test": "node --test",
     "preversion": "npm t"
