@@ -381,14 +381,14 @@ async function main() {
     console.debug('Availability:', availability)
 
     if (!availability) {
-        throw new Error('LanguageModel is not available in your browser.')
+        throw new Error('LanguageModel is not supported in your browser.')
     }
 
-    apiStatus.txt = ''
+    apiStatus.hide().txt = 'LanguageModel is supported in your browser.'
 
     // Can be "available", "unavailable", "downloadable", "downloading"
     if (availability === 'unavailable') {
-        throw new Error('The selection options are not available')
+        throw new Error('The selected options are not supported')
     }
 
     promptApiUi.show()
