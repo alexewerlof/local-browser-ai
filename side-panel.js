@@ -5,6 +5,7 @@ import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
 import { html2markdown } from './markdown.js'
+import { sidePanelPortName } from './config.js'
 
 const apiStatus = new Wrapper('api-status')
 const btnClone = new Wrapper('new-session-button')
@@ -151,10 +152,10 @@ btnInit.onClick(async () => {
         on(session, 'quotaoverflow', () => {
             console.warn('Quota overflow')
         })
-        const port = chrome.runtime.connect({ name: 'side-panel' })
+        const port = chrome.runtime.connect({ name: sidePanelPortName })
         console.debug('Established communication port')
         // Notify the background script that the side panel is ready.
-        port.postMessage({ type: 'side-panel-ready' })
+        port.postMessage({ command: 'side-panel-ready' })
         port.onMessage.addListener(onPortMessage)
 
         updateSessionTokens()

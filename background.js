@@ -1,11 +1,6 @@
-const extensionName = chrome.runtime.getManifest().name
+import { contextMenuIds, sidePanelPortName } from './config.js'
 
-const contextMenuIds = {
-    sendSelection: 'send-selection',
-    sendPage: 'send-page',
-    showSideBar: 'show-side-bar',
-    initialized: 'language-model-initialized',
-}
+const extensionName = chrome.runtime.getManifest().name
 
 let sidePanelPort = null
 
@@ -116,12 +111,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 })
 
 chrome.runtime.onConnect.addListener((port) => {
-    if (port.name === 'side-panel') {
+    if (port.name === sidePanelPortName) {
         sidePanelPort = port
         console.log('Side panel has connected.')
 
-        sidePanelPort.onMessage.addListener(async (msg) => {
-            if (msg.type === 'side-panel-ready') {
+        sidePanelPort.onMessage.addListener(async (message) => {
+            if (message.command === 'side-panel-ready') {
                 await canSend(true)
                 console.log('Side panel is ready. Context menu enabled.')
             }
