@@ -19,9 +19,14 @@
     "esbuild": "^0.25.10"
   },
   "dependencies": {
-    "markdown-it": "^14.1.0"
+    "markdown-it": "^14.1.0",
+    "turndown": "^7.2.1"
   },
   "_vendor": {
-    "markdown-it": "{ default as MarkdownIt }"
+    "markdown-it": "{ default as MarkdownIt }",
+    "turndown": {
+      "what": "{ default as TurndownService }",
+      "where": "turndown"
+    }
   }
 }
