@@ -5,7 +5,7 @@ import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
 import { html2markdown } from './markdown.js'
-import { sidePanelPortName } from './config.js'
+import { defaultSystemPrompt, sidePanelPortName } from './config.js'
 
 const apiStatus = new Wrapper('api-status')
 const btnClone = new Wrapper('new-session-button')
@@ -39,10 +39,7 @@ const chatPlaceholder = new Wrapper('chat-placeholder')
 const version = new Wrapper('version')
 const downloadStatus = new Wrapper('download-status')
 
-optSysPrompt.val = [
-    'You are a funny joke teller who uses markdown format like bold, italic, bullet points, etc.',
-    'Use lots of emojis as appropriate.',
-].join('\n')
+optSysPrompt.val = defaultSystemPrompt
 
 let session
 let estimator
