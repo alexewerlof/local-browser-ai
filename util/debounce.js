@@ -11,29 +11,29 @@
  * @returns {Function} Returns the new debounced function.
  */
 export function debounce(func, wait) {
-    let timeout;
-    let isExecuting = false;
-    let pendingCall = false;
+    let timeout
+    let isExecuting = false
+    let pendingCall = false
 
     const run = async () => {
         try {
-            isExecuting = true;
-            await func();
+            isExecuting = true
+            await func()
         } catch (e) {
-            console.error(e);
+            console.error(e)
         }
-        isExecuting = false;
+        isExecuting = false
         if (pendingCall) {
-            pendingCall = false;
-            timeout = setTimeout(run, wait);
+            pendingCall = false
+            timeout = setTimeout(run, wait)
         }
-    };
+    }
 
     return function debouncedFunction() {
-        clearTimeout(timeout);
-        pendingCall = true;
+        clearTimeout(timeout)
+        pendingCall = true
         if (!isExecuting) {
-            timeout = setTimeout(run, wait);
+            timeout = setTimeout(run, wait)
         }
-    };
+    }
 }

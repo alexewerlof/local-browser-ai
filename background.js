@@ -4,7 +4,7 @@ const contextMenuIds = {
     sendSelection: 'send-selection',
     sendPage: 'send-page',
     showSideBar: 'show-side-bar',
-    initialized: 'language-model-initialized'
+    initialized: 'language-model-initialized',
 }
 
 let sidePanelPort = null
@@ -12,10 +12,10 @@ let sidePanelPort = null
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: contextMenuIds.showSideBar,
-        title: `Show ${ extensionName }`,
+        title: `Show ${extensionName}`,
         contexts: ['all'],
         visible: true,
-    }),
+    })
     chrome.contextMenus.create({
         id: contextMenuIds.sendSelection,
         title: `Append selection to chat: %s`,
@@ -30,7 +30,7 @@ chrome.runtime.onInstalled.addListener(() => {
     })
     chrome.contextMenus.create({
         id: 'sep1',
-        type: 'separator'
+        type: 'separator',
     })
     chrome.contextMenus.create({
         id: contextMenuIds.initialized,
@@ -52,7 +52,7 @@ async function canSend(isPortInitiated) {
         chrome.contextMenus.update(contextMenuIds.sendSelection, { visible: isPortInitiated }),
         chrome.contextMenus.update(contextMenuIds.sendPage, { visible: isPortInitiated }),
         chrome.contextMenus.update(contextMenuIds.showSideBar, { visible: !isPortInitiated }),
-        chrome.contextMenus.update(contextMenuIds.initialized, { checked: isPortInitiated}),
+        chrome.contextMenus.update(contextMenuIds.initialized, { checked: isPortInitiated }),
     ])
 }
 
@@ -68,47 +68,47 @@ export async function scrapePageHtml(tabId) {
         console.log(`Scraped ${fnReturns.length} frames.`)
         return fnReturns
     } catch (error) {
-        console.error("Script injection failed:", error)
+        console.error('Script injection failed:', error)
     }
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
-        switch (info.menuItemId ) {
-        case contextMenuIds.showSideBar:
-            chrome.sidePanel.open({ tabId: tab.id })
-            break
-        case contextMenuIds.sendSelection:
-            console.log('Selected text:', info.selectionText)
-            if (!sidePanelPort) {
-                throw new Error('Please initialize the side panel first.')
-            }
-            sidePanelPort.postMessage({
-                command: 'add',
-                format: 'text',
-                payload: info.selectionText
-            })
-            break
-        case contextMenuIds.sendPage:
-            console.log(`Selected page URL:`, info.pageUrl)
-            if (!sidePanelPort) {
-                throw new Error('Please initialize the side panel first.')
-            }
-            const fnReturns = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => document.body.innerHTML,
-            })
-            console.log(`Scraped ${fnReturns.length} frames.`)
-            for (const { result } of fnReturns) {
+        switch (info.menuItemId) {
+            case contextMenuIds.showSideBar:
+                chrome.sidePanel.open({ tabId: tab.id })
+                break
+            case contextMenuIds.sendSelection:
+                console.log('Selected text:', info.selectionText)
+                if (!sidePanelPort) {
+                    throw new Error('Please initialize the side panel first.')
+                }
                 sidePanelPort.postMessage({
                     command: 'add',
-                    format: 'html',
-                    payload: result,
+                    format: 'text',
+                    payload: info.selectionText,
                 })
-            }
-            break
-        default:
-            throw new RangeError(`Unrecognized context menu id: ${info.menuItemId}`)
+                break
+            case contextMenuIds.sendPage:
+                console.log(`Selected page URL:`, info.pageUrl)
+                if (!sidePanelPort) {
+                    throw new Error('Please initialize the side panel first.')
+                }
+                const fnReturns = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    func: () => document.body.innerHTML,
+                })
+                console.log(`Scraped ${fnReturns.length} frames.`)
+                for (const { result } of fnReturns) {
+                    sidePanelPort.postMessage({
+                        command: 'add',
+                        format: 'html',
+                        payload: result,
+                    })
+                }
+                break
+            default:
+                throw new RangeError(`Unrecognized context menu id: ${info.menuItemId}`)
         }
     } catch (error) {
         console.error('Error sending to side panel:', error)
@@ -137,6 +137,4 @@ chrome.runtime.onConnect.addListener((port) => {
     }
 })
 
-chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((error) => console.error(error))
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error))

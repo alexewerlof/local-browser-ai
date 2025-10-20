@@ -54,14 +54,18 @@ function getModelOptions() {
         initialPrompts: [msg.system(optSysPrompt.val)],
         temperature: optTemp.val,
         topK: optTopK.val,
-        expectedInputs: [{
-            type: "text",
-            languages: [language, language]
-        }],
-        expectedOutputs: [{
-            type: "text",
-            languages: [language]
-        }],
+        expectedInputs: [
+            {
+                type: 'text',
+                languages: [language, language],
+            },
+        ],
+        expectedOutputs: [
+            {
+                type: 'text',
+                languages: [language],
+            },
+        ],
     }
 }
 
@@ -92,8 +96,8 @@ function updateSessionTokens() {
     }
     const { inputQuota, inputUsage } = session
     usageRatio.val = inputUsage / inputQuota
-    const remainingPercent = Math.round(100 * (inputQuota - inputUsage) / inputQuota)
-    usageRatio.title = `Used: ${ inputUsage } of ${ inputQuota } tokens. Remaining: ${remainingPercent}%`
+    const remainingPercent = Math.round((100 * (inputQuota - inputUsage)) / inputQuota)
+    usageRatio.title = `Used: ${inputUsage} of ${inputQuota} tokens. Remaining: ${remainingPercent}%`
 }
 
 async function countPromptTokens() {
@@ -103,7 +107,9 @@ async function countPromptTokens() {
     try {
         const userPrompt = promptInput.val
         console.time('Counting prompt tokens')
-        const promptTokenCount = await session.measureInputUsage(userPrompt, { /* accepts a signal too */ })
+        const promptTokenCount = await session.measureInputUsage(userPrompt, {
+            /* accepts a signal too */
+        })
         console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
         promptTokens.txt = promptTokenCount
@@ -194,21 +200,21 @@ btnSubmitPrompt.onClick(async () => {
         downloadProgress.val = 0
         downloadEta.txt = ''
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
-        
+
         submitController = new AbortController()
         btnStopPrompt.show()
         btnSubmitPrompt.hide()
-        
+
         const assistantMessage = new Message('assistant')
-        
+
         pastChats.append(assistantMessage)
-        
+
         const inputUsageBefore = session.inputUsage
         let firstTokenTimestamp
-        
+
         const isStreaming = optStreaming.el.checked
         console.debug('Streaming:', isStreaming)
-        
+
         promptStats.hide()
         const startTimestamp = Date.now()
         if (isStreaming) {
@@ -239,12 +245,12 @@ btnSubmitPrompt.onClick(async () => {
         const timeToFirstToken = isStreaming ? firstTokenTimestamp - startTimestamp : totDuration
         console.debug('timeToFirstToken', timeToFirstToken)
         statsTimeToFirstToken.txt = timeToFirstToken
-        
+
         const inferenceDuration = isStreaming ? endTimestamp - firstTokenTimestamp : totDuration
         console.debug('Inference Duration', inferenceDuration)
         statsInferenceDuration.txt = inferenceDuration
 
-        const tokenPerSecond = Math.round(1000 * inputUsageDelta / inferenceDuration)
+        const tokenPerSecond = Math.round((1000 * inputUsageDelta) / inferenceDuration)
         console.debug('tokenPerSecond', tokenPerSecond)
         tokenPerSecondStatus.txt = tokenPerSecond
         promptStats.show()
@@ -277,9 +283,7 @@ async function onPortMessage(message) {
         const content = message.format === 'text' ? message.payload : html2markdown(message.payload)
         console.log(content)
         console.time('session.append()')
-        await session.append([
-            msg.user(content),
-        ])
+        await session.append([msg.user(content)])
         console.timeEnd('session.append()')
         updateSessionTokens()
         console.log('Appended message successfully')

@@ -1,7 +1,7 @@
 export function base(role, ...parts) {
     return {
         role,
-        content: parts.join(' ')
+        content: parts.join(' '),
     }
 }
 

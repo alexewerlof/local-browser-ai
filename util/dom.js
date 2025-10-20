@@ -7,7 +7,7 @@ export function createEl(tagName) {
 }
 
 export function query(selector) {
-    return Array.from(document.querySelectorAll(selector)).map(el => new Wrapper(el))
+    return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
 }
 
 export function on(target, eventName, handler) {

@@ -1,6 +1,6 @@
 :root {
-    --primary-color: #FFBC52;
-    --secondary-color: #47A9FF;
+    --primary-color: #ffbc52;
+    --secondary-color: #47a9ff;
     --interactive-color: var(--secondary-color);
     --background-color: #1b1c1d;
     --text-color: #fff;
@@ -34,7 +34,8 @@
     cursor: not-allowed;
 }
 
-html, body {
+html,
+body {
     background-color: var(--background-color);
     color: var(--text-color);
     padding: 0;
@@ -74,7 +75,7 @@ button {
     &.cta {
         background-color: var(--interactive-color);
     }
-    
+
     &:hover {
         filter: brightness(125%);
         box-shadow: 0 0 var(--gap2) 0 var(--interactive-color);
@@ -109,7 +110,7 @@ fieldset {
 
 select,
 textarea,
-input[type="text"] {
+input[type='text'] {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     background-color: transparent;
@@ -121,7 +122,7 @@ input[type="text"] {
     box-sizing: border-box;
 }
 
-input[type="range"] {
+input[type='range'] {
     width: 100%;
 }
 
@@ -148,7 +149,6 @@ hr {
             margin-block-start: var(--gap4);
         }
     }
-
 }
 
 .prompt-controls {
@@ -174,7 +174,7 @@ hr {
     &[title] {
         cursor: help;
     }
-    
+
     .value {
         color: var(--primary-color);
     }
@@ -218,16 +218,16 @@ hr {
 }
 
 .chat-container__chat {
-    & p{
+    & p {
         &:first-child {
-           margin-block-start: 0;
+            margin-block-start: 0;
         }
 
         &:last-child {
             margin-block-end: 0;
         }
     }
-    
+
     &.chat-container__chat--user {
         margin-top: var(--gap4);
         padding: var(--gap4);
@@ -247,12 +247,12 @@ progress {
     border-radius: var(--border-radius);
     background-color: transparent;
     box-sizing: border-box;
-    
+
     &::-webkit-progress-bar {
         background-color: transparent;
         border-radius: var(--border-radius);
     }
-    
+
     &::-webkit-progress-value {
         background-color: var(--primary-color);
         border-radius: var(--border-radius);
@@ -277,24 +277,50 @@ meter {
     width: 3em;
     aspect-ratio: 2;
     --_g: no-repeat radial-gradient(circle closest-side, var(--border-color) 90%, transparent);
-    background: 
-            var(--_g) 0%   50%,
-            var(--_g) 50%  50%,
-            var(--_g) 100% 50%;
-    background-size: calc(100%/3) 50%;
+    background:
+        var(--_g) 0% 50%,
+        var(--_g) 50% 50%,
+        var(--_g) 100% 50%;
+    background-size: calc(100% / 3) 50%;
     animation: loader-animation 1s infinite linear;
 }
 @keyframes loader-animation {
-    20%{background-position:0%   0%, 50%  50%,100%  50%}
-    40%{background-position:0% 100%, 50%   0%,100%  50%}
-    60%{background-position:0%  50%, 50% 100%,100%   0%}
-    80%{background-position:0%  50%, 50%  50%,100% 100%}
+    20% {
+        background-position:
+            0% 0%,
+            50% 50%,
+            100% 50%;
+    }
+    40% {
+        background-position:
+            0% 100%,
+            50% 0%,
+            100% 50%;
+    }
+    60% {
+        background-position:
+            0% 50%,
+            50% 100%,
+            100% 0%;
+    }
+    80% {
+        background-position:
+            0% 50%,
+            50% 50%,
+            100% 100%;
+    }
 }
 
 @keyframes gradient-animation {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 footer {

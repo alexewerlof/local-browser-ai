@@ -14,9 +14,9 @@ async function ignoreFiles(fileName) {
     const ignoreFileContents = await fsPromises.readFile(fileName, 'utf-8')
     return ignoreFileContents
         .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(line => line !== '')
-        .filter(line => !line.startsWith('#'))
+        .map((line) => line.trim())
+        .filter((line) => line !== '')
+        .filter((line) => !line.startsWith('#'))
 }
 
 async function createPackage() {
@@ -52,7 +52,7 @@ async function createPackage() {
     // Use glob to include all files, respecting the ignore patterns
     archive.glob('**/*', {
         ignore: await ignoreFiles('.buildignore'),
-        nodir: true // This will only match files, not directories
+        nodir: true, // This will only match files, not directories
     })
 
     return await archive.finalize()

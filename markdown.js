@@ -2,7 +2,7 @@ import { TurndownService } from './vendor/turndown.js'
 
 const turndownService = new TurndownService({
     codeBlockStyle: 'fenced',
-    hr: '---'
+    hr: '---',
 })
 
 turndownService.remove('script')
@@ -17,7 +17,7 @@ turndownService.addRule('emptyLink', {
     filter: 'a',
     replacement(content, node) {
         return node.textContent.trim() ? content : ''
-    }
+    },
 })
 
 export function html2markdown(htmlString) {

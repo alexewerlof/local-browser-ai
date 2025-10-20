@@ -6,6 +6,7 @@
   "scripts": {
     "update-vendors": "node update-vendors.js",
     "postinstall": "npm run update-vendors",
+    "fmt": "prettier --write .",
     "build": "npm t & node build.js",
     "test": "node --test",
     "preversion": "npm t"

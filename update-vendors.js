@@ -18,7 +18,7 @@ function normalizedConfig(name, config) {
                 contents: `export * from '${name}'`,
                 define: {},
             }
-        case 'string': 
+        case 'string':
             return {
                 contents: `export ${config} from '${name}'`,
                 define: {},

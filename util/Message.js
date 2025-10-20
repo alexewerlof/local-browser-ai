@@ -7,10 +7,7 @@ const VALID_ROLES = ['assistant', 'user', 'system']
 export class Message extends Wrapper {
     constructor(role, content = '') {
         super(createEl('div'))
-        this.addClass(
-            'chat-container__chat',
-            `chat-container__chat--${role}`
-        )
+        this.addClass('chat-container__chat', `chat-container__chat--${role}`)
 
         this.role = role
         this.content = content

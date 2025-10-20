@@ -1,122 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="side-panel.css">
-  <title>Local Browser AI - Side Panel</title>
-</head>
-<body>
-    <header>
-        <span id="version" title="Version">version</span>
-        <button id="new-session-button" hidden>New Chat</button>
-        <button id="reload-button">Restart</button>
-        <button id="close-button">Close</button>
-    </header>
-    <div id="api-status">Checking availability...</div>
-    <div id="prompt-api-ui" hidden>
-        <fieldset id="prompt-api-init">
-            <legend>Prompt API</legend>
-            <label for="option-language">Language</label>
-            <select id="option-language">
-                <option value="en" selected>English</option>
-                <option value="es">Spanish</option>
-                <option value="ja">Japanese</option>
-            </select>
-            <label for="option-system-prompt">System Prompt</label>
-            <textarea id="option-system-prompt" rows="10"></textarea>
-            <br>
-            <fieldset>
-                <legend>Options</legend>
-                <label for="option-temperature">Temperature</label>
-                <input type="range" id="option-temperature" min="0" max="1"  value="0.1" step="0.1"/>
-                <label for="option-top-k">Top K</label>
-                <input type="range" id="option-top-k" min="1" max="128"  value="3" step="1" />
-            </fieldset>
-            <hr class="spacer spacer--4" />
-            <div class="button-bar">
-                <button id="init-button" class="cta">Initialize</button>
-            </div>
-        </fieldset>
-
-        <div id="download-status" hidden>
-            <div id="init-loading-animation" class="loading-animation"></div>
-            <progress id="download-progress" min="0" max="1" value="0"></progress>
-            <span id="download-eta">ETA</span>
-            <div class="button-bar">
-                <button id="init-stop-button">Stop</button>
-            </div>
-        </div>
-
-        <div id="session-established" hidden>
-            <div id="chat-placeholder" class="chat-placeholder">
-                <img src="images/icon-128.png" alt="Logo" />
-                <div class="chat-placeholder__welcome">How can I help you?</div>
-                <div class="chat-placeholder__prompt-suggestions">
-                    <button>What can you help me with?</button>
-                    <button>What's in your training data?</button>
-                    <button>Write a poem about AI.</button>
-                </div>
-            </div>
-            <div id="chat-history" class="chat-container"></div>
-            <div id="chat-loading-animation" class="loading-animation" hidden></div>
-            <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>
-            <div class="prompt-section">
-                <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
-                <div class="prompt-controls">
-                    <span class="stat prompt-token-count" title="Prompt Tokens">
-                        Prompt
-                        <output id="prompt-tokens" for="prompt-input" class="value">?</output>
-                        <span class="unit">tok</span>
-                    </span>
-                    <label for="option-streaming">
-                        <input type="checkbox" id="option-streaming" checked />
-                        Streaming
-                    </label>
-                    <button id="submit-prompt-button" class="cta">Submit</button>
-                    <button id="stop-prompt-button" hidden>Stop</button>
-                </div>
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="side-panel.css" />
+        <title>Local Browser AI - Side Panel</title>
+    </head>
+    <body>
+        <header>
+            <span id="version" title="Version">version</span>
+            <button id="new-session-button" hidden>New Chat</button>
+            <button id="reload-button">Restart</button>
+            <button id="close-button">Close</button>
+        </header>
+        <div id="api-status">Checking availability...</div>
+        <div id="prompt-api-ui" hidden>
+            <fieldset id="prompt-api-init">
+                <legend>Prompt API</legend>
+                <label for="option-language">Language</label>
+                <select id="option-language">
+                    <option value="en" selected>English</option>
+                    <option value="es">Spanish</option>
+                    <option value="ja">Japanese</option>
+                </select>
+                <label for="option-system-prompt">System Prompt</label>
+                <textarea id="option-system-prompt" rows="10"></textarea>
+                <br />
+                <fieldset>
+                    <legend>Options</legend>
+                    <label for="option-temperature">Temperature</label>
+                    <input type="range" id="option-temperature" min="0" max="1" value="0.1" step="0.1" />
+                    <label for="option-top-k">Top K</label>
+                    <input type="range" id="option-top-k" min="1" max="128" value="3" step="1" />
+                </fieldset>
                 <hr class="spacer spacer--4" />
-                <div id="prompt-stats" hidden>
-                    <div title="Tokens" class="prompt-stats" hidden>
-                        <span class="stat" title="Time to first token">
-                            TTFT
-                            <span id="time-to-first-token" class="value">?</span>
-                            <span class="unit">ms</span>
+                <div class="button-bar">
+                    <button id="init-button" class="cta">Initialize</button>
+                </div>
+            </fieldset>
+
+            <div id="download-status" hidden>
+                <div id="init-loading-animation" class="loading-animation"></div>
+                <progress id="download-progress" min="0" max="1" value="0"></progress>
+                <span id="download-eta">ETA</span>
+                <div class="button-bar">
+                    <button id="init-stop-button">Stop</button>
+                </div>
+            </div>
+
+            <div id="session-established" hidden>
+                <div id="chat-placeholder" class="chat-placeholder">
+                    <img src="images/icon-128.png" alt="Logo" />
+                    <div class="chat-placeholder__welcome">How can I help you?</div>
+                    <div class="chat-placeholder__prompt-suggestions">
+                        <button>What can you help me with?</button>
+                        <button>What's in your training data?</button>
+                        <button>Write a poem about AI.</button>
+                    </div>
+                </div>
+                <div id="chat-history" class="chat-container"></div>
+                <div id="chat-loading-animation" class="loading-animation" hidden></div>
+                <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>
+                <div class="prompt-section">
+                    <textarea id="prompt-input" placeholder="Type your prompt here...">Tell me a joke.</textarea>
+                    <div class="prompt-controls">
+                        <span class="stat prompt-token-count" title="Prompt Tokens">
+                            Prompt
+                            <output id="prompt-tokens" for="prompt-input" class="value">?</output>
+                            <span class="unit">tok</span>
                         </span>
-                        <span class="stat" title="Time to first token">
-                            Inference
-                            <span id="inference-duration" class="value">?</span>
-                            <span class="unit">ms</span>
-                        </span>
-                        <span class="stat" title="Token/s">
-                            TPS
-                            <span id="token-per-second" class="value">?</span>
-                            <span class="unit">tok/s</span>
-                        </span>
-                        <span class="stat" title="Duration">
-                            Duration
-                            <span id="duration" class="value">?</span>
-                            <span class="unit">ms</span>
-                        </span>
+                        <label for="option-streaming">
+                            <input type="checkbox" id="option-streaming" checked />
+                            Streaming
+                        </label>
+                        <button id="submit-prompt-button" class="cta">Submit</button>
+                        <button id="stop-prompt-button" hidden>Stop</button>
+                    </div>
+                    <hr class="spacer spacer--4" />
+                    <div id="prompt-stats" hidden>
+                        <div title="Tokens" class="prompt-stats" hidden>
+                            <span class="stat" title="Time to first token">
+                                TTFT
+                                <span id="time-to-first-token" class="value">?</span>
+                                <span class="unit">ms</span>
+                            </span>
+                            <span class="stat" title="Time to first token">
+                                Inference
+                                <span id="inference-duration" class="value">?</span>
+                                <span class="unit">ms</span>
+                            </span>
+                            <span class="stat" title="Token/s">
+                                TPS
+                                <span id="token-per-second" class="value">?</span>
+                                <span class="unit">tok/s</span>
+                            </span>
+                            <span class="stat" title="Duration">
+                                Duration
+                                <span id="duration" class="value">?</span>
+                                <span class="unit">ms</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <footer>
-        <ul>
-            <li><a href="https://blog.alexewerlof.com/p/local-browser-ai" target="_blank">Intro</a></li>
-            <li><a href="https://github.com/alexewerlof/local-browser-ai" target="_blank">Github</a></li>
-            <li><a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a></li>
-            <li><a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank">Privacy</a></li>
-        </ul>
-        <img src="images/swedish-flag.svg" alt="Swedish Flag" class="flag"> Made in Sweden
-        <br>
-        <a href="https://alexewerlof.com" target="_blank">
-            <img src="images/logo.png" class="logo">
-        </a>
-    </footer>
-    <div id="log-container"></div>
-    <script type="module" src="side-panel.js"></script>
-</body>
+        <footer>
+            <ul>
+                <li><a href="https://blog.alexewerlof.com/p/local-browser-ai" target="_blank">Intro</a></li>
+                <li><a href="https://github.com/alexewerlof/local-browser-ai" target="_blank">Github</a></li>
+                <li><a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a></li>
+                <li>
+                    <a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank"
+                        >Privacy</a
+                    >
+                </li>
+            </ul>
+            <img src="images/swedish-flag.svg" alt="Swedish Flag" class="flag" /> Made in Sweden
+            <br />
+            <a href="https://alexewerlof.com" target="_blank">
+                <img src="images/logo.png" class="logo" />
+            </a>
+        </footer>
+        <div id="log-container"></div>
+        <script type="module" src="side-panel.js"></script>
+    </body>
 </html>
