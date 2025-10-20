@@ -10,7 +10,6 @@
     "128": "images/icon-128.png"
   },
   "permissions": ["sidePanel", "scripting", "activeTab", "contextMenus"],
-  "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Toggle Local Browser AI"
   },
