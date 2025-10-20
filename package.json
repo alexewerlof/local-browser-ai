@@ -16,7 +16,8 @@
   "type": "module",
   "devDependencies": {
     "archiver": "^7.0.1",
-    "esbuild": "^0.25.10"
+    "esbuild": "^0.25.10",
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "markdown-it": "^14.1.0",
