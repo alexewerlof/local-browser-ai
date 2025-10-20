@@ -68,8 +68,12 @@ export class Estimator {
         return this
     }
 
+    get isReady() {
+        return this.#dataPoints.length >= 2
+    }
+
     get remaining() {
-        if (this.#dataPoints.length < 2) {
+        if (!this.isReady) {
             throw new Error('Not enough data points to calculate remaining time.')
         }
 

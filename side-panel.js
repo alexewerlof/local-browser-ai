@@ -80,12 +80,14 @@ function monitor(m) {
         }
 
         estimator.report(e.loaded)
-        try {
-            const remainingMs = estimator.remaining
-            const remainingStr = formatDuration(remainingMs, optLang.val)
-            downloadEta.txt = `ETA: ${remainingStr}`
-        } catch (err) {
-            downloadEta.txt = String(err)
+        if (estimator.isReady) {
+            try {
+                const remainingMs = estimator.remaining
+                const remainingStr = formatDuration(remainingMs, optLang.val)
+                downloadEta.txt = `ETA: ${remainingStr}`
+            } catch (err) {
+                downloadEta.txt = String(err)
+            }
         }
     })
 }
@@ -150,6 +152,7 @@ btnInit.onClick(async () => {
             console.warn('Quota overflow')
         })
         const port = chrome.runtime.connect({ name: 'side-panel' })
+        console.debug('Established communication port')
         // Notify the background script that the side panel is ready.
         port.postMessage({ type: 'side-panel-ready' })
         port.onMessage.addListener(onPortMessage)
