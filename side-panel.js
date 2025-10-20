@@ -286,6 +286,7 @@ async function onPortMessage(message) {
         console.time('session.append()')
         await session.append([msg.user(content)])
         console.timeEnd('session.append()')
+        pastChats.append(new Message('user', `Added Context ${content.length} characters`))
         updateSessionTokens()
         console.log('Appended message successfully')
     } catch (error) {
