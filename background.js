@@ -76,7 +76,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
         switch (info.menuItemId) {
             case contextMenuIds.showSideBar:
-                chrome.sidePanel.open({ tabId: tab.id })
+                chrome.sidePanel.open({ windowId: tab.windowId })
                 break
             case contextMenuIds.sendSelection:
                 console.log('Selected text:', info.selectionText)
