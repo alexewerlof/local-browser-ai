@@ -336,14 +336,16 @@ async function onPortMessage(message) {
         const content = message.format === 'text' ? message.payload : html2markdown(message.payload)
         console.log(content)
         console.time('session.append()')
+        const inputUsageBefore = session.inputUsage
         await session.append([msg.user(content)])
+        const inputUsageDelta = session.inputUsage - inputUsageBefore
         console.timeEnd('session.append()')
-        pastChats.append(new Message('user', `Added Context ${content.length} characters`))
+        pastChats.append(new Message('user', `Added ${inputUsageDelta} tokens to context`))
         updateSessionTokens()
         console.log('Appended message successfully')
     } catch (error) {
         if (error instanceof QuotaExceededError) {
-            alert('Too large to add to this session.')
+            alert('Too much text! Add smaller bits.')
         }
         console.log(error)
     }
