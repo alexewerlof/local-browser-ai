@@ -7,6 +7,7 @@ import * as msg from './util/msg.js'
 import { html2markdown } from './markdown.js'
 import {
     defaultSystemPrompt,
+    examplePrompts,
     sidePanelPortName,
     supportedAssistantLanguages,
     supportedSystemLanguages,
@@ -48,6 +49,7 @@ const version = new Wrapper('version')
 const downloadStatus = new Wrapper('download-status')
 const optTempVal = new Wrapper('option-temperature-value')
 const optTopKVal = new Wrapper('option-top-k-value')
+const examplePromptsContainer = new Wrapper('example-prompts')
 
 supportedSystemLanguages.forEach(({ value, title }) => {
     const newOption = new Wrapper(createEl('option'))
@@ -68,6 +70,16 @@ supportedAssistantLanguages.forEach(({ value, title }) => {
     newOption.val = value
     newOption.txt = title
     optAssistantLang.append(newOption)
+})
+
+examplePrompts.forEach((prompt) => {
+    const newButton = new Wrapper(createEl('button'))
+    newButton.txt = prompt
+    newButton.onClick(() => {
+        promptInput.val = prompt
+        promptInput.focus()
+    })
+    examplePromptsContainer.append(newButton)
 })
 
 function updateTempSlider() {
@@ -396,13 +408,6 @@ optSysPrompt.on('keydown', (e) => {
         e.preventDefault()
         btnInit.click()
     }
-})
-
-query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
-    btn.onClick(() => {
-        promptInput.val = btn.txt
-        promptInput.focus()
-    })
 })
 
 async function main() {

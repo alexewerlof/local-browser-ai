@@ -21,3 +21,10 @@ export const supportedSystemLanguages = [
 export const supportedUserLanguages = supportedSystemLanguages
 
 export const supportedAssistantLanguages = supportedSystemLanguages
+
+export const examplePrompts = [
+    'What can you help me with?',
+    "What's in your training data?",
+    'Write a poem about AI.',
+    'Tell me a joke.',
+]
