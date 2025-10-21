@@ -51,35 +51,36 @@ const optTempVal = new Wrapper('option-temperature-value')
 const optTopKVal = new Wrapper('option-top-k-value')
 const examplePromptsContainer = new Wrapper('example-prompts')
 
-supportedSystemLanguages.forEach(({ value, title }) => {
+optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
     const newOption = new Wrapper(createEl('option'))
     newOption.val = value
     newOption.txt = title
-    optSystemLang.append(newOption)
+    return newOption
 })
 
-supportedUserLanguages.forEach(({ value, title }) => {
+optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
     const newOption = new Wrapper(createEl('option'))
     newOption.val = value
     newOption.txt = title
-    optUserLang.append(newOption)
+    return newOption
 })
 
-supportedAssistantLanguages.forEach(({ value, title }) => {
+optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
     const newOption = new Wrapper(createEl('option'))
     newOption.val = value
     newOption.txt = title
-    optAssistantLang.append(newOption)
+    return newOption
 })
 
-examplePrompts.forEach((prompt) => {
+examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
     const newButton = new Wrapper(createEl('button'))
     newButton.txt = prompt
     newButton.onClick(() => {
         promptInput.val = prompt
         promptInput.focus()
+        debouncedCountPromptTokens()
     })
-    examplePromptsContainer.append(newButton)
+    return newButton
 })
 
 function updateTempSlider() {

@@ -116,6 +116,10 @@ export class Wrapper {
         return this
     }
 
+    mapAppend(array, mapFn) {
+        return this.append(...array.map(mapFn))
+    }
+
     append(...children) {
         for (const child of children) {
             this.el.appendChild(unwrap(child))
