@@ -379,7 +379,8 @@ query('.chat-placeholder__prompt-suggestions button').forEach((btn) => {
 
 async function main() {
     const manifestJson = chrome.runtime.getManifest()
-    version.txt = manifestJson.version + (manifestJson.update_url ? '' : '*')
+    const localIndicator = 'update_url' in manifestJson ? '' : '*'
+    version.txt = manifestJson.version + localIndicator
 
     if (typeof globalThis.LanguageModel !== 'function') {
         return `LanguageModel is not supported in this environment.`
