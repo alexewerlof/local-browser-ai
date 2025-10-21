@@ -1,11 +1,11 @@
-import { Wrapper, on, query } from './util/dom.js'
+import { Wrapper, createEl, on, query } from './util/dom.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
 import { html2markdown } from './markdown.js'
-import { defaultSystemPrompt, sidePanelPortName } from './config.js'
+import { defaultSystemPrompt, sidePanelPortName, supportedSystemLanguages } from './config.js'
 
 const apiStatus = new Wrapper('api-status')
 const btnClone = new Wrapper('new-session-button')
@@ -18,7 +18,7 @@ const btnSubmitPrompt = new Wrapper('submit-prompt-button')
 const downloadEta = new Wrapper('download-eta')
 const downloadProgress = new Wrapper('download-progress')
 const chatLoadingAnimation = new Wrapper('chat-loading-animation')
-const optLang = new Wrapper('option-language')
+const optSysLang = new Wrapper('option-sys-lang')
 const optStreaming = new Wrapper('option-streaming')
 const optSysPrompt = new Wrapper('option-system-prompt')
 const optTemp = new Wrapper('option-temperature')
@@ -41,6 +41,13 @@ const downloadStatus = new Wrapper('download-status')
 const optTempVal = new Wrapper('option-temperature-value')
 const optTopKVal = new Wrapper('option-top-k-value')
 
+supportedSystemLanguages.forEach(({ value, title }) => {
+    const newOption = new Wrapper(createEl('option'))
+    newOption.val = value
+    newOption.txt = title
+    optSysLang.append(newOption)
+})
+
 function updateTempSlider() {
     optTempVal.txt = optTemp.val
 }
@@ -58,7 +65,7 @@ let initController
 let submitController
 
 function getModelOptions() {
-    const language = optLang.val
+    const language = optSysLang.val
     return {
         initialPrompts: [msg.system(optSysPrompt.val)],
         temperature: optTemp.val,
@@ -92,7 +99,7 @@ function monitor(m) {
         if (estimator.isReady) {
             try {
                 const remainingMs = estimator.remaining
-                const remainingStr = formatDuration(remainingMs, optLang.val)
+                const remainingStr = formatDuration(remainingMs, optSysLang.val)
                 downloadEta.txt = `ETA: ${remainingStr}`
             } catch (err) {
                 downloadEta.txt = String(err)
