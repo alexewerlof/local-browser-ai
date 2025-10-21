@@ -17,3 +17,7 @@ export const supportedSystemLanguages = [
     { value: 'es', title: 'Spanish' },
     { value: 'ja', title: 'Japanese' },
 ]
+
+export const supportedUserLanguages = supportedSystemLanguages
+
+export const supportedAssistantLanguages = supportedSystemLanguages

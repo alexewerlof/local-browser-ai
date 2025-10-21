@@ -5,7 +5,13 @@ import { formatDuration } from './util/format.js'
 import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
 import { html2markdown } from './markdown.js'
-import { defaultSystemPrompt, sidePanelPortName, supportedSystemLanguages } from './config.js'
+import {
+    defaultSystemPrompt,
+    sidePanelPortName,
+    supportedAssistantLanguages,
+    supportedSystemLanguages,
+    supportedUserLanguages,
+} from './config.js'
 
 const apiStatus = new Wrapper('api-status')
 const btnClone = new Wrapper('new-session-button')
@@ -18,7 +24,9 @@ const btnSubmitPrompt = new Wrapper('submit-prompt-button')
 const downloadEta = new Wrapper('download-eta')
 const downloadProgress = new Wrapper('download-progress')
 const chatLoadingAnimation = new Wrapper('chat-loading-animation')
-const optSysLang = new Wrapper('option-sys-lang')
+const optSystemLang = new Wrapper('option-sys-lang')
+const optUserLang = new Wrapper('option-user-lang')
+const optAssistantLang = new Wrapper('option-assistant-lang')
 const optStreaming = new Wrapper('option-streaming')
 const optSysPrompt = new Wrapper('option-system-prompt')
 const optTemp = new Wrapper('option-temperature')
@@ -45,7 +53,21 @@ supportedSystemLanguages.forEach(({ value, title }) => {
     const newOption = new Wrapper(createEl('option'))
     newOption.val = value
     newOption.txt = title
-    optSysLang.append(newOption)
+    optSystemLang.append(newOption)
+})
+
+supportedUserLanguages.forEach(({ value, title }) => {
+    const newOption = new Wrapper(createEl('option'))
+    newOption.val = value
+    newOption.txt = title
+    optUserLang.append(newOption)
+})
+
+supportedAssistantLanguages.forEach(({ value, title }) => {
+    const newOption = new Wrapper(createEl('option'))
+    newOption.val = value
+    newOption.txt = title
+    optAssistantLang.append(newOption)
 })
 
 function updateTempSlider() {
@@ -65,7 +87,6 @@ let initController
 let submitController
 
 function getModelOptions() {
-    const language = optSysLang.val
     return {
         initialPrompts: [msg.system(optSysPrompt.val)],
         temperature: optTemp.val,
@@ -73,13 +94,13 @@ function getModelOptions() {
         expectedInputs: [
             {
                 type: 'text',
-                languages: [language, language],
+                languages: [optSystemLang.val, optUserLang.val],
             },
         ],
         expectedOutputs: [
             {
                 type: 'text',
-                languages: [language],
+                languages: [optAssistantLang.val],
             },
         ],
     }
@@ -99,7 +120,7 @@ function monitor(m) {
         if (estimator.isReady) {
             try {
                 const remainingMs = estimator.remaining
-                const remainingStr = formatDuration(remainingMs, optSysLang.val)
+                const remainingStr = formatDuration(remainingMs, optSystemLang.val)
                 downloadEta.txt = `ETA: ${remainingStr}`
             } catch (err) {
                 downloadEta.txt = String(err)
