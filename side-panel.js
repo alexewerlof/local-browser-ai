@@ -408,7 +408,7 @@ async function main() {
 
     const params = await LanguageModel.params()
     console.debug(`\tTemperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
-    console.debug(`\tTop K: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
+    console.debug(`\tTopK: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
 
     // maxTemperature
     optTemp.setAttr('max', params.maxTemperature)
