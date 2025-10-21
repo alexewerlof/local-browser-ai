@@ -4,37 +4,42 @@ const extensionName = chrome.runtime.getManifest().name
 
 let sidePanelPort = null
 
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: contextMenuIds.showSideBar,
-        title: `Show ${extensionName}`,
-        contexts: ['all'],
-        visible: true,
-    })
-    chrome.contextMenus.create({
-        id: contextMenuIds.sendSelection,
-        title: `Append selection to chat: %s`,
-        contexts: ['selection'],
-        visible: false,
-    })
-    chrome.contextMenus.create({
-        id: contextMenuIds.sendPage,
-        title: `Append page to chat`,
-        contexts: ['page'],
-        visible: false,
-    })
-    chrome.contextMenus.create({
-        id: 'sep1',
-        type: 'separator',
-    })
-    chrome.contextMenus.create({
-        id: contextMenuIds.initialized,
-        title: 'Ready',
-        contexts: ['all'],
-        enabled: false,
-        type: 'checkbox',
-        checked: false,
-    })
+chrome.runtime.onInstalled.addListener(async () => {
+    try {
+        await chrome.contextMenus.removeAll()
+        chrome.contextMenus.create({
+            id: contextMenuIds.showSideBar,
+            title: `Show ${extensionName}`,
+            contexts: ['all'],
+            visible: true,
+        })
+        chrome.contextMenus.create({
+            id: contextMenuIds.sendSelection,
+            title: `Append selection to chat: %s`,
+            contexts: ['selection'],
+            visible: false,
+        })
+        chrome.contextMenus.create({
+            id: contextMenuIds.sendPage,
+            title: `Append page to chat`,
+            contexts: ['page'],
+            visible: false,
+        })
+        chrome.contextMenus.create({
+            id: 'sep1',
+            type: 'separator',
+        })
+        chrome.contextMenus.create({
+            id: contextMenuIds.initialized,
+            title: 'Ready',
+            contexts: ['all'],
+            enabled: false,
+            type: 'checkbox',
+            checked: false,
+        })
+    } catch (error) {
+        console.error('Error creating context menu:', error)
+    }
 })
 
 async function canSend(isPortInitiated) {
