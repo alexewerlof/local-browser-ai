@@ -38,6 +38,17 @@ const sessionEstablished = new Wrapper('session-established')
 const chatPlaceholder = new Wrapper('chat-placeholder')
 const version = new Wrapper('version')
 const downloadStatus = new Wrapper('download-status')
+const optTempVal = new Wrapper('option-temperature-value')
+const optTopKVal = new Wrapper('option-top-k-value')
+
+function updateTempSlider() {
+    optTempVal.txt = optTemp.val
+}
+function updateTopKSlider() {
+    optTopKVal.txt = optTopK.val
+}
+optTemp.on('input', updateTempSlider)
+optTopK.on('input', updateTopKSlider)
 
 optSysPrompt.val = defaultSystemPrompt
 
@@ -402,10 +413,12 @@ async function main() {
     optTemp.setAttr('max', params.maxTemperature)
     // defaultTemperature
     optTemp.val = params.defaultTemperature
+    updateTempSlider()
     // maxTopK
     optTopK.setAttr('max', params.maxTopK)
     // defaultTopK
     optTopK.val = params.defaultTopK
+    updateTopKSlider()
     return ''
 }
 
