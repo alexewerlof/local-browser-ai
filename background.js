@@ -46,7 +46,6 @@ async function canSend(isPortInitiated) {
     if (typeof isPortInitiated !== 'boolean') {
         throw new TypeError(`isPortInitiated must be a boolean. Got ${isPortInitiated} (${typeof isPortInitiated})`)
     }
-    const promises = []
     console.debug('isPortInitiated', isPortInitiated)
     return await Promise.allSettled([
         chrome.contextMenus.update(contextMenuIds.sendSelection, { visible: isPortInitiated }),
@@ -83,10 +82,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 if (!sidePanelPort) {
                     throw new Error('Please initialize the side panel first.')
                 }
+                const url = new URL(tab.url)
+                if (!url.hash) {
+                    url.hash = ':~:text=' + encodeURIComponent(info.selectionText)
+                }
                 sidePanelPort.postMessage({
                     command: 'add',
                     format: 'text',
                     payload: info.selectionText,
+                    title: tab.title || 'Selection',
+                    faviconUrl: tab.favIconUrl,
+                    url: url.toString(),
                 })
                 break
             case contextMenuIds.sendPage:
@@ -104,6 +110,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         command: 'add',
                         format: 'html',
                         payload: result,
+                        title: tab.title || 'Page',
+                        faviconUrl: tab.favIconUrl,
+                        url: tab.url,
                     })
                 }
                 break
