@@ -241,6 +241,27 @@ hr {
         border-radius: var(--border-radius);
         border-top-right-radius: var(--gap);
     }
+
+    .chat-container__chat__token-count {
+        opacity: 0.8;
+        font-size: 0.75em;
+        font-style: italic;
+        text-align: right;
+        display: block;
+    }
+
+    &.chat-container__chat--imported-content {
+        background-color: var(--user-chat-background);
+        padding: var(--gap4);
+        border-radius: var(--border-radius);
+
+        & img {
+            display: inline-block;
+            height: 1em;
+            vertical-align: middle;
+            margin-right: var(--gap);
+        }
+    }
 }
 
 progress {

@@ -2,9 +2,9 @@ import { Wrapper, createWrapper, on } from './util/dom.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
-import { Message } from './util/Message.js'
 import * as msg from './util/msg.js'
-import { html2markdown } from './markdown.js'
+import { Message } from './util/Message.js'
+import { ImportedContent } from './util/ImportedContent.js'
 import {
     defaultSystemPrompt,
     examplePrompts,
@@ -334,14 +334,13 @@ async function onPortMessage(message) {
         return
     }
     try {
-        const content = message.format === 'text' ? message.payload : html2markdown(message.payload)
-        console.log(content)
-        console.time('session.append()')
+        const importedContent = new ImportedContent(message)
         const inputUsageBefore = session.inputUsage
-        await session.append([msg.user(content)])
-        const inputUsageDelta = session.inputUsage - inputUsageBefore
+        console.time('session.append()')
+        await session.append([importedContent.toJSON()])
         console.timeEnd('session.append()')
-        pastChats.append(new Message('user', `Added ${inputUsageDelta} tokens to context`))
+        importedContent.tokenCount = session.inputUsage - inputUsageBefore
+        pastChats.append(importedContent)
         updateSessionTokens()
         console.log('Appended message successfully')
     } catch (error) {
