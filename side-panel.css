@@ -228,7 +228,12 @@ hr {
         }
     }
 
+    img {
+        max-width: 100%;
+    }
+
     &.chat-container__chat--user {
+        overflow-wrap: anywhere;
         margin-top: var(--gap4);
         padding: var(--gap4);
         background-color: var(--user-chat-background);
