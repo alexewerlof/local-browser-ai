@@ -1,4 +1,4 @@
-import { Wrapper, createEl, on, query } from './util/dom.js'
+import { Wrapper, createWrapper, on } from './util/dom.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
@@ -52,28 +52,28 @@ const optTopKVal = new Wrapper('option-top-k-value')
 const examplePromptsContainer = new Wrapper('example-prompts')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
-    const newOption = new Wrapper(createEl('option'))
+    const newOption = createWrapper('option')
     newOption.val = value
     newOption.txt = title
     return newOption
 })
 
 optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
-    const newOption = new Wrapper(createEl('option'))
+    const newOption = createWrapper('option')
     newOption.val = value
     newOption.txt = title
     return newOption
 })
 
 optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
-    const newOption = new Wrapper(createEl('option'))
+    const newOption = createWrapper('option')
     newOption.val = value
     newOption.txt = title
     return newOption
 })
 
 examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
-    const newButton = new Wrapper(createEl('button'))
+    const newButton = createWrapper('button')
     newButton.txt = prompt
     newButton.onClick(() => {
         promptInput.val = prompt

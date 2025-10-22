@@ -6,6 +6,15 @@ export function createEl(tagName) {
     return document.createElement(tagName)
 }
 
+/**
+ * Creates a new wrapped DOM element.
+ * @param {keyof HTMLElementTagNameMap} tagName The HTML tag name for the element to create.
+ * @returns {Wrapper} A new Wrapper instance for the created element.
+ */
+export function createWrapper(tagName) {
+    return new Wrapper(createEl(tagName))
+}
+
 export function query(selector) {
     return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
 }
