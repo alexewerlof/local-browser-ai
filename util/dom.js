@@ -66,6 +66,11 @@ export class Wrapper {
         return this
     }
 
+    rmAttr(name) {
+        this.el.removeAttribute(name)
+        return this
+    }
+
     addClass(...classNames) {
         this.el.classList.add(...classNames)
         return this
