@@ -230,7 +230,6 @@ btnInitStop.onClick(() => {
 })
 
 btnSubmitPrompt.onClick(async () => {
-    console.log('Submitting prompt...')
     try {
         if (!session) {
             throw new Error('No session')
@@ -239,12 +238,14 @@ btnSubmitPrompt.onClick(async () => {
         if (!userPrompt.trim()) {
             return
         }
+        console.log('Submitting prompt...')
         chatPlaceholder.hide()
         chatLoadingAnimation.show()
         debouncedCountPromptTokens()
 
         promptInput.val = ''
         promptInput.disable()
+        btnSubmitPrompt.disable()
 
         console.debug('Sending prompt')
         const userMessage = new Message('user', userPrompt)
