@@ -1,5 +1,6 @@
 import { MarkdownIt } from '../vendor/markdown-it.js'
 import { createEl, Wrapper } from './dom.js'
+import * as msg from './msg.js'
 const md2html = MarkdownIt()
 
 const VALID_ROLES = ['assistant', 'user', 'system']
@@ -39,9 +40,6 @@ export class Message extends Wrapper {
     }
 
     toJSON() {
-        return {
-            role: this.role,
-            content: this.content,
-        }
+        return msg.base(this.role, this.content)
     }
 }
