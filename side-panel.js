@@ -236,7 +236,7 @@ btnSubmitPrompt.onClick(async () => {
             throw new Error('No session')
         }
         const userPrompt = promptInput.val
-        if (!userPrompt) {
+        if (!userPrompt.trim()) {
             return
         }
         chatPlaceholder.hide()
@@ -378,7 +378,14 @@ btnClone.onClick(async () => {
     btnClone.enable()
 })
 
-promptInput.on('input', debouncedCountPromptTokens)
+promptInput.on('input', () => {
+    if (promptInput.val.trim()) {
+        btnSubmitPrompt.enable()
+    } else {
+        btnSubmitPrompt.disable()
+    }
+    debouncedCountPromptTokens()
+})
 
 on(window, 'error', (e) => {
     console.error('window.error', e)
