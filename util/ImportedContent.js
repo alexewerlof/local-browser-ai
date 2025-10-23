@@ -20,7 +20,7 @@ export class ImportedContent extends Wrapper {
             .setAttr('rel', 'noopener noreferrer')
             .append(createWrapper('img').setAttr('src', message.faviconUrl || defaultFavIcon), title)
 
-        this.tokenCountIndicator = createWrapper('div').addClass('chat-container__chat__token-count')
+        this.tokenCountIndicator = createWrapper('div').addClass('chat-container__chat__token-count', 'subtle-text')
         this.append(link, this.tokenCountIndicator)
     }
 
