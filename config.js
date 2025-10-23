@@ -18,6 +18,7 @@ export const examplePrompts = [
     'What is the key takeaways of this page?',
     'What is in your training data?',
     'What kind of tasks can you help me with?',
+    'Can you simplify this page?',
 ]
 
 export const supportedSystemLanguages = [
