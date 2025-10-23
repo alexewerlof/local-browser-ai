@@ -5,6 +5,13 @@ This is my wish list for the new Prompt API having built a simple chat applicati
 Currently only 'en', 'es', 'jp' is supported from the examples. But even this list cannot be obtained from some API. I
 tried "hacking" it by brute-force-testing all language codes but didn't succeed beyond those 3.
 
+If I ask it what languages, it can speak, it lists French, German, Chinese, Korean, Portuguese, Italian, Russian, "and
+many more".
+
+In my tests, it can also translate decently to Swedish without that language being listed.
+
+How about just skipping this setting altogether? A language model isn't usually limited to one language anyway.
+
 # Actually support the supported languages
 
 When initializing the LanguageModel, one can specify different language codes for:
