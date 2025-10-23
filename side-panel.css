@@ -402,6 +402,7 @@ meter {
 
     &:focus-within {
         border-color: var(--text-color);
+        outline: -webkit-focus-ring-color auto 1px;
     }
 }
 
