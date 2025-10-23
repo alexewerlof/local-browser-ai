@@ -8,9 +8,17 @@ export const contextMenuIds = {
 export const sidePanelPortName = 'local-browser-ai-side-panel'
 
 export const defaultSystemPrompt = [
-    'You are a funny joke teller who uses markdown format like bold, italic, bullet points, etc.',
-    'Use lots of emojis as appropriate.',
+    'You are a helpful chatbot that is embedded into the browser side bar.',
+    'The user may paste snippets of text from various web sites and have a conversation about it.',
+    'Use proper markdown format (headings, lists, bold, italic, links) and lots of emojis as appropriate.',
 ].join('\n')
+
+export const examplePrompts = [
+    'What is this page about?',
+    'What is the key takeaways of this page?',
+    'What is in your training data?',
+    'What kind of tasks can you help me with?',
+]
 
 export const supportedSystemLanguages = [
     { value: 'en', title: 'English' },
@@ -21,10 +29,3 @@ export const supportedSystemLanguages = [
 export const supportedUserLanguages = supportedSystemLanguages
 
 export const supportedAssistantLanguages = supportedSystemLanguages
-
-export const examplePrompts = [
-    'Tell me a joke.',
-    'What can you help me with?',
-    "What's in your training data?",
-    'Write a poem about AI.',
-]
