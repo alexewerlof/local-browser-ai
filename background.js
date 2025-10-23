@@ -1,7 +1,5 @@
 import { contextMenuIds, sidePanelPortName } from './config.js'
 
-const extensionName = chrome.runtime.getManifest().name
-
 let sidePanelPort = null
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -9,7 +7,7 @@ chrome.runtime.onInstalled.addListener(async () => {
         await chrome.contextMenus.removeAll()
         chrome.contextMenus.create({
             id: contextMenuIds.showSideBar,
-            title: `Show ${extensionName}`,
+            title: `Show chat`,
             contexts: ['all'],
             visible: true,
         })
