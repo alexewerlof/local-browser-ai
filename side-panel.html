@@ -15,19 +15,23 @@
         <main id="api-status">Checking availability...</main>
         <main id="prompt-api-ui" class="v-flex-grow" hidden>
             <div id="prompt-api-init" class="v-flex">
+                <div class="welcome">
+                    <img src="images/icon-128.png" alt="Logo" />
+                    <div class="welcome__message">Local Browser AI</div>
+                </div>
                 <fieldset>
                     <legend>Options</legend>
                     <label for="option-temperature">
                         Temperature:
                         <output for="option-temperature" id="option-temperature-value">?</output>
                     </label>
-                    <div class="subtle-text">How creative should the model be?</div>
+                    <div class="subtle-text">How creative should the responses be?</div>
                     <input type="range" id="option-temperature" min="0" max="1" value="0.2" step="0.1" />
                     <label for="option-top-k">
                         TopK:
                         <output for="option-top-k" id="option-top-k-value">?</output>
                     </label>
-                    <div class="subtle-text">How open-minded should the model be?</div>
+                    <div class="subtle-text">How open-minded should the responses be?</div>
                     <input type="range" id="option-top-k" min="1" max="128" value="3" step="1" />
                 </fieldset>
                 <hr class="spacer spacer--4" />
@@ -46,7 +50,7 @@
                     <select id="option-assistant-lang"></select>
                 </fieldset>
                 <label for="option-system-prompt">System Prompt</label>
-                <div class="subtle-hint">The instructions that guide the responses in your entire chat session</div>
+                <div class="subtle-text">The instructions that guide the responses in your entire chat session</div>
                 <textarea id="option-system-prompt" class="v-flex-grow" placeholder="System prompt"></textarea>
                 <div class="button-bar">
                     <button id="init-button" class="cta">Initialize</button>
@@ -63,10 +67,10 @@
             </div>
 
             <div id="session-established" class="v-flex" hidden>
-                <div id="chat-placeholder" class="chat-placeholder">
+                <div id="chat-placeholder" class="welcome">
                     <img src="images/icon-128.png" alt="Logo" />
-                    <div class="chat-placeholder__welcome">How can I help you?</div>
-                    <div id="example-prompts" class="chat-placeholder__prompt-suggestions"></div>
+                    <div class="welcome__message">How can I help you?</div>
+                    <div id="example-prompts"></div>
                 </div>
                 <div id="chat-history" class="chat-container v-flex-grow"></div>
                 <div id="chat-loading-animation" class="loading-animation" hidden></div>

@@ -215,11 +215,11 @@ hr {
     }
 }
 
-.chat-placeholder {
+.welcome {
     text-align: center;
     padding-bottom: var(--gap4);
 
-    & .chat-placeholder__welcome {
+    & .welcome__message {
         font-size: 1.5em;
         font-weight: bold;
         margin-bottom: var(--gap4);
@@ -230,15 +230,15 @@ hr {
         color: transparent;
         animation: gradient-animation 4s ease infinite;
     }
+}
 
-    & .chat-placeholder__prompt-suggestions {
-        display: flex;
-        flex-direction: column;
-        flex-wrap: wrap;
-        gap: var(--gap2);
-        align-items: center;
-        justify-content: center;
-    }
+#example-prompts {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: var(--gap2);
+    align-items: center;
+    justify-content: center;
 }
 
 .chat-container {
