@@ -42,13 +42,14 @@
                     <select id="option-sys-lang"></select>
                     <label for="option-user-lang">User</label>
                     <div class="subtle-text">The language used by the user</div>
-                    <div class="box box--warn">Prompt API seems to ignore user language setting</div>
                     <select id="option-user-lang"></select>
                     <label for="option-assistant-lang">Response</label>
                     <div class="subtle-text">The language of the responses</div>
-                    <div class="box box--warn">Prompt API seems to ignore assistant language setting</div>
                     <select id="option-assistant-lang"></select>
                 </fieldset>
+                <div class="box box--warn">
+                    Prompt API seems to ignore user and assistant response language settings
+                </div>
                 <label for="option-system-prompt">System Prompt</label>
                 <div class="subtle-text">The instructions that guide the responses in your entire chat session</div>
                 <textarea id="option-system-prompt" class="v-flex-grow" placeholder="System prompt"></textarea>
