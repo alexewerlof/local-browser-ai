@@ -15,6 +15,10 @@ export function createWrapperByTag(tagName) {
     return new Wrapper(createEl(tagName))
 }
 
+export function createWrapperById(elementId) {
+    return new Wrapper(id(elementId))
+}
+
 export function query(selector) {
     return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
 }
