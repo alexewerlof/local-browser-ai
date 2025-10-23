@@ -1,11 +1,25 @@
 /**
+ * Formats a number into a human-readable, localized string.
+ * @param {number} number The number to format.
+ * @param {string} [locale] The locale to use for formatting. Defaults to the user's browser locale.
+ * @param {Intl.NumberFormatOptions} [options] Options for the formatter.
+ * @returns {string} The formatted number string.
+ */
+export function num(number, locale, options) {
+    if (!Number.isFinite(number)) {
+        return '' // Return empty for invalid input
+    }
+    return new Intl.NumberFormat(locale, options).format(number)
+}
+
+/**
  * Formats a duration in milliseconds into a human-readable, localized string.
  * @param {number} milliseconds The duration in milliseconds.
  * @param {string} [locale] The locale to use for formatting. Defaults to the user's browser locale.
  * @param {Intl.DurationFormatOptions} [options] Options for the formatter.
  * @returns {string} The formatted duration string.
  */
-export function formatDuration(milliseconds, locale, options = { style: 'long' }) {
+export function dur(milliseconds, locale, options = { style: 'long' }) {
     if (!Number.isFinite(milliseconds) || milliseconds < 0) {
         return '' // Return empty for invalid input
     }

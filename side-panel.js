@@ -1,7 +1,7 @@
 import { Wrapper, on } from './util/Wrapper.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
-import { formatDuration } from './util/format.js'
+import * as format from './util/format.js'
 import * as msg from './util/msg.js'
 import { Message } from './util/Message.js'
 import { ImportedContent } from './util/ImportedContent.js'
@@ -123,7 +123,7 @@ function monitor(m) {
         if (estimator.isReady) {
             try {
                 const remainingMs = estimator.remaining
-                const remainingStr = formatDuration(remainingMs, optSystemLang.getValue())
+                const remainingStr = format.dur(remainingMs)
                 downloadEta.setText(`ETA: ${remainingStr}`)
             } catch (err) {
                 downloadEta.setText(String(err))
@@ -154,7 +154,7 @@ async function countPromptTokens() {
         })
         console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
-        promptTokens.setText(promptTokenCount)
+        promptTokens.setText(format.num(promptTokenCount))
     } catch (e) {
         console.error('Failed to count prompt tokens:', e)
     }
@@ -287,19 +287,19 @@ btnSubmitPrompt.onClick(async () => {
         const inputUsageDelta = session.inputUsage - inputUsageBefore
 
         const totDuration = endTimestamp - startTimestamp
-        durationStatus.setText(totDuration)
+        durationStatus.setText(format.num(totDuration))
 
         const timeToFirstToken = isStreaming ? firstTokenTimestamp - startTimestamp : totDuration
         console.debug('timeToFirstToken', timeToFirstToken)
-        statsTimeToFirstToken.setText(timeToFirstToken)
+        statsTimeToFirstToken.setText(format.num(timeToFirstToken))
 
         const inferenceDuration = isStreaming ? endTimestamp - firstTokenTimestamp : totDuration
         console.debug('Inference Duration', inferenceDuration)
-        statsInferenceDuration.setText(inferenceDuration)
+        statsInferenceDuration.setText(format.num(inferenceDuration))
 
         const tokenPerSecond = Math.round((1000 * inputUsageDelta) / inferenceDuration)
         console.debug('tokenPerSecond', tokenPerSecond)
-        tokenPerSecondStatus.setText(tokenPerSecond)
+        tokenPerSecondStatus.setText(format.num(tokenPerSecond))
         promptStats.show()
 
         updateSessionTokens()

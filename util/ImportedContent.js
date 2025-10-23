@@ -1,5 +1,6 @@
 import { html2markdown } from '../markdown.js'
 import { Wrapper } from './Wrapper.js'
+import * as format from './format.js'
 import * as msg from './msg.js'
 
 const defaultFavIcon = 'images/icon-32.png'
@@ -27,7 +28,7 @@ export class ImportedContent extends Wrapper {
     }
 
     set tokenCount(value) {
-        this.tokenCountIndicator.setText(`${value} tok`)
+        this.tokenCountIndicator.setText(`${format.num(value)} tok`)
     }
 
     toJSON() {
