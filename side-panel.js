@@ -476,5 +476,6 @@ async function main() {
 try {
     apiStatus.txt = await main()
 } catch (e) {
-    apiStatus.txt = `Error: ${e}`
+    apiStatus.show().txt = `Error: ${e}`
+    console.error(e)
 }
