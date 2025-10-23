@@ -11,7 +11,7 @@ export function createEl(tagName) {
  * @param {keyof HTMLElementTagNameMap} tagName The HTML tag name for the element to create.
  * @returns {Wrapper} A new Wrapper instance for the created element.
  */
-export function createWrapper(tagName) {
+export function createWrapperByTag(tagName) {
     return new Wrapper(createEl(tagName))
 }
 

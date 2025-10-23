@@ -1,5 +1,5 @@
 import { html2markdown } from '../markdown.js'
-import { createEl, createWrapper, Wrapper } from './dom.js'
+import { createEl, createWrapperByTag, Wrapper } from './dom.js'
 import * as msg from './msg.js'
 
 const defaultFavIcon = 'images/icon-32.png'
@@ -11,15 +11,18 @@ export class ImportedContent extends Wrapper {
         this.markdownContent = message.format === 'text' ? message.payload : html2markdown(message.payload)
         console.log(this.markdownContent)
 
-        const title = createWrapper('span').setText(message.title)
-        const link = createWrapper('a')
+        const title = createWrapperByTag('span').setText(message.title)
+        const link = createWrapperByTag('a')
             .setAttr('href', message.url)
             .setAttr('title', message.url)
             .setAttr('target', '_blank')
             .setAttr('rel', 'noopener noreferrer')
-            .append(createWrapper('img').setAttr('src', message.faviconUrl || defaultFavIcon), title)
+            .append(createWrapperByTag('img').setAttr('src', message.faviconUrl || defaultFavIcon), title)
 
-        this.tokenCountIndicator = createWrapper('div').addClass('chat-container__chat__token-count', 'subtle-text')
+        this.tokenCountIndicator = createWrapperByTag('div').addClass(
+            'chat-container__chat__token-count',
+            'subtle-text',
+        )
         this.append(link, this.tokenCountIndicator)
     }
 

@@ -1,4 +1,4 @@
-import { Wrapper, createWrapper, on } from './util/dom.js'
+import { Wrapper, createWrapperByTag, on } from './util/dom.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import { formatDuration } from './util/format.js'
@@ -52,19 +52,19 @@ const optTopKVal = new Wrapper('option-top-k-value')
 const examplePromptsContainer = new Wrapper('example-prompts')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
-    return createWrapper('option').setValue(value).setText(title)
+    return createWrapperByTag('option').setValue(value).setText(title)
 })
 
 optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
-    return createWrapper('option').setValue(value).setText(title)
+    return createWrapperByTag('option').setValue(value).setText(title)
 })
 
 optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
-    return createWrapper('option').setValue(value).setText(title)
+    return createWrapperByTag('option').setValue(value).setText(title)
 })
 
 examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
-    const newButton = createWrapper('button').setText(prompt)
+    const newButton = createWrapperByTag('button').setText(prompt)
     newButton.onClick(() => {
         promptInput.setValue(prompt).focus()
         debouncedCountPromptTokens()
