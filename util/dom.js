@@ -66,8 +66,10 @@ export class Wrapper {
         return this
     }
 
-    rmAttr(name) {
-        this.el.removeAttribute(name)
+    rmAttrs(...names) {
+        for (const name of names) {
+            this.el.removeAttribute(name)
+        }
         return this
     }
 
@@ -96,23 +98,19 @@ export class Wrapper {
     }
 
     hide() {
-        this.el.hidden = true
-        return this
+        return this.setAttr('hidden', '').setAttr('aria-hidden', 'true')
     }
 
     show() {
-        this.el.hidden = false
-        return this
+        return this.rmAttrs('hidden', 'aria-hidden')
     }
 
     disable() {
-        this.el.disabled = true
-        return this
+        return this.setAttr('disabled', '').setAttr('aria-disabled', 'true')
     }
 
     enable() {
-        this.el.disabled = false
-        return this
+        return this.rmAttrs('disabled', 'aria-disabled')
     }
 
     focus() {
