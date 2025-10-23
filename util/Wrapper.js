@@ -1,30 +1,13 @@
-export function id(elementId) {
-    return document.getElementById(elementId)
-}
-
-export function createEl(tagName) {
-    return document.createElement(tagName)
-}
-
-/**
- * Creates a new wrapped DOM element.
- * @param {keyof HTMLElementTagNameMap} tagName The HTML tag name for the element to create.
- * @returns {Wrapper} A new Wrapper instance for the created element.
- */
-export function createWrapperByTag(tagName) {
-    return new Wrapper(createEl(tagName))
-}
-
-export function createWrapperById(elementId) {
-    return new Wrapper(id(elementId))
-}
-
 export function query(selector) {
     return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
 }
 
 export function on(target, eventName, handler) {
     return target.addEventListener(eventName, handler)
+}
+
+export function off(target, eventName, handler) {
+    return target.removeEventListener(eventName, handler)
 }
 
 function unwrap(obj) {
@@ -41,15 +24,26 @@ function unwrap(obj) {
 }
 
 export class Wrapper {
+    el = null
+
     constructor(ref) {
-        if (typeof ref !== 'string' && !(ref instanceof HTMLElement)) {
-            throw new TypeError(`Expected an id or HTML Element. Got ${ref} (${typeof ref})`)
+        if (typeof ref === 'string') {
+            this.el = document.createElement(ref)
+        } else if (ref instanceof HTMLElement) {
+            this.el = ref
+        } else if (ref instanceof Wrapper) {
+            this.el = ref.el
+        } else {
+            throw new TypeError(`Invalid ref: ${ref} (${typeof ref})`)
         }
-        this.ref = ref
     }
 
-    get el() {
-        return typeof this.ref === 'string' ? document.getElementById(this.ref) : this.ref
+    static createById(elementId) {
+        return new Wrapper(document.getElementById(elementId))
+    }
+
+    static createByTag(tagName) {
+        return new Wrapper(tagName)
     }
 
     getValue() {
@@ -106,7 +100,7 @@ export class Wrapper {
     }
 
     off(eventName, handler) {
-        this.el.removeEventListener(eventName, handler)
+        off(this.el, eventName, handler)
         return this
     }
 

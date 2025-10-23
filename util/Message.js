@@ -1,5 +1,5 @@
 import { MarkdownIt } from '../vendor/markdown-it.js'
-import { createEl, Wrapper } from './dom.js'
+import { Wrapper } from './Wrapper.js'
 import * as msg from './msg.js'
 const md2html = MarkdownIt()
 
@@ -7,7 +7,7 @@ const VALID_ROLES = ['assistant', 'user', 'system']
 
 export class Message extends Wrapper {
     constructor(role, content = '') {
-        super(createEl('div'))
+        super('div')
         this.addClass('chat-container__chat', `chat-container__chat--${role}`)
 
         this.role = role
