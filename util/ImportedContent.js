@@ -11,8 +11,7 @@ export class ImportedContent extends Wrapper {
         this.markdownContent = message.format === 'text' ? message.payload : html2markdown(message.payload)
         console.log(this.markdownContent)
 
-        const title = createWrapper('span')
-        title.txt = message.title
+        const title = createWrapper('span').setText(message.title)
         const link = createWrapper('a')
             .setAttr('href', message.url)
             .setAttr('title', message.url)
@@ -25,7 +24,7 @@ export class ImportedContent extends Wrapper {
     }
 
     set tokenCount(value) {
-        this.tokenCountIndicator.txt = `${value} tok`
+        this.tokenCountIndicator.setText(`${value} tok`)
     }
 
     toJSON() {

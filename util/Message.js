@@ -36,7 +36,7 @@ export class Message extends Wrapper {
         }
 
         this._content = value
-        this.html = md2html.render(value)
+        this.setHtml(md2html.render(value))
     }
 
     toJSON() {

@@ -48,6 +48,15 @@ export class Wrapper {
         return typeof this.ref === 'string' ? document.getElementById(this.ref) : this.ref
     }
 
+    getValue() {
+        return this.el.value
+    }
+
+    setValue(value) {
+        this.el.value = value
+        return this
+    }
+
     get val() {
         return this.el.value
     }
@@ -139,6 +148,32 @@ export class Wrapper {
         return this
     }
 
+    getTitle() {
+        return this.getAttr('title')
+    }
+
+    setTitle(title) {
+        return this.setAttr('title', title)
+    }
+
+    getText() {
+        return this.el.innerText
+    }
+
+    setText(text) {
+        this.el.innerText = text
+        return this
+    }
+
+    getHtml() {
+        return this.el.innerHTML
+    }
+
+    setHtml(html) {
+        this.el.innerHTML = html
+        return this
+    }
+
     get txt() {
         return this.el.innerText
     }
@@ -154,15 +189,6 @@ export class Wrapper {
 
     set html(value) {
         this.el.innerHTML = value
-        return this
-    }
-
-    get title() {
-        return this.el.title
-    }
-
-    set title(value) {
-        this.el.title = value
         return this
     }
 }

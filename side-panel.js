@@ -52,48 +52,37 @@ const optTopKVal = new Wrapper('option-top-k-value')
 const examplePromptsContainer = new Wrapper('example-prompts')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
-    const newOption = createWrapper('option')
-    newOption.val = value
-    newOption.txt = title
-    return newOption
+    return createWrapper('option').setValue(value).setText(title)
 })
 
 optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
-    const newOption = createWrapper('option')
-    newOption.val = value
-    newOption.txt = title
-    return newOption
+    return createWrapper('option').setValue(value).setText(title)
 })
 
 optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
-    const newOption = createWrapper('option')
-    newOption.val = value
-    newOption.txt = title
-    return newOption
+    return createWrapper('option').setValue(value).setText(title)
 })
 
 examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
-    const newButton = createWrapper('button')
-    newButton.txt = prompt
+    const newButton = createWrapper('button').setText(prompt)
     newButton.onClick(() => {
-        promptInput.val = prompt
-        promptInput.focus()
+        promptInput.setValue(prompt).focus()
         debouncedCountPromptTokens()
     })
     return newButton
 })
 
 function updateTempSlider() {
-    optTempVal.txt = optTemp.val
+    optTempVal.setText(optTemp.getValue())
 }
 function updateTopKSlider() {
-    optTopKVal.txt = optTopK.val
+    optTopKVal.setText(optTopK.getValue())
 }
 optTemp.on('input', updateTempSlider)
 optTopK.on('input', updateTopKSlider)
 
-optSysPrompt.val = defaultSystemPrompt
-promptInput.val = examplePrompts[0]
+optSysPrompt.setValue(defaultSystemPrompt)
+promptInput.setValue(examplePrompts[0])
 
 let session
 let estimator
@@ -102,19 +91,19 @@ let submitController
 
 function getModelOptions() {
     return {
-        initialPrompts: [msg.system(optSysPrompt.val)],
-        temperature: optTemp.val,
-        topK: optTopK.val,
+        initialPrompts: [msg.system(optSysPrompt.getValue())],
+        temperature: optTemp.getValue(),
+        topK: optTopK.getValue(),
         expectedInputs: [
             {
                 type: 'text',
-                languages: [optSystemLang.val, optUserLang.val],
+                languages: [optSystemLang.getValue(), optUserLang.getValue()],
             },
         ],
         expectedOutputs: [
             {
                 type: 'text',
-                languages: [optAssistantLang.val],
+                languages: [optAssistantLang.getValue()],
             },
         ],
     }
@@ -123,10 +112,10 @@ function getModelOptions() {
 function monitor(m) {
     on(m, 'downloadprogress', (e) => {
         console.debug('Download Progress', Date.now(), e)
-        downloadProgress.val = e.loaded
+        downloadProgress.setValue(e.loaded)
 
         if (e.loaded === 1) {
-            downloadEta.txt = 'Done!'
+            downloadEta.setText('Done!')
             return
         }
 
@@ -134,10 +123,10 @@ function monitor(m) {
         if (estimator.isReady) {
             try {
                 const remainingMs = estimator.remaining
-                const remainingStr = formatDuration(remainingMs, optSystemLang.val)
-                downloadEta.txt = `ETA: ${remainingStr}`
+                const remainingStr = formatDuration(remainingMs, optSystemLang.getValue())
+                downloadEta.setText(`ETA: ${remainingStr}`)
             } catch (err) {
-                downloadEta.txt = String(err)
+                downloadEta.setText(String(err))
             }
         }
     })
@@ -148,9 +137,9 @@ function updateSessionTokens() {
         return
     }
     const { inputQuota, inputUsage } = session
-    usageRatio.val = inputUsage / inputQuota
+    usageRatio.setValue(inputUsage / inputQuota)
     const remainingPercent = Math.round((100 * (inputQuota - inputUsage)) / inputQuota)
-    usageRatio.title = `Used: ${inputUsage} of ${inputQuota} tokens. Remaining: ${remainingPercent}%`
+    usageRatio.setAttr('title', `Used: ${inputUsage} of ${inputQuota} tokens. Remaining: ${remainingPercent}%`)
 }
 
 async function countPromptTokens() {
@@ -158,14 +147,14 @@ async function countPromptTokens() {
         return
     }
     try {
-        const userPrompt = promptInput.val
+        const userPrompt = promptInput.getValue()
         console.time('Counting prompt tokens')
         const promptTokenCount = await session.measureInputUsage(userPrompt, {
             /* accepts a signal too */
         })
         console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
-        promptTokens.txt = promptTokenCount
+        promptTokens.setText(promptTokenCount)
     } catch (e) {
         console.error('Failed to count prompt tokens:', e)
     }
@@ -183,8 +172,8 @@ btnInit.onClick(async () => {
     try {
         const modelOptions = getModelOptions()
         console.log('Initializing session...')
-        downloadProgress.val = 0
-        downloadEta.txt = 'Initializing...'
+        downloadProgress.setValue(0)
+        downloadEta.setText('Initializing...')
         estimator = new Estimator()
         console.debug('Creating session... (may require download)')
         promptApiInit.hide()
@@ -235,7 +224,7 @@ btnSubmitPrompt.onClick(async () => {
         if (!session) {
             throw new Error('No session')
         }
-        const userPrompt = promptInput.val
+        const userPrompt = promptInput.getValue()
         if (!userPrompt.trim()) {
             return
         }
@@ -244,8 +233,7 @@ btnSubmitPrompt.onClick(async () => {
         chatLoadingAnimation.show()
         debouncedCountPromptTokens()
 
-        promptInput.val = ''
-        promptInput.disable()
+        promptInput.setValue('').disable()
         btnSubmitPrompt.disable()
 
         console.debug('Sending prompt')
@@ -253,8 +241,8 @@ btnSubmitPrompt.onClick(async () => {
         pastChats.append(userMessage)
         userMessage.el.scrollIntoView()
 
-        downloadProgress.val = 0
-        downloadEta.txt = ''
+        downloadProgress.setValue(0)
+        downloadEta.setText('')
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
 
         submitController = new AbortController()
@@ -299,19 +287,19 @@ btnSubmitPrompt.onClick(async () => {
         const inputUsageDelta = session.inputUsage - inputUsageBefore
 
         const totDuration = endTimestamp - startTimestamp
-        durationStatus.txt = totDuration
+        durationStatus.setText(totDuration)
 
         const timeToFirstToken = isStreaming ? firstTokenTimestamp - startTimestamp : totDuration
         console.debug('timeToFirstToken', timeToFirstToken)
-        statsTimeToFirstToken.txt = timeToFirstToken
+        statsTimeToFirstToken.setText(timeToFirstToken)
 
         const inferenceDuration = isStreaming ? endTimestamp - firstTokenTimestamp : totDuration
         console.debug('Inference Duration', inferenceDuration)
-        statsInferenceDuration.txt = inferenceDuration
+        statsInferenceDuration.setText(inferenceDuration)
 
         const tokenPerSecond = Math.round((1000 * inputUsageDelta) / inferenceDuration)
         console.debug('tokenPerSecond', tokenPerSecond)
-        tokenPerSecondStatus.txt = tokenPerSecond
+        tokenPerSecondStatus.setText(tokenPerSecond)
         promptStats.show()
 
         updateSessionTokens()
@@ -378,14 +366,14 @@ btnClone.onClick(async () => {
     promptStats.hide()
     pastChats.empty()
     updateSessionTokens()
-    promptInput.focus().val = ''
+    promptInput.focus().setValue('')
     debouncedCountPromptTokens()
     chatPlaceholder.show()
     btnClone.enable()
 })
 
 promptInput.on('input', () => {
-    if (promptInput.val.trim()) {
+    if (promptInput.getValue().trim()) {
         btnSubmitPrompt.enable()
     } else {
         btnSubmitPrompt.disable()
@@ -429,7 +417,7 @@ optSysPrompt.on('keydown', (e) => {
 async function main() {
     const manifestJson = chrome.runtime.getManifest()
     const localIndicator = 'update_url' in manifestJson ? '' : '*'
-    version.txt = manifestJson.version + localIndicator
+    version.setText(manifestJson.version + localIndicator)
 
     if (typeof globalThis.LanguageModel !== 'function') {
         return `LanguageModel is not supported in this environment.`
@@ -445,7 +433,7 @@ async function main() {
         throw new Error('LanguageModel is not supported in your browser.')
     }
 
-    apiStatus.hide().txt = 'LanguageModel is supported in your browser.'
+    apiStatus.hide().setText('LanguageModel is supported in your browser.')
 
     // Can be "available", "unavailable", "downloadable", "downloading"
     if (availability === 'unavailable') {
@@ -462,12 +450,12 @@ async function main() {
     // maxTemperature
     optTemp.setAttr('max', params.maxTemperature)
     // defaultTemperature
-    optTemp.val = params.defaultTemperature
+    optTemp.setValue(params.defaultTemperature)
     updateTempSlider()
     // maxTopK
     optTopK.setAttr('max', params.maxTopK)
     // defaultTopK
-    optTopK.val = params.defaultTopK
+    optTopK.setValue(params.defaultTopK)
     updateTopKSlider()
     return ''
 }
@@ -475,8 +463,8 @@ async function main() {
 // Scripts with `type="module"` are deferred by default, so we don't need to
 // wait for DOMContentLoaded. The script will execute after the DOM is parsed.
 try {
-    apiStatus.txt = await main()
+    apiStatus.setText(await main())
 } catch (e) {
-    apiStatus.show().txt = `Error: ${e}`
+    apiStatus.show().setText(`Error: ${e}`)
     console.error(e)
 }
