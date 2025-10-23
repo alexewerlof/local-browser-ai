@@ -250,6 +250,7 @@ btnSubmitPrompt.onClick(async () => {
         console.debug('Sending prompt')
         const userMessage = new Message('user', userPrompt)
         pastChats.append(userMessage)
+        userMessage.el.scrollIntoView()
 
         downloadProgress.val = 0
         downloadEta.txt = ''
@@ -282,6 +283,7 @@ btnSubmitPrompt.onClick(async () => {
                     firstTokenTimestamp = Date.now()
                 }
                 assistantMessage.content += chunk
+                assistantMessage.el.scrollIntoView({ behavior: 'instant' })
             }
         } else {
             assistantMessage.content = await session.prompt(userPrompt, {
@@ -290,6 +292,8 @@ btnSubmitPrompt.onClick(async () => {
             })
         }
         const endTimestamp = Date.now()
+
+        userMessage.el.scrollIntoView({ block: 'start' })
 
         const inputUsageDelta = session.inputUsage - inputUsageBefore
 
@@ -341,6 +345,7 @@ async function onPortMessage(message) {
         console.timeEnd('session.append()')
         importedContent.tokenCount = session.inputUsage - inputUsageBefore
         pastChats.append(importedContent)
+        importedContent.el.scrollIntoView()
         updateSessionTokens()
         console.log('Appended message successfully')
     } catch (error) {
