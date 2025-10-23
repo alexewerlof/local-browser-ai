@@ -22,14 +22,14 @@ export const defaultSystemPrompt = [
 ].join('\n')
 
 export const examplePrompts = [
-    'Who are you?',
-    'What is this page about?',
     'What is in your training data?',
     'What is the key takeaways of this page?',
     'What are the most important links in this page and why?',
+    'How do I add something to this conversation?',
     'What kind of tasks can you help me with?',
     'Can you simplify this page?',
-    'How do I add something to this conversation?',
+    'What is this page about?',
+    'Who are you?',
 ]
 
 export const supportedSystemLanguages = [
