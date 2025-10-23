@@ -18,7 +18,6 @@ const apiStatus = Wrapper.createById('api-status')
 const btnClone = Wrapper.createById('new-session-button')
 const btnInit = Wrapper.createById('init-button')
 const btnInitStop = Wrapper.createById('init-stop-button')
-const btnClose = Wrapper.createById('close-button')
 const btnReload = Wrapper.createById('reset-button')
 const btnStopPrompt = Wrapper.createById('stop-prompt-button')
 const btnSubmitPrompt = Wrapper.createById('submit-prompt-button')
@@ -67,6 +66,7 @@ examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
     const newButton = Wrapper.createByTag('button').setText(prompt)
     newButton.onClick(() => {
         promptInput.setValue(prompt).focus()
+        btnSubmitPrompt.enable()
         debouncedCountPromptTokens()
     })
     return newButton
@@ -170,6 +170,7 @@ btnInit.onClick(async () => {
     }
 
     try {
+        btnReload.show()
         const modelOptions = getModelOptions()
         console.log('Initializing session...')
         downloadProgress.setValue(0)
@@ -392,10 +393,6 @@ on(window, 'unhandledrejection', (e) => {
 btnReload.onClick(() => {
     console.debug('Reloading...')
     location.reload()
-})
-
-btnClose.onClick(() => {
-    window.close()
 })
 
 promptInput.on('keydown', (e) => {
