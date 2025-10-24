@@ -4,7 +4,7 @@
   "description": "A simple Browser extension for using the Prompt API.",
   "main": "background.js",
   "scripts": {
-    "update-vendors": "node update-vendors.js",
+    "update-vendors": "node update-vendors.js & node update-icons.js",
     "postinstall": "npm run update-vendors",
     "fmt": "prettier --write .",
     "build": "npm t & node build.js",

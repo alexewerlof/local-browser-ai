@@ -2,6 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <link rel="stylesheet" href="vendor/icons.css" />
         <link rel="stylesheet" href="side-panel.css" />
         <title>Local Browser AI - Side Panel</title>
     </head>
@@ -12,8 +13,12 @@
             <a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a>
             <a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank">Privacy</a>
             <span id="version" title="Version" class="subtle-text grow-flex">version</span>
-            <button id="new-session-button" hidden>New Chat</button>
-            <button id="reset-button">Reset</button>
+            <button id="new-session-button" title="New Chat" hidden>
+                <span class="material-symbols-outlined">chat_add_on</span>
+            </button>
+            <button id="reset-button" title="Reset">
+                <span class="material-symbols-outlined">reset_wrench</span>
+            </button>
         </header>
         <main id="boot-ui">
             <div id="api-status">Checking availability...</div>
@@ -108,7 +113,10 @@
                 <div class="subtle-text">The instructions that guide the responses in your entire chat session</div>
                 <textarea id="option-system-prompt" class="grow-flex" placeholder="System prompt"></textarea>
                 <div class="button-bar">
-                    <button id="init-button" class="cta">Initialize</button>
+                    <button id="init-button" class="cta">
+                        <span class="material-symbols-outlined">bolt</span>
+                        Initialize
+                    </button>
                 </div>
             </div>
 
@@ -117,7 +125,9 @@
                 <progress id="download-progress" min="0" max="1" value="0"></progress>
                 <span id="download-eta">ETA</span>
                 <div class="button-bar">
-                    <button id="init-stop-button">Stop</button>
+                    <button id="init-stop-button" title="Stop Downloading">
+                        <span class="material-symbols-outlined">stop</span>
+                    </button>
                 </div>
             </div>
 
@@ -145,8 +155,12 @@
                             <input type="checkbox" id="option-streaming" checked />
                             Streaming
                         </label>
-                        <button id="submit-prompt-button" class="cta">Submit</button>
-                        <button id="stop-prompt-button" hidden>Stop</button>
+                        <button id="submit-prompt-button" class="cta" title="Submit Prompt">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
+                        <button id="stop-prompt-button" title="Stop Response" hidden>
+                            <span class="material-symbols-outlined">stop</span>
+                        </button>
                     </div>
                 </div>
                 <div id="prompt-stats" hidden>

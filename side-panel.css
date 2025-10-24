@@ -453,3 +453,11 @@ footer {
         }
     }
 }
+
+.material-symbols-outlined {
+    font-size: 1.4em;
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: -0.2em;
+    margin-bottom: -0.2em;
+}
