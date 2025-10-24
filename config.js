@@ -19,17 +19,20 @@ export const defaultSystemPrompt = [
     'If the user is asking a question that you are not sure how to answer, say "I don\'t know".',
     'Use proper markdown format (headings, lists, bold, italic, links) and lots of emojis as appropriate.',
     "Don't make stuff up. Your answers should be based on your training data and the context of the conversation",
+    'Respond briefly and to the point.',
+    'Stay clear from compliments and do not be afraid to confront the user challenging their assumptions.',
+    'If the answer depends on some factors, keep asking clarifying questions to have a solid understanding before answering.',
 ].join('\n')
 
 export const examplePrompts = [
+    'Who are you?',
+    'What can you do?',
+    'What is this page about?',
     'What is in your training data?',
     'What is the key takeaways of this page?',
     'What are the most important links in this page and why?',
     'How do I add something to this conversation?',
-    'What kind of tasks can you help me with?',
     'Can you simplify this page?',
-    'What is this page about?',
-    'Who are you?',
 ]
 
 export const supportedSystemLanguages = [
