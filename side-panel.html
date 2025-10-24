@@ -9,9 +9,60 @@
         <header>
             <span id="version" title="Version" class="subtle-text">version</span>
             <button id="new-session-button" hidden>New Chat</button>
-            <button id="reset-button" hidden>Reset</button>
+            <button id="reset-button">Reset</button>
         </header>
-        <main id="api-status">Checking availability...</main>
+        <main id="boot-ui">
+            <div id="api-status">Checking availability...</div>
+            <table id="system-requirements">
+                <caption>
+                    System Requirements
+                </caption>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>
+                            <a href="https://developer.chrome.com/docs/ai/prompt-api" target="_blank">Chrome</a>
+                        </th>
+                        <th>
+                            <a
+                                href="https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api"
+                                target="_blank"
+                                >Edge</a
+                            >
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>OS</th>
+                        <td>Linux, MacOS 13+, ChromeOS, Windows</td>
+                        <td>Windows 11, MacOS 13.3+</td>
+                    </tr>
+                    <tr>
+                        <th>Hardware</th>
+                        <td>
+                            NVidia cards, Apple Silicon (e.g. M1 processor), Chromebook Plus
+                            <br />
+                            or at least a 4 core CPU with 16GB+ RAM
+                        </td>
+                        <td>5.5GB+ of VRAM</td>
+                    </tr>
+                    <tr>
+                        <th>Storage</th>
+                        <td>22GB</td>
+                        <td>20GB</td>
+                    </tr>
+                    <tr>
+                        <th>Network</th>
+                        <td colspan="2">
+                            A reliable, cheap, and fast internet is required to download the initial model. After that,
+                            you don't need internet for this extension.
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </main>
         <main id="prompt-api-ui" class="v-flex-grow" hidden>
             <div id="prompt-api-init" class="v-flex">
                 <div class="welcome">
@@ -43,7 +94,7 @@
                     <div class="subtle-text">The language used by the user</div>
                     <select id="option-user-lang"></select>
                     <label for="option-assistant-lang">Response</label>
-                    <div class="subtle-text">The language of the responses</div>
+                    <div class="subtle-text">The language of the AI responses</div>
                     <select id="option-assistant-lang"></select>
                     <div class="box box--warn">
                         Prompt API seems to ignore user and assistant response language settings
@@ -74,7 +125,7 @@
                 </div>
                 <div id="chat-history" class="chat-container v-flex-grow"></div>
                 <div id="chat-loading-animation" class="loading-animation" hidden></div>
-                <div class="box box--info">
+                <div id="add-context-reminder" class="box box--info">
                     You can now select a text or add an entire page to your chat as context by right clicking the page
                 </div>
                 <meter id="usage-ratio" title="Remaining Quota" value="0" low="0.1" high="0.9" optimum="0"></meter>

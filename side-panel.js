@@ -14,7 +14,8 @@ import {
     supportedUserLanguages,
 } from './config.js'
 
-const apiStatus = Wrapper.createById('api-status')
+const apiStatus = Wrapper.createById('api-status').setText('Loading...')
+const systemRequirements = Wrapper.createById('system-requirements')
 const btnClone = Wrapper.createById('new-session-button')
 const btnInit = Wrapper.createById('init-button')
 const btnInitStop = Wrapper.createById('init-stop-button')
@@ -49,6 +50,7 @@ const downloadStatus = Wrapper.createById('download-status')
 const optTempVal = Wrapper.createById('option-temperature-value')
 const optTopKVal = Wrapper.createById('option-top-k-value')
 const examplePromptsContainer = Wrapper.createById('example-prompts')
+const addContextReminder = Wrapper.createById('add-context-reminder')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
     return Wrapper.createByTag('option').setValue(value).setText(title)
@@ -338,6 +340,7 @@ async function onPortMessage(message) {
         importedContent.el.scrollIntoView()
         updateSessionTokens()
         console.log('Appended message successfully')
+        addContextReminder.hide()
     } catch (error) {
         if (error instanceof QuotaExceededError) {
             alert('Too much text! Add smaller bits.')
@@ -424,13 +427,14 @@ async function main() {
     console.time('LanguageModel.availability()')
     const availability = await LanguageModel?.availability(modelOptions)
     console.timeEnd('LanguageModel.availability()')
+
+    apiStatus.setText('LanguageModel is supported in your browser.')
+
     console.debug('Availability:', availability)
 
     if (!availability) {
         throw new Error('LanguageModel is not supported in your browser.')
     }
-
-    apiStatus.hide().setText('LanguageModel is supported in your browser.')
 
     // Can be "available", "unavailable", "downloadable", "downloading"
     if (availability === 'unavailable') {
@@ -454,14 +458,16 @@ async function main() {
     // defaultTopK
     optTopK.setValue(params.defaultTopK)
     updateTopKSlider()
-    return ''
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to
 // wait for DOMContentLoaded. The script will execute after the DOM is parsed.
 try {
-    apiStatus.setText(await main())
+    await main()
+    apiStatus.hide()
+    systemRequirements.hide()
 } catch (e) {
     apiStatus.show().setText(`Error: ${e}`)
     console.error(e)
+    systemRequirements.show()
 }

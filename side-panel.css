@@ -82,6 +82,10 @@ body {
     }
 }
 
+th {
+    text-align: left;
+}
+
 a {
     color: var(--interactive-color);
     text-decoration: none;
