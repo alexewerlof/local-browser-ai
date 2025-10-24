@@ -7,7 +7,11 @@
     </head>
     <body class="v-flex">
         <header>
-            <span id="version" title="Version" class="subtle-text">version</span>
+            <a href="https://alexewerlof.com" target="_blank"><img src="images/logo.png" class="alex-logo" /></a>
+            <a href="https://blog.alexewerlof.com/p/local-browser-ai" target="_blank">Intro</a>
+            <a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a>
+            <a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank">Privacy</a>
+            <span id="version" title="Version" class="subtle-text grow-flex">version</span>
             <button id="new-session-button" hidden>New Chat</button>
             <button id="reset-button">Reset</button>
         </header>
@@ -63,7 +67,7 @@
                 </tbody>
             </table>
         </main>
-        <main id="prompt-api-ui" class="v-flex-grow" hidden>
+        <main id="prompt-api-ui" class="grow-flex" hidden>
             <div id="prompt-api-init" class="v-flex">
                 <div class="welcome">
                     <img src="images/icon-128.png" alt="Logo" />
@@ -102,7 +106,7 @@
                 </fieldset>
                 <label for="option-system-prompt">System Prompt</label>
                 <div class="subtle-text">The instructions that guide the responses in your entire chat session</div>
-                <textarea id="option-system-prompt" class="v-flex-grow" placeholder="System prompt"></textarea>
+                <textarea id="option-system-prompt" class="grow-flex" placeholder="System prompt"></textarea>
                 <div class="button-bar">
                     <button id="init-button" class="cta">Initialize</button>
                 </div>
@@ -123,7 +127,7 @@
                     <div class="welcome__message">How can I help you?</div>
                     <div id="example-prompts"></div>
                 </div>
-                <div id="chat-history" class="chat-container v-flex-grow"></div>
+                <div id="chat-history" class="chat-container grow-flex"></div>
                 <div id="chat-loading-animation" class="loading-animation" hidden></div>
                 <div id="add-context-reminder" class="box box--info">
                     You can now select a text or add an entire page to your chat as context by right clicking the page
@@ -132,7 +136,7 @@
                 <div class="prompt-section">
                     <textarea id="prompt-input" placeholder="Type your prompt here..."></textarea>
                     <div class="prompt-controls">
-                        <span class="stat prompt-token-count subtle-text" title="Prompt Tokens">
+                        <span class="stat prompt-token-count subtle-text grow-flex" title="Prompt Tokens">
                             Prompt
                             <output id="prompt-tokens" for="prompt-input" class="value">...</output>
                             <span class="unit">tok</span>
@@ -147,46 +151,24 @@
                 </div>
                 <div id="prompt-stats" hidden>
                     <div title="Tokens" class="prompt-stats">
-                        <span class="stat" title="Time to first token">
-                            TTFT
-                            <span id="time-to-first-token" class="value">?</span>
-                            <span class="unit">ms</span>
-                        </span>
-                        <span class="stat" title="The period where tokens were generated">
-                            Inference
-                            <span id="inference-duration" class="value">?</span>
-                            <span class="unit">ms</span>
-                        </span>
                         <span class="stat" title="Tokens generated per second during inference">
-                            TPS
-                            <span id="token-per-second" class="value">?</span>
-                            <span class="unit">tok/s</span>
+                            TPS <span id="token-per-second" class="value">?</span>
                         </span>
-                        <span class="stat" title="Total time it took till the end">
-                            Duration
-                            <span id="duration" class="value">?</span>
-                            <span class="unit">ms</span>
+                        <span class="stat" title="Time to first token in millisecond">
+                            TTFT <span id="time-to-first-token" class="value">?</span>
+                        </span>
+                        <span class="stat" title="The period where tokens were generated in millisecond">
+                            Inf <span id="inference-duration" class="value">?</span>
+                        </span>
+                        <span class="stat" title="Total time it took till the end in millisecond">
+                            Tot <span id="duration" class="value">?</span>
                         </span>
                     </div>
                 </div>
             </div>
         </main>
-        <footer>
-            <ul>
-                <li><a href="https://blog.alexewerlof.com/p/local-browser-ai" target="_blank">Intro</a></li>
-                <li><a href="https://github.com/alexewerlof/local-browser-ai" target="_blank">Github</a></li>
-                <li><a href="https://github.com/alexewerlof/local-browser-ai/issues" target="_blank">Issues</a></li>
-                <li>
-                    <a href="https://github.com/alexewerlof/local-browser-ai/blob/main/privacy.txt" target="_blank">
-                        Privacy
-                    </a>
-                </li>
-            </ul>
+        <footer class="subtle-text">
             <img src="images/swedish-flag.svg" alt="Swedish Flag" class="flag" /> Made in Sweden
-            <br />
-            <a href="https://alexewerlof.com" target="_blank">
-                <img src="images/logo.png" class="logo" />
-            </a>
         </footer>
         <script type="module" src="side-panel.js"></script>
     </body>
