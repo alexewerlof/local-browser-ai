@@ -1,7 +1,3 @@
-export function query(selector) {
-    return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
-}
-
 export function on(target, eventName, handler) {
     return target.addEventListener(eventName, handler)
 }
@@ -36,6 +32,14 @@ export class Wrapper {
 
     static fromTagName(tagName) {
         return new Wrapper(tagName)
+    }
+
+    static query(selector) {
+        return new Wrapper(document.querySelector(selector))
+    }
+
+    static queryAll(selector) {
+        return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
     }
 
     get el() {
