@@ -26,10 +26,6 @@ export class Wrapper {
         this.el = typeof ref === 'string' ? document.createElement(ref) : ref
     }
 
-    static fromTagName(tagName) {
-        return new Wrapper(tagName)
-    }
-
     static query(selector) {
         return new Wrapper(document.querySelector(selector))
     }

@@ -12,18 +12,15 @@ export class ImportedContent extends Wrapper {
         this.markdownContent = message.format === 'text' ? message.payload : html2markdown(message.payload)
         console.log(this.markdownContent)
 
-        const title = Wrapper.fromTagName('span').setText(message.title)
-        const link = Wrapper.fromTagName('a')
+        const title = new Wrapper('span').setText(message.title)
+        const link = new Wrapper('a')
             .setAttr('href', message.url)
             .setAttr('title', message.url)
             .setAttr('target', '_blank')
             .setAttr('rel', 'noopener noreferrer')
-            .append(Wrapper.fromTagName('img').setAttr('src', message.faviconUrl || defaultFavIcon), title)
+            .append(new Wrapper('img').setAttr('src', message.faviconUrl || defaultFavIcon), title)
 
-        this.tokenCountIndicator = Wrapper.fromTagName('div').addClass(
-            'chat-container__chat__token-count',
-            'subtle-text',
-        )
+        this.tokenCountIndicator = new Wrapper('div').addClass('chat-container__chat__token-count', 'subtle-text')
         this.append(link, this.tokenCountIndicator)
     }
 

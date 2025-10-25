@@ -54,19 +54,19 @@ const addContextReminder = Wrapper.query('#add-context-reminder')
 const addContextWarning = Wrapper.query('#add-context-warning')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
-    return Wrapper.fromTagName('option').setValue(value).setText(title)
+    return new Wrapper('option').setValue(value).setText(title)
 })
 
 optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
-    return Wrapper.fromTagName('option').setValue(value).setText(title)
+    return new Wrapper('option').setValue(value).setText(title)
 })
 
 optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
-    return Wrapper.fromTagName('option').setValue(value).setText(title)
+    return new Wrapper('option').setValue(value).setText(title)
 })
 
 examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
-    const newButton = Wrapper.fromTagName('button').setText(prompt)
+    const newButton = new Wrapper('button').setText(prompt)
     newButton.onClick(() => {
         promptInput.setValue(prompt).focus()
         btnSubmitPrompt.enable()
