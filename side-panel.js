@@ -51,6 +51,7 @@ const optTempVal = Wrapper.createById('option-temperature-value')
 const optTopKVal = Wrapper.createById('option-top-k-value')
 const examplePromptsContainer = Wrapper.createById('example-prompts')
 const addContextReminder = Wrapper.createById('add-context-reminder')
+const addContextWarning = Wrapper.createById('add-context-warning')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
     return Wrapper.createByTag('option').setValue(value).setText(title)
@@ -341,6 +342,7 @@ async function onPortMessage(message) {
         updateSessionTokens()
         console.log('Appended message successfully')
         addContextReminder.hide()
+        addContextWarning.show()
     } catch (error) {
         if (error instanceof QuotaExceededError) {
             alert('Too much text! Add smaller bits.')
