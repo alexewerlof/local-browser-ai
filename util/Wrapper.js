@@ -174,22 +174,4 @@ export class Wrapper {
         this.el.innerHTML = html
         return this
     }
-
-    get txt() {
-        return this.el.innerText
-    }
-
-    set txt(value) {
-        this.el.innerText = value
-        return this
-    }
-
-    get html() {
-        return this.el.innerHTML
-    }
-
-    set html(value) {
-        this.el.innerHTML = value
-        return this
-    }
 }
