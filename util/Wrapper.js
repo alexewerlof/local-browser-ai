@@ -24,26 +24,33 @@ function unwrap(obj) {
 }
 
 export class Wrapper {
-    el = null
+    _el = null
 
     constructor(ref) {
-        if (typeof ref === 'string') {
-            this.el = document.createElement(ref)
-        } else if (ref instanceof HTMLElement) {
-            this.el = ref
-        } else if (ref instanceof Wrapper) {
-            this.el = ref.el
-        } else {
-            throw new TypeError(`Invalid ref: ${ref} (${typeof ref})`)
-        }
+        this.el = typeof ref === 'string' ? document.createElement(ref) : ref
     }
 
-    static createById(elementId) {
+    static fromId(elementId) {
         return new Wrapper(document.getElementById(elementId))
     }
 
-    static createByTag(tagName) {
+    static fromTagName(tagName) {
         return new Wrapper(tagName)
+    }
+
+    get el() {
+        return this._el
+    }
+
+    set el(value) {
+        if (!(value instanceof HTMLElement)) {
+            throw new TypeError(`Expected an string or HTMLElement. Got: ${value} (${typeof value})`)
+        }
+        this._el = value
+    }
+
+    clone() {
+        return new Wrapper(this.el.cloneNode(true))
     }
 
     getValue() {
