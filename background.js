@@ -156,3 +156,12 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error))
+
+async function main() {
+    console.time('LanguageModel.availability()')
+    const ret = await LanguageModel.availability()
+    console.timeEnd('LanguageModel.availability()')
+    return `Availability: ${ret}`
+}
+
+main().then(console.log).catch(console.error)
