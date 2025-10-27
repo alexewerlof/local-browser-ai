@@ -119,7 +119,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 throw new RangeError(`Unrecognized context menu id: ${info.menuItemId}`)
         }
     } catch (error) {
-        console.error('Error sending to side panel:', error)
+        console.error('Context menu click listener failed.', error)
     }
 })
 
