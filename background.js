@@ -125,6 +125,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === sidePanelPortName) {
         sidePanelPort = port
+
+        // For security reasons, we only accept connections from the current extension instance.
+        // chrome.runtime.id is the unique ID of the currently running extension.
+        if (port.sender && port.sender.id !== chrome.runtime.id) {
+            console.warn(
+                `Connection attempt from unexpected extension ID: ${port.sender.id} for port ${port.name}. Disconnecting.`,
+            )
+            port.disconnect() // Disconnect the unauthorized port
+            return
+        }
         console.log('Side panel has connected.')
 
         sidePanelPort.onMessage.addListener(async (message) => {
