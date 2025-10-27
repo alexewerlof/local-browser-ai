@@ -4,6 +4,7 @@ let sidePanelPort = null
 
 chrome.runtime.onInstalled.addListener(async () => {
     try {
+        console.log('Creating context menus...')
         await chrome.contextMenus.removeAll()
         chrome.contextMenus.create({
             id: contextMenuIds.showSideBar,
@@ -40,7 +41,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
 })
 
-async function canSend(isPortInitiated) {
+async function updateContextMenus(isPortInitiated) {
     if (typeof isPortInitiated !== 'boolean') {
         throw new TypeError(`isPortInitiated must be a boolean. Got ${isPortInitiated} (${typeof isPortInitiated})`)
     }
@@ -139,14 +140,14 @@ chrome.runtime.onConnect.addListener((port) => {
 
         sidePanelPort.onMessage.addListener(async (message) => {
             if (message.command === 'side-panel-ready') {
-                await canSend(true)
+                await updateContextMenus(true)
                 console.log('Side panel is ready. Context menu enabled.')
             }
         })
 
         sidePanelPort.onDisconnect.addListener(async () => {
             sidePanelPort = null
-            await canSend(false)
+            await updateContextMenus(false)
             console.log('Side panel has disconnected. Context menu disabled.')
         })
     } else {
