@@ -9,6 +9,8 @@
     --background-color: #1b1c1d;
     --text-color: #fff;
     --border-color: #4a5050;
+    --code-color: #fff;
+    --code-background: #333537;
     --user-chat-background: #333537;
     --button-background: #4a5050;
     --button-activated-background: #5d6464;
@@ -94,6 +96,17 @@ a {
 p {
     margin-block-start: var(--gap4);
     margin-block-end: var(--gap4);
+}
+
+pre {
+    padding: var(--gap2);
+}
+
+pre,
+code {
+    color: var(--code-color);
+    background-color: var(--code-background);
+    border-radius: var(--border-radius);
 }
 
 label {
