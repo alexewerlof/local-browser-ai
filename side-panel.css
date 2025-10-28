@@ -162,7 +162,7 @@ input[type='text'] {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     background-color: transparent;
-    padding: var(--gap4);
+    padding: var(--gap2);
     margin-top: var(--gap2);
     margin-bottom: var(--gap4);
     color: inherit;
