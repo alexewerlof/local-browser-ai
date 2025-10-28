@@ -93,7 +93,6 @@ optTemp.on('input', updateTempSlider)
 optTopK.on('input', updateTopKSlider)
 
 optSysPrompt.setValue(defaultSystemPrompt)
-promptInput.setValue(examplePrompts[0])
 
 let session
 let estimator
