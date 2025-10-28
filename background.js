@@ -1,6 +1,25 @@
-import { contextMenuIds, sidePanelPortName } from './config.js'
+import { contextMenuIds, sidePanelStatus } from './config.js'
+import * as RPC from './util/RPC.js'
 
-let sidePanelPort = null
+new RPC.Server('background', {
+    async updateStatus(status) {
+        console.log('Side Panel Status:', status)
+        if (typeof status !== 'string') {
+            throw new TypeError(`isPortInitiated must be a boolean. Got ${isPortInitiated} (${typeof isPortInitiated})`)
+        }
+        const isPortInitiated = status === sidePanelStatus.INITIALIZED
+        console.debug('isPortInitiated', isPortInitiated)
+        return await Promise.allSettled([
+            chrome.contextMenus.update(contextMenuIds.sendSelection, { visible: isPortInitiated }),
+            chrome.contextMenus.update(contextMenuIds.sendPage, { visible: isPortInitiated }),
+            chrome.contextMenus.update(contextMenuIds.showSideBar, { visible: !isPortInitiated }),
+            chrome.contextMenus.update(contextMenuIds.initialized, { checked: isPortInitiated, title: status }),
+        ])
+    },
+})
+
+const sidePanelRpc = new RPC.Client('side-panel')
+const addToSidePanel = sidePanelRpc.createStub('add')
 
 chrome.runtime.onInstalled.addListener(async () => {
     try {
@@ -41,22 +60,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
 })
 
-async function updateContextMenus(isPortInitiated) {
-    if (typeof isPortInitiated !== 'boolean') {
-        throw new TypeError(`isPortInitiated must be a boolean. Got ${isPortInitiated} (${typeof isPortInitiated})`)
-    }
-    console.debug('isPortInitiated', isPortInitiated)
-    return await Promise.allSettled([
-        chrome.contextMenus.update(contextMenuIds.sendSelection, { visible: isPortInitiated }),
-        chrome.contextMenus.update(contextMenuIds.sendPage, { visible: isPortInitiated }),
-        chrome.contextMenus.update(contextMenuIds.showSideBar, { visible: !isPortInitiated }),
-        chrome.contextMenus.update(contextMenuIds.initialized, { checked: isPortInitiated }),
-    ])
-}
-
-/**
- * @param {number} tabId The ID of the tab to inject the script into.
- */
 export async function scrapePageHtml(tabId) {
     try {
         const fnReturns = await chrome.scripting.executeScript({
@@ -78,15 +81,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 break
             case contextMenuIds.sendSelection:
                 console.log('Selected text:', info.selectionText)
-                if (!sidePanelPort) {
-                    throw new Error('Please initialize the side panel first.')
-                }
                 const url = new URL(tab.url)
                 if (!url.hash) {
                     url.hash = ':~:text=' + encodeURIComponent(info.selectionText)
                 }
-                sidePanelPort.postMessage({
-                    command: 'add',
+                await addToSidePanel({
                     format: 'text',
                     payload: info.selectionText,
                     title: tab.title || 'Selection',
@@ -96,24 +95,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 break
             case contextMenuIds.sendPage:
                 console.log(`Selected page URL:`, info.pageUrl)
-                if (!sidePanelPort) {
-                    throw new Error('Please initialize the side panel first.')
-                }
                 const fnReturns = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
+                    target: { tabId: tab.id, allFrames: true },
                     func: () => document.body.innerHTML,
                 })
                 console.log(`Scraped ${fnReturns.length} frames.`)
-                for (const { result } of fnReturns) {
-                    sidePanelPort.postMessage({
-                        command: 'add',
-                        format: 'html',
-                        payload: result,
-                        title: tab.title || 'Page',
-                        faviconUrl: tab.favIconUrl,
-                        url: tab.url,
-                    })
-                }
+                await Promise.all(
+                    fnReturns.map(({ result }) =>
+                        addToSidePanel({
+                            format: 'html',
+                            payload: result,
+                            title: tab.title || 'Page',
+                            faviconUrl: tab.favIconUrl,
+                            url: tab.url,
+                        }),
+                    ),
+                )
                 break
             default:
                 throw new RangeError(`Unrecognized context menu id: ${info.menuItemId}`)
@@ -123,45 +120,4 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     }
 })
 
-chrome.runtime.onConnect.addListener((port) => {
-    if (port.name === sidePanelPortName) {
-        sidePanelPort = port
-
-        // For security reasons, we only accept connections from the current extension instance.
-        // chrome.runtime.id is the unique ID of the currently running extension.
-        if (port.sender && port.sender.id !== chrome.runtime.id) {
-            console.warn(
-                `Connection attempt from unexpected extension ID: ${port.sender.id} for port ${port.name}. Disconnecting.`,
-            )
-            port.disconnect() // Disconnect the unauthorized port
-            return
-        }
-        console.log('Side panel has connected.')
-
-        sidePanelPort.onMessage.addListener(async (message) => {
-            if (message.command === 'side-panel-ready') {
-                await updateContextMenus(true)
-                console.log('Side panel is ready. Context menu enabled.')
-            }
-        })
-
-        sidePanelPort.onDisconnect.addListener(async () => {
-            sidePanelPort = null
-            await updateContextMenus(false)
-            console.log('Side panel has disconnected. Context menu disabled.')
-        })
-    } else {
-        console.log('Unknown port:', port.name)
-    }
-})
-
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error))
-
-async function main() {
-    console.time('LanguageModel.availability()')
-    const ret = await LanguageModel.availability()
-    console.timeEnd('LanguageModel.availability()')
-    return `Availability: ${ret}`
-}
-
-main().then(console.log).catch(console.error)

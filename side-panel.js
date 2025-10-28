@@ -1,4 +1,5 @@
 import { Wrapper, on } from './util/Wrapper.js'
+import * as RPC from './util/RPC.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import * as format from './util/format.js'
@@ -8,11 +9,14 @@ import { ImportedContent } from './util/ImportedContent.js'
 import {
     defaultSystemPrompt,
     examplePrompts,
-    sidePanelPortName,
     supportedAssistantLanguages,
     supportedSystemLanguages,
     supportedUserLanguages,
+    sidePanelStatus,
 } from './config.js'
+
+const backgroundRpc = new RPC.Client('background')
+const updateStatus = backgroundRpc.createStub('updateStatus')
 
 const apiStatus = Wrapper.query('#api-status').setText('Loading...')
 const systemRequirements = Wrapper.query('#system-requirements')
@@ -52,6 +56,10 @@ const optTopKVal = Wrapper.query('#option-top-k-value')
 const examplePromptsContainer = Wrapper.query('#example-prompts')
 const addContextReminder = Wrapper.query('#add-context-reminder')
 const addContextWarning = Wrapper.query('#add-context-warning')
+
+new RPC.Server('side-panel', {
+    add,
+})
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
     return new Wrapper('option').setValue(value).setText(title)
@@ -195,12 +203,7 @@ btnInit.onClick(async () => {
         on(session, 'quotaoverflow', () => {
             console.warn('Quota overflow')
         })
-        const port = chrome.runtime.connect({ name: sidePanelPortName })
-        console.debug('Established communication port')
-        // Notify the background script that the side panel is ready.
-        port.postMessage({ command: 'side-panel-ready' })
-        port.onMessage.addListener(onPortMessage)
-
+        await updateStatus(sidePanelStatus.INITIALIZED)
         updateSessionTokens()
         downloadStatus.hide()
         sessionEstablished.show()
@@ -320,15 +323,9 @@ btnSubmitPrompt.onClick(async () => {
     debouncedCountPromptTokens()
 })
 
-async function onPortMessage(message) {
-    console.debug('Received message from port:', JSON.stringify(message, null, 2))
-    if (message.command !== 'add') {
-        console.log('Unknown command:', message.command)
-        return
-    }
+async function add(message) {
     if (!session) {
-        console.log(`No session to append: "${message}"`)
-        return
+        throw new Error(`No session initialized to append: "${message}"`)
     }
     try {
         const importedContent = new ImportedContent(message)
@@ -417,6 +414,7 @@ optSysPrompt.on('keydown', (e) => {
 })
 
 async function main() {
+    await updateStatus(sidePanelStatus.STARTED)
     const manifestJson = chrome.runtime.getManifest()
     const localIndicator = 'update_url' in manifestJson ? '' : '*'
     version.setText(manifestJson.version + localIndicator)
@@ -460,6 +458,7 @@ async function main() {
     // defaultTopK
     optTopK.setValue(params.defaultTopK)
     updateTopKSlider()
+    await updateStatus(sidePanelStatus.AWAITING_INIT)
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to

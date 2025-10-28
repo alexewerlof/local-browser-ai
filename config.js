@@ -7,7 +7,12 @@ export const contextMenuIds = {
     initialized: 'language-model-initialized',
 }
 
-export const sidePanelPortName = 'local-browser-ai-side-panel'
+export const sidePanelStatus = {
+    HIDDEN: 'Not open',
+    STARTED: 'Side panel open',
+    AWAITING_INIT: 'Awaiting initialization',
+    INITIALIZED: 'Initialized',
+}
 
 export const defaultSystemPrompt = [
     `You are **${extensionName}**, a helpful chatbot that is embedded into the browser side bar.`,
