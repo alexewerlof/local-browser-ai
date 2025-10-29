@@ -34,41 +34,41 @@ export class Server {
         }
 
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            this._onMessageListener(message, sender, sendResponse)
-                .then((value) => sendResponse({ status: FULFILLED, value }))
-                .catch((reason) => sendResponse({ status: REJECTED, reason: reasonToString(reason) }))
-            return true
-        })
-    }
+            try {
+                if (sender?.id !== chrome.runtime.id) {
+                    throw new Error(`Not a message from this extension: ${sender.id}`)
+                }
+                if (!message || typeof message !== 'object') {
+                    throw new TypeError(`Expected a message object. Got ${message} (${typeof message})`)
+                }
+                if (message[RPC_FLAG] !== RPC_FLAG_VAL) {
+                    throw new Error(`Incorrect RPC flag: ${message[RPC_FLAG]}`)
+                }
+                const { serverId, handlerName, params = [] } = message
+                if (serverId !== this.id) {
+                    throw new Error(`Expected serverId: ${this.id}. Got: ${serverId}`)
+                }
+                const handlerFn = this._handlers[handlerName]
+                if (typeof handlerFn !== 'function') {
+                    throw new Error(`Handler not found: ${handlerName}`)
+                }
+                if (!Array.isArray(params)) {
+                    throw new TypeError(`Expected an array of parameters. Got ${params} (${typeof params})`)
+                }
 
-    async _onMessageListener(message, sender) {
-        console.debug('Received message:', JSON.stringify(message, null, 2))
-        if (!message || typeof message !== 'object') {
-            throw new TypeError(`Expected a message object. Got ${message} (${typeof message})`)
-        }
-        if (message[RPC_FLAG] !== RPC_FLAG_VAL) {
-            throw new Error(`Incorrect RPC flag: ${message[RPC_FLAG]}`)
-        }
-        if (sender?.id !== chrome.runtime.id) {
-            throw new Error(`Not a message from this extension: ${sender.id}`)
-        }
-        const { serverId, handlerName, params = [] } = message
-        if (serverId !== this.id) {
-            throw new Error(`Expected serverId: ${this.id}. Got: ${serverId}`)
-        }
-        const handlerFn = this._handlers[handlerName]
-        if (typeof handlerFn !== 'function') {
-            throw new Error(`Handler not found: ${handlerName}`)
-        }
-        if (!Array.isArray(params)) {
-            throw new TypeError(`Expected an array of parameters. Got ${params} (${typeof params})`)
-        }
-        const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
-        console.debug(`Running ${signature}`)
-        console.time(signature)
-        const value = await handlerFn(...params)
-        console.timeEnd(signature)
-        return value
+                const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
+                console.time(signature)
+                callFn(handlerFn, params)
+                    .then((value) => sendResponse({ status: FULFILLED, value }))
+                    .catch((reason) => sendResponse({ status: REJECTED, reason: reasonToString(reason) }))
+                    .finally(() => console.timeEnd(signature))
+                console.debug('Received valid message:', JSON.stringify(message, null, 2))
+                return true
+            } catch (validationError) {
+                console.debug('Received invalid message:', validationError)
+                return false
+            }
+        })
     }
 }
 
@@ -127,6 +127,10 @@ export class Client {
                 throw new TypeError(`Unknown status for ${signature}: ${status}`)
         }
     }
+}
+
+async function callFn(fn, params) {
+    return await fn(...params)
 }
 
 function createSignature(prefix, serverId, handlerName, ...params) {
