@@ -67,7 +67,7 @@ export class Server {
         if (!Array.isArray(params)) {
             throw new TypeError(`Expected an array. Got ${params} (${typeof params})`)
         }
-        const signature = createSignature(this.id, handlerName, ...params)
+        const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
         console.debug(`Running ${signature}`)
         console.time(signature)
         const value = await handlerFn(...params)
@@ -92,7 +92,7 @@ export class Client {
                 `Expected a non-empty string for handlerName. Got ${handlerName} (${typeof handlerName})`,
             )
         }
-        const signature = createSignature(this.serverId, handlerName, ...params)
+        const signature = createSignature(this.constructor.name, this.serverId, handlerName, ...params)
         console.debug(`Invoking ${signature}`)
 
         console.time(signature)
@@ -139,8 +139,8 @@ export class Client {
     }
 }
 
-function createSignature(serverId, handlerName, ...params) {
-    return `${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
+function createSignature(prefix, serverId, handlerName, ...params) {
+    return `${prefix} -- ${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
 }
 
 function reasonToString(reason) {
