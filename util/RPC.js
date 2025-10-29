@@ -38,7 +38,7 @@ export class Server {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             this._onMessageListener(message, sender, sendResponse)
                 .then((value) => sendResponse({ status: FULFILLED, value }))
-                .catch((reason) => sendResponse({ status: REJECTED, reason }))
+                .catch((reason) => sendResponse({ status: REJECTED, reason: reasonToString(reason) }))
             return true
         })
     }
@@ -128,4 +128,11 @@ export class Client {
 
 function createSignature(serverId, handlerName, ...params) {
     return `${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
+}
+
+function reasonToString(reason) {
+    if (typeof reason === 'object' && reason instanceof Error) {
+        return reason.toString()
+    }
+    return String(reason)
 }
