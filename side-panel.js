@@ -15,8 +15,7 @@ import {
     sidePanelStatus,
 } from './config.js'
 
-const backgroundRpc = new RPC.Client('background')
-const updateStatus = backgroundRpc.createStub('updateStatus')
+const backgroundRpc = new RPC.Client('background', 'updateStatus')
 
 const apiStatus = Wrapper.query('#api-status').setText('Loading...')
 const systemRequirements = Wrapper.query('#system-requirements')
@@ -202,7 +201,7 @@ btnInit.onClick(async () => {
         on(session, 'quotaoverflow', () => {
             console.warn('Quota overflow')
         })
-        await updateStatus(sidePanelStatus.INITIALIZED)
+        await backgroundRpc.updateStatus(sidePanelStatus.INITIALIZED)
         updateSessionTokens()
         downloadStatus.hide()
         sessionEstablished.show()
@@ -413,7 +412,7 @@ optSysPrompt.on('keydown', (e) => {
 })
 
 async function main() {
-    await updateStatus(sidePanelStatus.STARTED)
+    await backgroundRpc.updateStatus(sidePanelStatus.STARTED)
     const manifestJson = chrome.runtime.getManifest()
     const localIndicator = 'update_url' in manifestJson ? '' : '*'
     version.setText(manifestJson.version + localIndicator)
@@ -457,7 +456,7 @@ async function main() {
     // defaultTopK
     optTopK.setValue(params.defaultTopK)
     updateTopKSlider()
-    await updateStatus(sidePanelStatus.AWAITING_INIT)
+    await backgroundRpc.updateStatus(sidePanelStatus.AWAITING_INIT)
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to

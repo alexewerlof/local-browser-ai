@@ -18,8 +18,7 @@ new RPC.Server('background', {
     },
 })
 
-const sidePanelRpc = new RPC.Client('side-panel')
-const addToSidePanel = sidePanelRpc.createStub('add')
+const sidePanelRpc = new RPC.Client('side-panel', 'add')
 
 chrome.runtime.onInstalled.addListener(async () => {
     try {
@@ -85,7 +84,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 if (!url.hash) {
                     url.hash = ':~:text=' + encodeURIComponent(info.selectionText)
                 }
-                await addToSidePanel({
+                await sidePanelRpc.add({
                     format: 'text',
                     payload: info.selectionText,
                     title: tab.title || 'Selection',
@@ -102,7 +101,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 console.log(`Scraped ${fnReturns.length} frames.`)
                 await Promise.all(
                     fnReturns.map(({ result }) =>
-                        addToSidePanel({
+                        sidePanelRpc.add({
                             format: 'html',
                             payload: result,
                             title: tab.title || 'Page',

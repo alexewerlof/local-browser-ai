@@ -79,11 +79,23 @@ export class Server {
 export class Client {
     serverId = ''
 
-    constructor(serverId) {
+    constructor(serverId, ...handlerNames) {
         if (typeof serverId !== 'string' || serverId.length === 0) {
             throw new TypeError(`Expected a non-empty string for serverId. Got ${serverId} (${typeof serverId})`)
         }
         this.serverId = serverId
+
+        if (handlerNames.length === 0) {
+            throw new RangeError(`Expected at least one handler name. Got ${handlerNames.length}`)
+        }
+        for (const handlerName of handlerNames) {
+            if (typeof handlerName !== 'string' || handlerName.length === 0) {
+                throw new TypeError(`Expected a non-string handler name. Got ${handlerName} (${typeof handlerName})`)
+            }
+            this[handlerName] = async (...params) => {
+                return await this._invoke(handlerName, ...params)
+            }
+        }
     }
 
     async _invoke(handlerName, ...params) {
@@ -129,12 +141,6 @@ export class Client {
         } catch (error) {
             console.error(`Server ${this.serverId} is not available.`, error)
             return false
-        }
-    }
-
-    createStub(handlerName) {
-        return (...params) => {
-            return this._invoke(handlerName, ...params)
         }
     }
 }
