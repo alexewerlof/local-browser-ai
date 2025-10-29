@@ -58,14 +58,14 @@ export class Server {
         }
         const { serverId, handlerName, params = [] } = message
         if (serverId !== this.id) {
-            throw new Error(`Expected id: ${this.id}. Got: ${serverId}`)
+            throw new Error(`Expected serverId: ${this.id}. Got: ${serverId}`)
         }
         const handlerFn = this._handlers[handlerName]
         if (typeof handlerFn !== 'function') {
             throw new Error(`Handler not found: ${handlerName}`)
         }
         if (!Array.isArray(params)) {
-            throw new TypeError(`Expected an array. Got ${params} (${typeof params})`)
+            throw new TypeError(`Expected an array of parameters. Got ${params} (${typeof params})`)
         }
         const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
         console.debug(`Running ${signature}`)
