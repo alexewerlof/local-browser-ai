@@ -1,7 +1,5 @@
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
-const PING_NAME = 'ping'
-const PING_RESPONSE = 'pong'
 const RPC_FLAG = 'rpc'
 const RPC_FLAG_VAL = 'com.alexewerlof.rpc'
 
@@ -21,8 +19,6 @@ export class Server {
         if (!handlers || typeof handlers !== 'object') {
             throw new TypeError(`Expected an object for handlers. Got ${handlers} (${typeof handlers})`)
         }
-
-        this._handlers[PING_NAME] = () => PING_RESPONSE
 
         if (Object.keys(handlers).length === 0) {
             console.debug(`${id} has no handlers.`)
@@ -129,18 +125,6 @@ export class Client {
                 throw new Error(result.reason)
             default:
                 throw new TypeError(`Unknown status for ${signature}: ${status}`)
-        }
-    }
-
-    async isAvailable() {
-        try {
-            return (
-                (await chrome.runtime.sendMessage({ serverId: this.serverId, handlerName: PING_NAME })) ===
-                PING_RESPONSE
-            )
-        } catch (error) {
-            console.error(`Server ${this.serverId} is not available.`, error)
-            return false
         }
     }
 }
