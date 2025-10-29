@@ -2,6 +2,8 @@ const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
 const PING_NAME = 'ping'
 const PING_RESPONSE = 'pong'
+const RPC_FLAG = 'rpc'
+const RPC_FLAG_VAL = 'com.alexewerlof.rpc'
 
 export class Server {
     _handlers = Object.create(null)
@@ -45,6 +47,12 @@ export class Server {
 
     async _onMessageListener(message, sender) {
         console.debug('Received message:', JSON.stringify(message, null, 2))
+        if (!message || typeof message !== 'object') {
+            throw new TypeError(`Expected a message object. Got ${message} (${typeof message})`)
+        }
+        if (message[RPC_FLAG] !== RPC_FLAG_VAL) {
+            throw new Error(`Incorrect RPC flag: ${message[RPC_FLAG]}`)
+        }
         if (sender?.id !== chrome.runtime.id) {
             throw new Error(`Not a message from this extension: ${sender.id}`)
         }
@@ -88,7 +96,12 @@ export class Client {
         console.debug(`Invoking ${signature}`)
 
         console.time(signature)
-        const result = await chrome.runtime.sendMessage({ serverId: this.serverId, handlerName, params })
+        const result = await chrome.runtime.sendMessage({
+            [RPC_FLAG]: RPC_FLAG_VAL,
+            serverId: this.serverId,
+            handlerName,
+            params,
+        })
         console.timeEnd(signature)
 
         if (!result || typeof result !== 'object') {
