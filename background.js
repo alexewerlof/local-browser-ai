@@ -98,18 +98,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     target: { tabId: tab.id, allFrames: true },
                     func: () => document.body.innerHTML,
                 })
-                console.log(`Scraped ${fnReturns.length} frames.`)
-                await Promise.all(
-                    fnReturns.map(({ result }) =>
-                        sidePanelRpc.add({
+                let added = 0
+                for (const fnReturn of fnReturns) {
+                    const { result } = fnReturn
+
+                    if (result) {
+                        await sidePanelRpc.add({
                             format: 'html',
                             payload: result,
                             title: tab.title || 'Page',
                             faviconUrl: tab.favIconUrl,
                             url: tab.url,
-                        }),
-                    ),
-                )
+                        })
+                        added++
+                    }
+                }
+                console.log(`Scraped ${fnReturns.length} frames and sent ${added} messages.`)
                 break
             default:
                 throw new RangeError(`Unrecognized context menu id: ${info.menuItemId}`)
