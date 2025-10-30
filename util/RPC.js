@@ -34,41 +34,63 @@ export class Server {
         }
 
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            try {
-                if (sender?.id !== chrome.runtime.id) {
-                    throw new Error(`Not a message from this extension: ${sender.id}`)
-                }
-                if (!message || typeof message !== 'object') {
-                    throw new TypeError(`Expected a message object. Got ${message} (${typeof message})`)
-                }
-                if (message[RPC_FLAG] !== RPC_FLAG_VAL) {
-                    throw new Error(`Incorrect RPC flag: ${message[RPC_FLAG]}`)
-                }
-                const { serverId, handlerName, params = [] } = message
-                if (serverId !== this.id) {
-                    throw new Error(`Expected serverId: ${this.id}. Got: ${serverId}`)
-                }
-                const handlerFn = this._handlers[handlerName]
-                if (typeof handlerFn !== 'function') {
-                    throw new Error(`Handler not found: ${handlerName}`)
-                }
-                if (!Array.isArray(params)) {
-                    throw new TypeError(`Expected an array of parameters. Got ${params} (${typeof params})`)
-                }
-
-                const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
-                console.time(signature)
-                callFn(handlerFn, params)
-                    .then((value) => sendResponse({ status: FULFILLED, value }))
-                    .catch((reason) => sendResponse({ status: REJECTED, reason: reasonToString(reason) }))
-                    .finally(() => console.timeEnd(signature))
-                console.debug('Received valid message:', JSON.stringify(message, null, 2))
-                return true
-            } catch (validationError) {
-                console.debug('Received invalid message:', validationError)
+            if (sender?.id !== chrome.runtime.id) {
+                console.debug(`Ignoring message from unknown sender: ${sender.id}`)
                 return false
             }
+            if (!message || typeof message !== 'object') {
+                console.debug(`Ignoring non-object message: ${message} (${typeof message})`)
+                return false
+            }
+            const { serverId, handlerName, params, [RPC_FLAG]: rpcFlagValue } = message
+            if (serverId !== this.id) {
+                console.debug(`Ignoring message not intended for this serverId: ${this.id}. Got: ${serverId}`)
+                return false
+            }
+            if (rpcFlagValue !== RPC_FLAG_VAL) {
+                console.debug(`Ignoring message with invalid RPC flag: ${rpcFlagValue}`)
+                return false
+            }
+            console.debug('Received valid message:', JSON.stringify(message, null, 2))
+            this.callHandlerAsynchronously(handlerName, params).then(sendResponse)
+            return true
         })
+    }
+
+    async callHandlerAsynchronously(handlerName, params = []) {
+        const signature = createSignature(this.constructor.name, this.id, handlerName, ...params)
+        console.time(signature)
+        try {
+            if (typeof handlerName !== 'string' || handlerName.length === 0) {
+                throw new TypeError(
+                    `Expected a non-empty string for handlerName, got ${handlerName} (${typeof handlerName})`,
+                )
+            }
+
+            const handlerFn = this._handlers[handlerName]
+            if (typeof handlerFn !== 'function') {
+                throw new TypeError(`Invalid handler function ${handlerName} (${typeof handlerFn})`)
+            }
+
+            if (!Array.isArray(params)) {
+                throw new TypeError(`Expected an array of parameters. Got ${params} (${typeof params})`)
+            }
+
+            const value = await handlerFn(...params)
+            console.timeEnd(signature)
+
+            return {
+                status: FULFILLED,
+                value,
+            }
+        } catch (error) {
+            console.timeEnd(signature)
+
+            return {
+                status: REJECTED,
+                reason: typeof error === 'object' && error instanceof Error ? error.toString() : String(error),
+            }
+        }
     }
 }
 
@@ -86,7 +108,9 @@ export class Client {
         }
         for (const handlerName of handlerNames) {
             if (typeof handlerName !== 'string' || handlerName.length === 0) {
-                throw new TypeError(`Expected a non-string handler name. Got ${handlerName} (${typeof handlerName})`)
+                throw new TypeError(
+                    `Expected a non-empty string handler name. Got ${handlerName} (${typeof handlerName})`,
+                )
             }
             this[handlerName] = async (...params) => {
                 return await this._invoke(handlerName, ...params)
@@ -129,17 +153,6 @@ export class Client {
     }
 }
 
-async function callFn(fn, params) {
-    return await fn(...params)
-}
-
 function createSignature(prefix, serverId, handlerName, ...params) {
     return `${prefix} -- ${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
-}
-
-function reasonToString(reason) {
-    if (typeof reason === 'object' && reason instanceof Error) {
-        return reason.toString()
-    }
-    return String(reason)
 }
