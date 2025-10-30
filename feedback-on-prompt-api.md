@@ -16,6 +16,14 @@ models with larger pages. Currently I "compress" the page HTML by converting it 
 efficient and "native" to language models, but even then, the majority of the pages I tried don't work too well with
 this extension, unless some selection snippets are sent to the [small] context.
 
+# Granular events for model download and loading to GPU
+
+`LanguageMode.create()` emits monitor events both when downloading a model or loading it to GPU. The former emits many
+events but the latter just emits 0% and 100% events.
+
+One can guess which one is which based on the result of `LanguageModel?.availability(modelOptions)` but it'd lead to
+cleaner code if the two sets of events were separated.
+
 # `LanguageMode.create()` halts.
 
 If there was a problem with downloading the model, `await LanguageModel.create()` blocks indefinitely.

@@ -120,6 +120,8 @@ function getModelOptions() {
 
 function monitor(m) {
     on(m, 'downloadprogress', (e) => {
+        Wrapper.query('#if-download-is-stuck').hide()
+        Wrapper.query('#download-stop-warning').show()
         console.debug('Download Progress', Date.now(), e)
         downloadProgress.setValue(e.loaded)
 
@@ -435,8 +437,17 @@ async function main() {
     }
 
     // Can be "available", "unavailable", "downloadable", "downloading"
-    if (availability === 'unavailable') {
-        throw new Error('The selected options are not supported')
+    switch (availability) {
+        case 'unavailable':
+            throw new Error('The selected options are not supported')
+        case 'downloadable':
+            Wrapper.query('#init-download-warning').show()
+            break
+        case 'downloading':
+            downloadStatus.show()
+            break
+        default:
+            break
     }
 
     promptApiUi.show()

@@ -118,12 +118,39 @@
                         Initialize
                     </button>
                 </div>
+                <div id="init-download-warning" class="box box--info" hidden>
+                    The model needs to be downloaded. Cancelling the model download can leave Chrome in unstable mode.
+                    Please make sure that you press this button when you have good internet connection.
+                </div>
             </div>
 
             <div id="download-status" hidden>
                 <div id="init-loading-animation" class="loading-animation"></div>
                 <progress id="download-progress" min="0" max="1" value="0"></progress>
-                <span id="download-eta">ETA</span>
+                <div>
+                    Downloading the model and/or loading to GPU...
+                    <span id="download-eta">ETA</span>
+                </div>
+                <div id="if-download-is-stuck" class="box box--info">
+                    If the progress gets stuck in <strong>"Initialize..."</strong> for longer than 5 minutes, you're in
+                    tough lock. This is a reported bug in Chrome and may be fixed in the future.
+                </div>
+                <div id="download-stop-warning" class="box box--warn" hidden>
+                    Please note that interrupting the download process can leave Chrome in an unstable state. If that
+                    happens, you may need to manually remove the <code>weights.bin</code> file from where Chrome stores
+                    its cache. The location depends on the operating system.
+                    <ol>
+                        <li>Go to: <code>chrome://version</code></li>
+                        <li>Close Chrome</li>
+                        <li>Take note of the <strong>Profile Path</strong> directory</li>
+                        <li>Go one level up (we don't want the <strong>Default</strong> directory)</li>
+                        <li>Go to <code>OptGuideOnDeviceModel</code> directory</li>
+                        <li>Delete the file named <code>weights.bin</code></li>
+                        <li>Start Chrome again</li>
+                        <li>Start the download again</li>
+                    </ol>
+                    <em>Yeah! I know. It's not ideal, but this is what we got to work with.</em>
+                </div>
                 <div class="button-bar">
                     <button id="init-stop-button" title="Stop Downloading">
                         <span class="material-symbols-outlined">stop</span>
