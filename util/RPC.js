@@ -3,6 +3,10 @@ const REJECTED = 'rejected'
 const RPC_FLAG = 'rpc'
 const RPC_FLAG_VAL = 'com.alexewerlof.rpc'
 
+function createSignature(prefix, serverId, handlerName, ...params) {
+    return `${prefix} -- ${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
+}
+
 export class Server {
     _handlers = Object.create(null)
     id = ''
@@ -151,8 +155,4 @@ export class Client {
                 throw new TypeError(`Unknown status for ${signature}: ${status}`)
         }
     }
-}
-
-function createSignature(prefix, serverId, handlerName, ...params) {
-    return `${prefix} -- ${serverId}::${handlerName}(${params.map((p) => typeof p).join(', ')})`
 }
