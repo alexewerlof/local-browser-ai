@@ -1,7 +1,7 @@
 import { contextMenuIds, sidePanelStatus } from './config.js'
 import * as RPC from './util/RPC.js'
 
-new RPC.Server('background', {
+new RPC.MessageServer('background', {
     async updateStatus(status) {
         console.log('Side Panel Status:', status)
         if (typeof status !== 'string') {
@@ -18,7 +18,7 @@ new RPC.Server('background', {
     },
 })
 
-const sidePanelRpc = new RPC.Client('side-panel', 'add')
+const sidePanelRpc = new RPC.MessageClient('side-panel', 'add')
 
 chrome.runtime.onInstalled.addListener(async () => {
     try {

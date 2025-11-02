@@ -15,7 +15,7 @@ import {
     sidePanelStatus,
 } from './config.js'
 
-const backgroundRpc = new RPC.Client('background', 'updateStatus')
+const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 
 const apiStatus = Wrapper.query('#api-status').setText('Loading...')
 const systemRequirements = Wrapper.query('#system-requirements')
@@ -56,7 +56,7 @@ const examplePromptsContainer = Wrapper.query('#example-prompts')
 const addContextReminder = Wrapper.query('#add-context-reminder')
 const addContextWarning = Wrapper.query('#add-context-warning')
 
-new RPC.Server('side-panel', {
+new RPC.MessageServer('side-panel', {
     add,
 })
 
