@@ -59,16 +59,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
 })
 
-export async function scrapePageHtml(tabId) {
+function scrapePageHtml() {
     try {
-        const fnReturns = await chrome.scripting.executeScript({
-            target: { tabId },
-            func: () => document.body.innerHTML,
-        })
-        console.log(`Scraped ${fnReturns.length} frames.`)
-        return fnReturns
+        return document.body.innerHTML
     } catch (error) {
-        console.error('Script injection failed:', error)
+        return `Could not scrape page: ${error}`
     }
 }
 
@@ -96,7 +91,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 console.log(`Selected page URL:`, info.pageUrl)
                 const fnReturns = await chrome.scripting.executeScript({
                     target: { tabId: tab.id, allFrames: true },
-                    func: () => document.body.innerHTML,
+                    func: scrapePageHtml,
                 })
                 let added = 0
                 for (const fnReturn of fnReturns) {
