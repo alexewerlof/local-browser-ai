@@ -6,6 +6,7 @@ import manifest from './manifest.json' with { type: 'json' }
 const name = manifest.name.toLowerCase().replace(/\s+/g, '-')
 const version = manifest.version
 const OUTPUT_FILENAME = `${name}-${version}.zip`
+const BUILD_IGNORE_FILENAME = '.buildignore'
 
 console.log(`Creating extension package: ${OUTPUT_FILENAME}`)
 
@@ -51,7 +52,7 @@ async function createPackage() {
 
     // Use glob to include all files, respecting the ignore patterns
     archive.glob('**/*', {
-        ignore: await ignoreFiles('.buildignore'),
+        ignore: await ignoreFiles(BUILD_IGNORE_FILENAME),
         nodir: true, // This will only match files, not directories
     })
 
