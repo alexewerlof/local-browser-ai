@@ -5,7 +5,7 @@
   "main": "background.js",
   "scripts": {
     "update-vendors": "node update-vendors.js & node update-icons.js",
-    "postinstall": "npm run update-vendors",
+    "postinstall": "npm run update-vendors.js",
     "fmt": "prettier --write .",
     "build": "npm t & node build.js",
     "test": "node --test",
