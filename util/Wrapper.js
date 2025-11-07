@@ -6,19 +6,6 @@ export function off(target, eventName, handler) {
     return target.removeEventListener(eventName, handler)
 }
 
-function unwrap(obj) {
-    if (!obj || typeof obj !== 'object') {
-        throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
-    }
-    if (obj instanceof Wrapper) {
-        return obj.el
-    }
-    if (obj instanceof HTMLElement) {
-        return obj
-    }
-    throw new TypeError(`Only Wrapper or HTMLElement descendants can be unwrapped. Got ${obj} (${typeof obj})}`)
-}
-
 export class Wrapper {
     _el = null
 
@@ -26,12 +13,42 @@ export class Wrapper {
         this.el = typeof ref === 'string' ? document.createElement(ref) : ref
     }
 
+    static unwrap(obj) {
+        if (!obj || typeof obj !== 'object') {
+            throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
+        }
+        if (obj instanceof Wrapper) {
+            return obj.el
+        }
+        if (obj instanceof HTMLElement) {
+            return obj
+        }
+        throw new TypeError(`Only Wrapper or HTMLElement descendants can be unwrapped. Got ${obj} (${typeof obj})}`)
+    }
+
+    static wrap(obj) {
+        if (!obj || typeof obj !== 'object') {
+            throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
+        }
+        if (obj instanceof Wrapper) {
+            return obj
+        }
+        if (obj instanceof HTMLElement) {
+            return new Wrapper(obj)
+        }
+        throw new TypeError(`Only Wrapper or HTMLElement descendants can be wrapped. Got ${obj} (${typeof obj})`)
+    }
+
+    static wrapAll(iterable) {
+        return Array.from(iterable, (obj) => Wrapper.wrap(obj))
+    }
+
     static query(selector) {
-        return new Wrapper(document.querySelector(selector))
+        return Wrapper.wrap(document.querySelector(selector))
     }
 
     static queryAll(selector) {
-        return Array.from(document.querySelectorAll(selector)).map((el) => new Wrapper(el))
+        return Wrapper.wrapAll(document.querySelectorAll(selector))
     }
 
     get el() {
@@ -45,8 +62,16 @@ export class Wrapper {
         this._el = value
     }
 
-    clone() {
-        return new Wrapper(this.el.cloneNode(true))
+    query(selector) {
+        return Wrapper.wrap(this.el.querySelector(selector))
+    }
+
+    queryAll(selector) {
+        return Wrapper.wrapAll(this.el.querySelectorAll(selector))
+    }
+
+    clone(deep) {
+        return new Wrapper(this.el.cloneNode(deep))
     }
 
     getValue() {
@@ -144,7 +169,7 @@ export class Wrapper {
 
     append(...children) {
         for (const child of children) {
-            this.el.appendChild(unwrap(child))
+            this.el.appendChild(Wrapper.unwrap(child))
         }
         return this
     }
