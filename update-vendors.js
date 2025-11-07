@@ -36,6 +36,7 @@ function normalizedConfig(name, config) {
 
 function getConfig(name) {
     const { contents, define } = normalizedConfig(name, packageJson?.[CONFIG_KEY]?.[name])
+    console.log(`${name}: ${contents}`)
     return {
         bundle: true,
         minify: false,
