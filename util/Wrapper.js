@@ -83,15 +83,6 @@ export class Wrapper {
         return this
     }
 
-    get val() {
-        return this.el.value
-    }
-
-    set val(value) {
-        this.el.value = value
-        return this
-    }
-
     getAttr(name) {
         return this.el.getAttribute(name)
     }
