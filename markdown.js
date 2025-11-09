@@ -1,33 +1,31 @@
 import { TurndownService } from './vendor/turndown.js'
 import { MarkdownIt } from './vendor/markdown-it.js'
+import { gfm } from './vendor/turndown-plugin-gfm.js'
 
 const turndownService = new TurndownService({
     codeBlockStyle: 'fenced',
     hr: '---',
 })
 
-turndownService.remove('script')
-turndownService.remove('button')
-turndownService.remove('style')
-turndownService.remove('noscript')
-turndownService.remove('frameset')
-turndownService.remove('frame')
-turndownService.remove('iframe')
-turndownService.remove('object')
-turndownService.remove('embed')
-turndownService.remove('applet')
-turndownService.remove('noframes')
-turndownService.remove('svg')
-turndownService.remove('link')
-turndownService.remove('meta')
+turndownService.use(gfm)
 
-// Remove links that have no text or only whitespace
-turndownService.addRule('emptyLink', {
-    filter: 'a',
-    replacement(content, node) {
-        return node.textContent.trim() ? content : ''
-    },
-})
+turndownService.remove([
+    'applet',
+    'button',
+    'del',
+    'embed',
+    'frame',
+    'frameset',
+    'iframe',
+    'link',
+    'meta',
+    'noframes',
+    'noscript',
+    'object',
+    'script',
+    'style',
+    'svg',
+])
 
 export function html2markdown(htmlString) {
     return turndownService.turndown(htmlString)

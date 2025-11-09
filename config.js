@@ -5,6 +5,7 @@ export const contextMenuIds = {
     sendPage: 'send-page',
     showSideBar: 'show-side-bar',
     initialized: 'language-model-initialized',
+    simplify: 'simplify-page',
 }
 
 export const sidePanelStatus = {

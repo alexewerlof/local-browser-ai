@@ -1,4 +1,5 @@
 import { contextMenuIds, sidePanelStatus } from './config.js'
+import { scrapePageHtml } from './scrape.js'
 import * as RPC from './util/RPC.js'
 
 new RPC.MessageServer('background', {
@@ -24,6 +25,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     try {
         console.log('Creating context menus...')
         await chrome.contextMenus.removeAll()
+        chrome.contextMenus.create({
+            id: contextMenuIds.simplify,
+            title: `Simplify`,
+            contexts: ['page'],
+            visible: true,
+        })
         chrome.contextMenus.create({
             id: contextMenuIds.showSideBar,
             title: `Show chat`,
@@ -59,17 +66,23 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
 })
 
-function scrapePageHtml() {
-    try {
-        return document.body.innerHTML
-    } catch (error) {
-        return `Could not scrape page: ${error}`
-    }
-}
-
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
         switch (info.menuItemId) {
+            case contextMenuIds.simplify:
+                const scrapeReturns = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id, allFrames: true },
+                    func: scrapePageHtml,
+                })
+                const simplifiedPageUrl = new URL(chrome.runtime.getURL('simplified.html'))
+                simplifiedPageUrl.searchParams.set('html', encodeURIComponent(scrapeReturns[0].result))
+                simplifiedPageUrl.searchParams.set('title', tab.title)
+
+                chrome.tabs.create({
+                    url: simplifiedPageUrl.toString(),
+                    index: tab.index + 1,
+                })
+                break
             case contextMenuIds.showSideBar:
                 chrome.sidePanel.open({ windowId: tab.windowId })
                 break

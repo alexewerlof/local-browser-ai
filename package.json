@@ -21,14 +21,18 @@
     "prettier": "^3.6.2"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "markdown-it": "^14.1.0",
-    "turndown": "^7.2.1"
+    "turndown": "^7.2.1",
+    "turndown-plugin-gfm": "^1.0.2"
   },
   "_vendor": {
     "markdown-it": "{ default as MarkdownIt }",
     "turndown": {
-      "what": "{ default as TurndownService }",
-      "where": "turndown"
+      "what": "{ default as TurndownService }"
+    },
+    "@mozilla/readability": {
+      "what": "{ Readability }"
     }
   }
 }
