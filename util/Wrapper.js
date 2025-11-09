@@ -83,6 +83,34 @@ export class Wrapper {
         return this
     }
 
+    getData(name) {
+        return this.el.dataset[name]
+    }
+
+    setData(name, value) {
+        this.el.dataset[name] = value
+        return this
+    }
+
+    rmData(name) {
+        delete this.el.dataset[name]
+        return this
+    }
+
+    getAria(name) {
+        return this.el.getAttribute(`aria-${name}`)
+    }
+
+    setAria(name, value) {
+        this.el.setAttribute(`aria-${name}`, value)
+        return this
+    }
+
+    rmAria(name) {
+        this.el.removeAttribute(`aria-${name}`)
+        return this
+    }
+
     getAttr(name) {
         return this.el.getAttribute(name)
     }
