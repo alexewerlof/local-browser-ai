@@ -45,6 +45,14 @@ async function main() {
     const tabSelector = new TabSelector(Wrapper.byId('tab-selectors'))
     const url = new URL(window.location.href)
     document.title = url.searchParams.get('title')
+
+    const sourceUrl = url.searchParams.get('source')
+    Wrapper.byId('source-url')
+        .setAttr('href', sourceUrl)
+        .setAttr('target', '_blank')
+        .setAttr('rel', 'noopener noreferrer')
+        .setText(sourceUrl)
+
     const htmlContent = url.searchParams.get('html')
 
     if (!htmlContent) {

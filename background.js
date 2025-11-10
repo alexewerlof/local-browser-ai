@@ -77,6 +77,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 const simplifiedPageUrl = new URL(chrome.runtime.getURL('simplified.html'))
                 simplifiedPageUrl.searchParams.set('html', encodeURIComponent(scrapeReturns[0].result))
                 simplifiedPageUrl.searchParams.set('title', tab.title)
+                simplifiedPageUrl.searchParams.set('source', tab.url)
 
                 chrome.tabs.create({
                     url: simplifiedPageUrl.toString(),
