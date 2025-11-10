@@ -47,6 +47,10 @@ export class Wrapper {
         return Wrapper.wrap(document.getElementById(id))
     }
 
+    static byClass(className) {
+        return Wrapper.wrapAll(document.getElementsByClassName(className))
+    }
+
     static query(selector) {
         return Wrapper.wrap(document.querySelector(selector))
     }
@@ -64,6 +68,10 @@ export class Wrapper {
             throw new TypeError(`Expected an string or HTMLElement. Got: ${value} (${typeof value})`)
         }
         this._el = value
+    }
+
+    byClass(className) {
+        return Wrapper.wrapAll(this.el.getElementsByClassName(className))
     }
 
     query(selector) {
@@ -186,15 +194,26 @@ export class Wrapper {
         return this
     }
 
-    mapAppend(array, mapFn) {
-        return this.append(...array.map(mapFn))
-    }
-
     append(...children) {
         for (const child of children) {
             this.el.appendChild(Wrapper.unwrap(child))
         }
         return this
+    }
+
+    mapAppend(array, mapFn) {
+        return this.append(...array.map(mapFn))
+    }
+
+    prepend(...children) {
+        for (const child of children) {
+            this.el.prepend(Wrapper.unwrap(child))
+        }
+        return this
+    }
+
+    mapPrepend(array, mapFn) {
+        return this.prepend(...array.map(mapFn))
     }
 
     getTitle() {
