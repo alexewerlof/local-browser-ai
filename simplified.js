@@ -2,28 +2,31 @@ import { Readability } from './vendor/@mozilla/readability.js'
 import { Wrapper } from './util/Wrapper.js'
 import { html2markdown, markdown2html } from './markdown.js'
 
-class TabSelector {
+class TabbedUi {
     tabs
 
-    constructor(buttonContainer) {
-        if (!buttonContainer) {
-            throw new Error('No tab selectors found')
+    constructor(root) {
+        if (!(root instanceof Wrapper)) {
+            throw new TypeError(`Expected a Wrapper. Got ${root} (${typeof root})`)
         }
-        this.tabs = Wrapper.queryAll('.tab-content')
+        const buttonContainer = new Wrapper('div').addClass('tabbed-ui__selectors')
+        root.prepend(buttonContainer)
+        this.tabs = root.byClass('tabbed-ui__content')
         if (this.tabs.length < 1) {
-            throw new Error('No tabs found')
+            throw new Error(`No tabs found under ${this.root}`)
         }
         const createButtonEventListener = (tab) => () => this.select(tab)
-        for (const tab of this.tabs) {
-            buttonContainer.append(
-                new Wrapper('button').setText(tab.getData('title')).onClick(createButtonEventListener(tab)),
-            )
-        }
+        buttonContainer.mapAppend(this.tabs, (tab) =>
+            new Wrapper('button').setText(tab.getData('title')).onClick(createButtonEventListener(tab)),
+        )
         this.select(this.tabs[0])
     }
 
     select(targetTab) {
         console.log('Selected tab:', targetTab.getData('title'))
+        if (!this.tabs.includes(targetTab)) {
+            throw new RangeError(`Invalid tab: ${targetTab}`)
+        }
         for (const tab of this.tabs) {
             if (tab === targetTab) {
                 tab.show()
@@ -35,14 +38,14 @@ class TabSelector {
 }
 
 async function main() {
-    Wrapper.queryAll('.copy-to-clipboard').forEach((button) => {
+    Wrapper.byClass('copy-to-clipboard').forEach((button) => {
         button.onClick((evt) => {
             const targetId = new Wrapper(evt.target).getData('targetId')
             const target = Wrapper.byId(targetId)
             navigator.clipboard.writeText(target.getText()).catch(console.error)
         })
     })
-    const tabSelector = new TabSelector(Wrapper.byId('tab-selectors'))
+    const tabSelector = new TabbedUi(Wrapper.byId('tabbed-ui'))
     const url = new URL(window.location.href)
     document.title = url.searchParams.get('title')
 
@@ -60,10 +63,10 @@ async function main() {
     }
 
     const inputHtml = decodeURIComponent(htmlContent)
-    Wrapper.query('#input').setText(inputHtml)
-    Wrapper.query('#input-rendered-as-html').setHtml(inputHtml)
+    Wrapper.byId('input').setText(inputHtml)
+    Wrapper.byId('input-rendered-as-html').setHtml(inputHtml)
     const inputAsMarkdown = html2markdown(inputHtml)
-    Wrapper.query('#input-as-markdown').setText(inputAsMarkdown)
+    Wrapper.byId('input-as-markdown').setText(inputAsMarkdown)
 
     const parser = new DOMParser()
     const doc = parser.parseFromString(inputHtml, 'text/html')
@@ -78,10 +81,10 @@ async function main() {
     Wrapper.query(`#output-readability`).setHtml(readabilityHtml)
 
     const readabilityAsMarkdown = html2markdown(article.content)
-    Wrapper.query('#output-markdown').setText(readabilityAsMarkdown)
+    Wrapper.byId('output-markdown').setText(readabilityAsMarkdown)
 
     const htmlFromMarkdown = markdown2html(readabilityAsMarkdown)
-    Wrapper.query('#output-rendered-markdown').setHtml(htmlFromMarkdown)
+    Wrapper.byId('output-rendered-markdown').setHtml(htmlFromMarkdown)
 
     return 'Finished main successfully'
 }

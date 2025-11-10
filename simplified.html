@@ -3,33 +3,32 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="side-panel.css" />
         <link rel="stylesheet" href="simplified.css" />
         <title>Simplified</title>
     </head>
     <body>
         <a id="source-url">Source</a>
-        <div id="tab-selectors" class="button-bar"></div>
-
-        <div class="tab-content" data-title="Input">
-            <code id="input"></code>
-        </div>
-        <div class="tab-content" data-title="Input as HTML">
-            <div id="input-rendered-as-html"></div>
-        </div>
-        <div class="tab-content" data-title="Input as Markdown">
-            <pre id="input-as-markdown"></pre>
-            <button class="copy-to-clipboard" data-target-id="input-as-markdown">Copy to clipboard</button>
-        </div>
-        <div class="tab-content" data-title="Readability">
-            <div id="output-readability"></div>
-        </div>
-        <div class="tab-content" data-title="Readability -> Markdown">
-            <pre id="output-markdown"></pre>
-            <button class="copy-to-clipboard" data-target-id="input-as-markdown">Copy to clipboard</button>
-        </div>
-        <div class="tab-content" data-title="Readability -> Markdown -> HTML">
-            <div id="output-rendered-markdown"></div>
+        <div id="tabbed-ui">
+            <div class="tabbed-ui__content" data-title="Input">
+                <code id="input"></code>
+            </div>
+            <div class="tabbed-ui__content" data-title="Input as HTML">
+                <div id="input-rendered-as-html"></div>
+            </div>
+            <div class="tabbed-ui__content" data-title="Input as Markdown">
+                <pre id="input-as-markdown"></pre>
+                <button class="copy-to-clipboard" data-target-id="input-as-markdown">Copy to clipboard</button>
+            </div>
+            <div class="tabbed-ui__content" data-title="Readability">
+                <div id="output-readability"></div>
+            </div>
+            <div class="tabbed-ui__content" data-title="Readability -> Markdown">
+                <pre id="output-markdown"></pre>
+                <button class="copy-to-clipboard" data-target-id="input-as-markdown">Copy to clipboard</button>
+            </div>
+            <div class="tabbed-ui__content" data-title="Readability -> Markdown -> HTML">
+                <div id="output-rendered-markdown"></div>
+            </div>
         </div>
 
         <script type="module" src="simplified.js" hidden></script>
