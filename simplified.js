@@ -5,14 +5,13 @@ import { html2markdown, markdown2html } from './markdown.js'
 class TabSelector {
     tabs
 
-    constructor() {
+    constructor(buttonContainer) {
+        if (!buttonContainer) {
+            throw new Error('No tab selectors found')
+        }
         this.tabs = Wrapper.queryAll('.tab-content')
         if (this.tabs.length < 1) {
             throw new Error('No tabs found')
-        }
-        const buttonContainer = Wrapper.query('#tab-selectors')
-        if (!buttonContainer) {
-            throw new Error('No tab selectors found')
         }
         const createButtonEventListener = (tab) => () => this.select(tab)
         for (const tab of this.tabs) {
@@ -36,7 +35,14 @@ class TabSelector {
 }
 
 async function main() {
-    const tabSelector = new TabSelector()
+    Wrapper.queryAll('.copy-to-clipboard').forEach((button) => {
+        button.onClick((evt) => {
+            const targetId = new Wrapper(evt.target).getData('targetId')
+            const target = Wrapper.byId(targetId)
+            navigator.clipboard.writeText(target.getText()).catch(console.error)
+        })
+    })
+    const tabSelector = new TabSelector(Wrapper.byId('tab-selectors'))
     const url = new URL(window.location.href)
     document.title = url.searchParams.get('title')
     const htmlContent = url.searchParams.get('html')
