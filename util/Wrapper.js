@@ -43,6 +43,10 @@ export class Wrapper {
         return Array.from(iterable, (obj) => Wrapper.wrap(obj))
     }
 
+    static byId(id) {
+        return Wrapper.wrap(document.getElementById(id))
+    }
+
     static query(selector) {
         return Wrapper.wrap(document.querySelector(selector))
     }
