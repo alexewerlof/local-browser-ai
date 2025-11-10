@@ -54,7 +54,11 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: var(--gap4);
 
-    @media (min-width: 500px) {
+    @media (min-width: 450px) {
+        font-size: 90%;
+    }
+
+    @media (min-width: 600px) {
         font-size: 100%;
     }
 }
@@ -168,6 +172,7 @@ input[type='text'] {
     margin-bottom: var(--gap4);
     color: inherit;
     font-family: inherit;
+    font-size: inherit;
     width: 100%;
     box-sizing: border-box;
 }
