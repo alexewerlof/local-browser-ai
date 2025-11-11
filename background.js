@@ -75,7 +75,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     func: scrapePageHtml,
                 })
                 const simplifiedPageUrl = new URL(chrome.runtime.getURL('simplified.html'))
-                simplifiedPageUrl.searchParams.set('html', encodeURIComponent(scrapeReturns[0].result))
+                const result = scrapeReturns[0].result
+                simplifiedPageUrl.searchParams.set('html', result.html)
+                simplifiedPageUrl.searchParams.set('base', result.base)
                 simplifiedPageUrl.searchParams.set('title', tab.title)
                 simplifiedPageUrl.searchParams.set('source', tab.url)
 
@@ -114,10 +116,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     if (result) {
                         await sidePanelRpc.add({
                             format: 'html',
-                            payload: result,
+                            payload: result.html,
                             title: tab.title || 'Page',
                             faviconUrl: tab.favIconUrl,
-                            url: tab.url,
+                            url: result.base || tab.url,
                         })
                         added++
                     }
