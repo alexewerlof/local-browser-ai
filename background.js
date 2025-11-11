@@ -26,12 +26,6 @@ chrome.runtime.onInstalled.addListener(async () => {
         console.log('Creating context menus...')
         await chrome.contextMenus.removeAll()
         chrome.contextMenus.create({
-            id: contextMenuIds.simplify,
-            title: `Simplify`,
-            contexts: ['page'],
-            visible: true,
-        })
-        chrome.contextMenus.create({
             id: contextMenuIds.showSideBar,
             title: `Show chat`,
             contexts: ['all'],
@@ -52,6 +46,12 @@ chrome.runtime.onInstalled.addListener(async () => {
         chrome.contextMenus.create({
             id: 'sep1',
             type: 'separator',
+        })
+        chrome.contextMenus.create({
+            id: contextMenuIds.simplify,
+            title: `Simplify Page`,
+            contexts: ['page'],
+            visible: true,
         })
         chrome.contextMenus.create({
             id: contextMenuIds.initialized,
