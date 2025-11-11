@@ -49,6 +49,8 @@ async function main() {
     const url = new URL(window.location.href)
     document.title = url.searchParams.get('title')
 
+    Wrapper.query('base').setAttr('href', url.searchParams.get('base')).setAttr('target', '_blank')
+
     const sourceUrl = url.searchParams.get('source')
     Wrapper.byId('source-url')
         .setAttr('href', sourceUrl)
