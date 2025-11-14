@@ -273,6 +273,10 @@ export class Frag {
         this._frag = value
     }
 
+    byId(id) {
+        return wrap(this.frag.getElementById(id))
+    }
+
     byClass(className) {
         return wrapAll(this.frag.getElementsByClassName(className))
     }
