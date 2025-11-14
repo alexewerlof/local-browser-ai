@@ -4,7 +4,6 @@ import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import * as format from './util/format.js'
 import * as msg from './util/msg.js'
-import { Message } from './util/Message.js'
 import { ImportedContent } from './util/ImportedContent.js'
 import {
     defaultSystemPrompt,
@@ -14,6 +13,7 @@ import {
     supportedUserLanguages,
     sidePanelStatus,
 } from './config.js'
+import { ChatMessage } from './components/chat-message.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 
@@ -244,9 +244,8 @@ btnSubmitPrompt.onClick(async () => {
         btnSubmitPrompt.disable()
 
         console.debug('Sending prompt')
-        const userMessage = new Message('user', userPrompt)
+        const userMessage = new ChatMessage('user', userPrompt)
         pastChats.append(userMessage)
-        userMessage.el.scrollIntoView()
 
         downloadProgress.setValue(0)
         downloadEta.setText('')
@@ -256,7 +255,7 @@ btnSubmitPrompt.onClick(async () => {
         btnStopPrompt.show()
         btnSubmitPrompt.hide()
 
-        const assistantMessage = new Message('assistant')
+        const assistantMessage = new ChatMessage('assistant')
 
         pastChats.append(assistantMessage)
 
@@ -279,7 +278,7 @@ btnSubmitPrompt.onClick(async () => {
                     firstTokenTimestamp = Date.now()
                 }
                 assistantMessage.content += chunk
-                assistantMessage.el.scrollIntoView({ behavior: 'instant' })
+                assistantMessage.scrollIntoView({ behavior: 'instant' })
             }
         } else {
             assistantMessage.content = await session.prompt(userPrompt, {
@@ -289,7 +288,7 @@ btnSubmitPrompt.onClick(async () => {
         }
         const endTimestamp = Date.now()
 
-        userMessage.el.scrollIntoView({ block: 'start' })
+        userMessage.scrollIntoView({ block: 'start' })
 
         const inputUsageDelta = session.inputUsage - inputUsageBefore
 

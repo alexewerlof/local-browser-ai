@@ -253,6 +253,17 @@ export class Wrapper {
         this.el.innerHTML = html
         return this
     }
+
+    setShadow(mode = 'open') {
+        if (!this.el.shadowRoot) {
+            this.el.attachShadow({ mode })
+        }
+        return this
+    }
+
+    getShadow() {
+        return new Frag(this.el.shadowRoot)
+    }
 }
 
 export class Frag {
@@ -324,4 +335,41 @@ export class Frag {
         this.frag.innerHTML = html
         return this
     }
+}
+
+async function fetchText(url, accept) {
+    const response = await fetch(url, { headers: { Accept: accept } })
+    if (!response.ok) {
+        throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`)
+    }
+    return response.text()
+}
+
+async function fetchHtml(url) {
+    return await fetchText(url, 'text/html')
+}
+
+async function fetchComponentTemplate(componentName, baseUrl) {
+    return await fetchHtml(new URL(`${componentName}.html`, baseUrl))
+}
+
+async function fetchCss(url) {
+    return await fetchText(url, 'text/css')
+}
+
+async function fetchSheet(url) {
+    const sheet = new CSSStyleSheet()
+    return await sheet.replace(await fetchCss(url))
+}
+
+async function fetchComponentSheet(componentName, baseUrl) {
+    return fetchSheet(new URL(`${componentName}.css`, baseUrl))
+}
+
+export async function fetchComponentFiles(componentName, baseUrl) {
+    const [html, sheet] = await Promise.all([
+        fetchComponentTemplate(componentName, baseUrl),
+        fetchComponentSheet(componentName, baseUrl),
+    ])
+    return { html, sheet }
 }
