@@ -6,6 +6,52 @@ export function off(target, eventName, handler) {
     return target.removeEventListener(eventName, handler)
 }
 
+function unwrap(obj) {
+    if (typeof obj === 'string') {
+        return document.createTextNode(obj)
+    }
+    if (!obj || typeof obj !== 'object') {
+        throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
+    }
+    if (obj instanceof Text || obj instanceof HTMLElement || obj instanceof DocumentFragment) {
+        return obj
+    }
+    if (obj instanceof Wrapper) {
+        return obj.el
+    }
+    if (obj instanceof Frag) {
+        return obj.frag
+    }
+    throw new TypeError(`Only Frag or DocumentFragment can be unwrapped. Got ${obj} (${typeof obj})`)
+}
+
+function wrap(obj) {
+    if (typeof obj === 'string') {
+        return document.createTextNode(obj)
+    }
+    if (!obj || typeof obj !== 'object') {
+        throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
+    }
+    if (obj instanceof HTMLElement) {
+        return new Wrapper(obj)
+    }
+    if (obj instanceof DocumentFragment) {
+        return new Frag(obj)
+    }
+    if (obj instanceof Wrapper || obj instanceof Frag) {
+        return obj
+    }
+    throw new TypeError(`Only Frag or DocumentFragment can be wrapped. Got ${obj} (${typeof obj})`)
+}
+
+function wrapAll(iterable) {
+    return Array.from(iterable, wrap)
+}
+
+function unwrapAll(iterable) {
+    return Array.from(iterable, unwrap)
+}
+
 export class Wrapper {
     _el = null
 
@@ -13,50 +59,20 @@ export class Wrapper {
         this.el = typeof ref === 'string' ? document.createElement(ref) : ref
     }
 
-    static unwrap(obj) {
-        if (!obj || typeof obj !== 'object') {
-            throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
-        }
-        if (obj instanceof Wrapper) {
-            return obj.el
-        }
-        if (obj instanceof HTMLElement) {
-            return obj
-        }
-        throw new TypeError(`Only Wrapper or HTMLElement descendants can be unwrapped. Got ${obj} (${typeof obj})}`)
-    }
-
-    static wrap(obj) {
-        if (!obj || typeof obj !== 'object') {
-            throw new TypeError(`Expected an object. Got ${obj} (${typeof obj})`)
-        }
-        if (obj instanceof Wrapper) {
-            return obj
-        }
-        if (obj instanceof HTMLElement) {
-            return new Wrapper(obj)
-        }
-        throw new TypeError(`Only Wrapper or HTMLElement descendants can be wrapped. Got ${obj} (${typeof obj})`)
-    }
-
-    static wrapAll(iterable) {
-        return Array.from(iterable, (obj) => Wrapper.wrap(obj))
-    }
-
     static byId(id) {
-        return Wrapper.wrap(document.getElementById(id))
+        return wrap(document.getElementById(id))
     }
 
     static byClass(className) {
-        return Wrapper.wrapAll(document.getElementsByClassName(className))
+        return wrapAll(document.getElementsByClassName(className))
     }
 
     static query(selector) {
-        return Wrapper.wrap(document.querySelector(selector))
+        return wrap(document.querySelector(selector))
     }
 
     static queryAll(selector) {
-        return Wrapper.wrapAll(document.querySelectorAll(selector))
+        return wrapAll(document.querySelectorAll(selector))
     }
 
     get el() {
@@ -71,15 +87,15 @@ export class Wrapper {
     }
 
     byClass(className) {
-        return Wrapper.wrapAll(this.el.getElementsByClassName(className))
+        return wrapAll(this.el.getElementsByClassName(className))
     }
 
     query(selector) {
-        return Wrapper.wrap(this.el.querySelector(selector))
+        return wrap(this.el.querySelector(selector))
     }
 
     queryAll(selector) {
-        return Wrapper.wrapAll(this.el.querySelectorAll(selector))
+        return wrapAll(this.el.querySelectorAll(selector))
     }
 
     clone(deep) {
@@ -195,9 +211,7 @@ export class Wrapper {
     }
 
     append(...children) {
-        for (const child of children) {
-            this.el.appendChild(Wrapper.unwrap(child))
-        }
+        this.el.append(...unwrapAll(children))
         return this
     }
 
@@ -206,9 +220,7 @@ export class Wrapper {
     }
 
     prepend(...children) {
-        for (const child of children) {
-            this.el.prepend(Wrapper.unwrap(child))
-        }
+        this.el.prepend(...unwrapAll(children))
         return this
     }
 
@@ -239,6 +251,73 @@ export class Wrapper {
 
     setHtml(html) {
         this.el.innerHTML = html
+        return this
+    }
+}
+
+export class Frag {
+    _frag = null
+
+    constructor(ref) {
+        this.frag = ref instanceof DocumentFragment ? ref : document.createDocumentFragment()
+    }
+
+    get frag() {
+        return this._frag
+    }
+
+    set frag(value) {
+        if (!(value instanceof DocumentFragment)) {
+            throw new TypeError(`Expected a DocumentFragment. Got ${value} (${typeof value})`)
+        }
+        this._frag = value
+    }
+
+    byClass(className) {
+        return wrapAll(this.frag.getElementsByClassName(className))
+    }
+
+    query(selector) {
+        return wrap(this.frag.querySelector(selector))
+    }
+
+    queryAll(selector) {
+        return wrapAll(this.frag.querySelectorAll(selector))
+    }
+
+    append(...children) {
+        this.frag.append(...unwrapAll(children))
+        return this
+    }
+
+    mapAppend(array, mapFn) {
+        return this.append(...array.map(mapFn))
+    }
+
+    prepend(...children) {
+        this.frag.prepend(...unwrapAll(children))
+        return this
+    }
+
+    mapPrepend(array, mapFn) {
+        return this.prepend(...array.map(mapFn))
+    }
+
+    getText() {
+        return this.frag.innerText
+    }
+
+    setText(text) {
+        this.frag.innerText = text
+        return this
+    }
+
+    getHtml() {
+        return this.frag.innerHTML
+    }
+
+    setHtml(html) {
+        this.frag.innerHTML = html
         return this
     }
 }
