@@ -2,8 +2,6 @@ import { markdown2html } from '../markdown.js'
 import { Wrapper } from './Wrapper.js'
 import * as msg from './msg.js'
 
-const VALID_ROLES = ['assistant', 'user', 'system']
-
 export class Message extends Wrapper {
     constructor(role, content = '') {
         super('div')
@@ -18,7 +16,7 @@ export class Message extends Wrapper {
     }
 
     set role(value) {
-        if (!VALID_ROLES.includes(value)) {
+        if (!msg.VALID_ROLES.includes(value)) {
             throw new Error(`Invalid role: ${value}`)
         }
 

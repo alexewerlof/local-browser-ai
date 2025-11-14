@@ -16,3 +16,5 @@ export function user(...parts) {
 export function assistant(...parts) {
     return base('assistant', ...parts)
 }
+
+export const VALID_ROLES = ['assistant', 'user', 'system']
