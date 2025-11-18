@@ -1,26 +1,49 @@
 import { markdown2html } from '../markdown.js'
+import * as format from '../util/format.js'
 import * as msg from '../util/msg.js'
 import { fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
 
 const files = await fetchComponentFiles('chat-message', import.meta.url)
-customElements.define('chat-message', ChatMessage)
 
 export class ChatMessage extends HTMLElement {
     _role
     _content
-    _shadow
+    wrappedShadow
 
-    constructor(role, content = '') {
+    constructor(role, content = '', options = {}) {
         super()
+        this.wrapped = new Wrapper(this)
 
-        this._shadow = new Wrapper(this).setShadow().getShadow()
-        this._shadow.frag.adoptedStyleSheets = [files.sheet]
+        this.wrappedShadow = this.wrapped.setShadow().getShadow()
+        this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
         // this.shadowRoot.adoptedStyleSheets = [extra.css]
-        this._shadow.setHtml(files.html)
-        this._shadow.byId('root').addClass(role)
+        this.wrappedShadow.setHtml(files.html)
+        this.wrappedShadow.byId('root').addClass(role)
 
         this.role = role
         this.content = content
+
+        const { source, tokenCount } = options
+        if (source) {
+            const { faviconUrl, title, url } = source
+            this.wrappedShadow.byId('source').setAttr('href', url)
+            this.wrappedShadow.byId('title').setText(title)
+            if (faviconUrl) {
+                this.wrappedShadow.byId('favicon').setAttr('src', faviconUrl)
+            }
+            this.wrappedShadow.byId('content').hide()
+        } else {
+            this.wrappedShadow.byId('source').rm()
+        }
+
+        if (Number.isFinite(tokenCount)) {
+            this.tokenCount = tokenCount
+        }
+    }
+
+    set tokenCount(tokens) {
+        this.wrappedShadow.byId('token-count').setText(`${format.num(tokens)} tok`)
+        return this
     }
 
     get role() {
@@ -33,7 +56,8 @@ export class ChatMessage extends HTMLElement {
         }
 
         this._role = value
-        this._shadow.byId('role').setText(value)
+        this.wrappedShadow.byId('role').setText(value)
+        return this
     }
 
     get content() {
@@ -46,15 +70,18 @@ export class ChatMessage extends HTMLElement {
         }
 
         this._content = value
-        this._shadow.byId('content').setHtml(markdown2html(value))
+        this.wrappedShadow.byId('content').setHtml(markdown2html(value))
         this.scrollIntoView()
+        return this
     }
 
     scrollIntoView(params) {
-        this._shadow.byId('content').el.scrollIntoView(params)
+        this.wrappedShadow.byId('content').el.scrollIntoView(params)
     }
 
     toJSON() {
         return msg.base(this.role, this.content)
     }
 }
+
+customElements.define('chat-message', ChatMessage)

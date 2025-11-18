@@ -120,6 +120,13 @@ export class Wrapper {
         return this
     }
 
+    setDataObj(obj) {
+        for (const [name, value] of Object.entries(obj)) {
+            this.setData(name, value)
+        }
+        return this
+    }
+
     rmData(name) {
         delete this.el.dataset[name]
         return this
@@ -134,6 +141,13 @@ export class Wrapper {
         return this
     }
 
+    setAriaObj(obj) {
+        for (const [name, value] of Object.entries(obj)) {
+            this.setAria(name, value)
+        }
+        return this
+    }
+
     rmAria(name) {
         this.el.removeAttribute(`aria-${name}`)
         return this
@@ -145,6 +159,13 @@ export class Wrapper {
 
     setAttr(name, value) {
         this.el.setAttribute(name, value)
+        return this
+    }
+
+    setAttrObj(obj) {
+        for (const [name, value] of Object.entries(obj)) {
+            this.setAttr(name, value)
+        }
         return this
     }
 
@@ -193,6 +214,11 @@ export class Wrapper {
 
     enable() {
         return this.rmAttrs('disabled', 'aria-disabled')
+    }
+
+    rm() {
+        this.el.remove()
+        return this
     }
 
     focus() {

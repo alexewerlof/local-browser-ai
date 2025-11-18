@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--gap4);
-    padding: var(--gap4) 0;
+    margin-block-start: var(--gap2);
 }
 
 .chat-message {
@@ -18,6 +18,13 @@
     }
 }
 
+#favicon {
+    display: inline-block;
+    height: 1em;
+    vertical-align: middle;
+    margin-right: var(--gap);
+}
+
 #content {
     & p {
         &:first-child {
@@ -28,14 +35,20 @@
             margin-block-end: 0;
         }
     }
+}
 
-    img {
-        max-width: 100%;
-    }
+img {
+    max-width: 100%;
+}
+
+a {
+    color: var(--interactive-color);
+    text-decoration: none;
 }
 
 #token-count {
     font-size: 0.75em;
+    opacity: 0.8;
     font-style: italic;
     text-align: right;
     display: block;

@@ -264,52 +264,6 @@ hr {
     padding: var(--gap4) 0;
 }
 
-.chat-container__chat {
-    & p {
-        &:first-child {
-            margin-block-start: 0;
-        }
-
-        &:last-child {
-            margin-block-end: 0;
-        }
-    }
-
-    img {
-        max-width: 100%;
-    }
-
-    &.chat-container__chat--user {
-        overflow-wrap: anywhere;
-        margin-top: var(--gap4);
-        padding: var(--gap4);
-        background-color: var(--user-chat-background);
-        align-self: flex-end;
-        border-radius: var(--border-radius);
-        border-top-right-radius: var(--gap);
-    }
-
-    .chat-container__chat__token-count {
-        font-size: 0.75em;
-        font-style: italic;
-        text-align: right;
-        display: block;
-    }
-
-    &.chat-container__chat--imported-content {
-        background-color: var(--user-chat-background);
-        padding: var(--gap4);
-        border-radius: var(--border-radius);
-
-        & img {
-            display: inline-block;
-            height: 1em;
-            vertical-align: middle;
-            margin-right: var(--gap);
-        }
-    }
-}
-
 progress {
     -webkit-appearance: none;
     appearance: none;

@@ -4,7 +4,6 @@ import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import * as format from './util/format.js'
 import * as msg from './util/msg.js'
-import { ImportedContent } from './util/ImportedContent.js'
 import {
     defaultSystemPrompt,
     examplePrompts,
@@ -14,6 +13,7 @@ import {
     sidePanelStatus,
 } from './config.js'
 import { ChatMessage } from './components/chat-message.js'
+import { html2markdown } from './markdown.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 
@@ -162,6 +162,7 @@ async function countPromptTokens() {
         console.time('Counting prompt tokens')
         const promptTokenCount = await session.measureInputUsage(userPrompt, {
             /* accepts a signal too */
+            /* When using schemas, we can pass responseConstraint */
         })
         console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
@@ -244,7 +245,9 @@ btnSubmitPrompt.onClick(async () => {
         btnSubmitPrompt.disable()
 
         console.debug('Sending prompt')
-        const userMessage = new ChatMessage('user', userPrompt)
+        const userMessage = new ChatMessage('user', userPrompt, {
+            tokenCount: await session.measureInputUsage(userPrompt),
+        })
         pastChats.append(userMessage)
 
         downloadProgress.setValue(0)
@@ -291,6 +294,7 @@ btnSubmitPrompt.onClick(async () => {
         userMessage.scrollIntoView({ block: 'start' })
 
         const inputUsageDelta = session.inputUsage - inputUsageBefore
+        assistantMessage.tokenCount = inputUsageDelta
 
         const totDuration = endTimestamp - startTimestamp
         durationStatus.setText(format.num(totDuration))
@@ -309,7 +313,7 @@ btnSubmitPrompt.onClick(async () => {
         promptStats.show()
 
         updateSessionTokens()
-        console.debug('Received response', assistantMessage)
+        console.debug('Received response', assistantMessage.toJSON())
         btnClone.show()
     } catch (e) {
         console.error('Prompt failed:', e)
@@ -322,19 +326,33 @@ btnSubmitPrompt.onClick(async () => {
     debouncedCountPromptTokens()
 })
 
+function normalizeImportedContent({ format, payload }) {
+    switch (format) {
+        case 'text':
+            return payload
+        case 'html':
+            return html2markdown(payload)
+        default:
+            throw new TypeError(`Unknown format: ${format}`)
+    }
+}
+
 async function add(message) {
     if (!session) {
         throw new Error(`No session initialized to append: "${message}"`)
     }
     try {
-        const importedContent = new ImportedContent(message)
+        const { title, faviconUrl, url } = message
+        const importedContent = new ChatMessage('user', normalizeImportedContent(message), {
+            source: { title, faviconUrl, url },
+        })
+
         const inputUsageBefore = session.inputUsage
         console.time('session.append()')
         await session.append([importedContent.toJSON()])
         console.timeEnd('session.append()')
         importedContent.tokenCount = session.inputUsage - inputUsageBefore
         pastChats.append(importedContent)
-        importedContent.el.scrollIntoView()
         updateSessionTokens()
         console.log('Appended message successfully')
         addContextReminder.hide()
