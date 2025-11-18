@@ -3,19 +3,17 @@
     flex-direction: column;
     gap: var(--gap4);
     margin-block-start: var(--gap2);
+    overflow-wrap: anywhere;
 }
 
-.chat-message {
-    &.user {
-        overflow-wrap: anywhere;
-        margin-top: var(--gap4);
-        padding: var(--gap4);
-        background-color: var(--user-chat-background);
-        align-self: flex-end;
-        border-radius: var(--border-radius);
-        border-top-right-radius: var(--gap);
-        max-width: 90%;
-    }
+:host(.user) {
+    margin-block-start: var(--gap4);
+    padding: var(--gap4);
+    background-color: var(--user-chat-background);
+    align-self: flex-end;
+    border-radius: var(--border-radius);
+    border-top-right-radius: var(--gap);
+    max-width: 90%;
 }
 
 #favicon {

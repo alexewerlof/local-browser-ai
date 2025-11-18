@@ -13,12 +13,12 @@ export class ChatMessage extends HTMLElement {
     constructor(role, content = '', options = {}) {
         super()
         this.wrapped = new Wrapper(this)
+        this.wrapped.addClass(role)
 
         this.wrappedShadow = this.wrapped.setShadow().getShadow()
         this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
         // this.shadowRoot.adoptedStyleSheets = [extra.css]
         this.wrappedShadow.setHtml(files.html)
-        this.wrappedShadow.byId('root').addClass(role)
 
         this.role = role
         this.content = content
