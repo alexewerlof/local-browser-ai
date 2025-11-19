@@ -4,6 +4,7 @@ import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import * as format from './util/format.js'
 import * as msg from './util/msg.js'
+import { html2markdown } from './util/markdown.js'
 import {
     defaultSystemPrompt,
     examplePrompts,
@@ -13,7 +14,6 @@ import {
     sidePanelStatus,
 } from './config.js'
 import { ChatMessage } from './components/chat-message.js'
-import { html2markdown } from './markdown.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 

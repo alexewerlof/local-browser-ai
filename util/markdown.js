@@ -1,6 +1,6 @@
-import { TurndownService } from './vendor/turndown.js'
-import { MarkdownIt } from './vendor/markdown-it.js'
-import { gfm } from './vendor/turndown-plugin-gfm.js'
+import { TurndownService } from '../vendor/turndown.js'
+import { MarkdownIt } from '../vendor/markdown-it.js'
+import { gfm } from '../vendor/turndown-plugin-gfm.js'
 
 const turndownService = new TurndownService({
     codeBlockStyle: 'fenced',

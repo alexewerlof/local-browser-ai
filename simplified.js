@@ -1,6 +1,6 @@
 import { Readability } from './vendor/@mozilla/readability.js'
 import { Wrapper } from './util/Wrapper.js'
-import { html2markdown, markdown2html } from './markdown.js'
+import { html2markdown, markdown2html } from './util/markdown.js'
 
 class TabbedUi {
     tabs
@@ -64,14 +64,13 @@ async function main() {
         throw new Error('The "html" query parameter is missing.')
     }
 
-    const inputHtml = decodeURIComponent(htmlContent)
-    Wrapper.byId('input').setText(inputHtml)
-    Wrapper.byId('input-rendered-as-html').setHtml(inputHtml)
-    const inputAsMarkdown = html2markdown(inputHtml)
+    Wrapper.byId('input').setText(htmlContent)
+    Wrapper.byId('input-rendered-as-html').setHtml(htmlContent)
+    const inputAsMarkdown = html2markdown(htmlContent)
     Wrapper.byId('input-as-markdown').setText(inputAsMarkdown)
 
     const parser = new DOMParser()
-    const doc = parser.parseFromString(inputHtml, 'text/html')
+    const doc = parser.parseFromString(htmlContent, 'text/html')
     const article = new Readability(doc).parse()
     if (!article || typeof article !== 'object') {
         throw new Error('Readability could not parse article')

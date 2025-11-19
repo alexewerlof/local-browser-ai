@@ -1,4 +1,4 @@
-import { markdown2html } from '../markdown.js'
+import { markdown2html } from '../util/markdown.js'
 import * as format from '../util/format.js'
 import * as msg from '../util/msg.js'
 import { fetchComponentFiles, Wrapper } from '../util/Wrapper.js'

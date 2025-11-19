@@ -1,5 +1,5 @@
 import { contextMenuIds, sidePanelStatus } from './config.js'
-import { scrapePageHtml } from './scrape.js'
+import { scrapePageHtml } from './util/scrape.js'
 import * as RPC from './util/RPC.js'
 
 new RPC.MessageServer('background', {
