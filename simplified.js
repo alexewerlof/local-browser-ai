@@ -1,6 +1,6 @@
 import { Readability } from './vendor/@mozilla/readability.js'
 import { Wrapper } from './util/Wrapper.js'
-import { html2markdown, markdown2html } from './util/markdown.js'
+import { html2markdown, markdown2html, splitByHeaders } from './util/markdown.js'
 
 class TabbedUi {
     tabs
@@ -9,7 +9,7 @@ class TabbedUi {
         if (!(root instanceof Wrapper)) {
             throw new TypeError(`Expected a Wrapper. Got ${root} (${typeof root})`)
         }
-        const buttonContainer = new Wrapper('div').addClass('tabbed-ui__selectors')
+        const buttonContainer = new Wrapper('div').addClass('tabbed-ui__selectors', 'button-bar')
         root.prepend(buttonContainer)
         this.tabs = root.byClass('tabbed-ui__content')
         if (this.tabs.length < 1) {
@@ -86,6 +86,9 @@ async function main() {
 
     const htmlFromMarkdown = markdown2html(readabilityAsMarkdown)
     Wrapper.byId('output-rendered-markdown').setHtml(htmlFromMarkdown)
+
+    const chunks = splitByHeaders(readabilityAsMarkdown)
+    Wrapper.byId('output-chunked').mapAppend(chunks, (chunk) => new Wrapper('section').setText(chunk))
 
     return 'Finished main successfully'
 }

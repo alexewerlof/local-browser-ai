@@ -3,3 +3,10 @@
 img {
     max-width: 100%;
 }
+
+section {
+    margin: var(--gap4);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--gap4);
+}
