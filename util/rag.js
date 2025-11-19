@@ -25,17 +25,60 @@ export class Embedder {
             normalize: true,
             revision: 'default',
             tokenizer,
-            // device: 'webgpu',
+            device: 'webgpu',
         })
     }
 
     async getVector(text) {
-        return this.extractor(text)
+        // The feature-extraction pipeline returns token-level embeddings.
+        // We need to perform pooling and normalization to get a sentence-level embedding.
+        const result = await this.extractor(text, { pooling: 'mean', normalize: true })
+        return result
+    }
+
+    async getArray(text) {
+        const vector = await this.getVector(text)
+        return Array.from(vector.data)
+    }
+}
+
+class Chunk {
+    text
+    meta
+
+    constructor(text, meta) {
+        this.text = text
+        this.meta = {
+            ...meta,
+            id: crypto.randomUUID(),
+        }
+    }
+
+    getSimilarity(otherEmbedding) {
+        return Chunk.cosineSimilarity(this.meta.embedding, otherEmbedding)
+    }
+
+    static cosineSimilarity(vector1, vector2) {
+        let dotProduct = 0
+        let normA = 0
+        let normB = 0
+        for (let i = 0; i < vector1.length; i++) {
+            dotProduct += vector1[i] * vector2[i]
+            normA += vector1[i] * vector1[i]
+            normB += vector2[i] * vector2[i]
+        }
+
+        const magnitude = Math.sqrt(normA) * Math.sqrt(normB)
+        if (magnitude === 0) {
+            return 0
+        }
+
+        return dotProduct / magnitude
     }
 }
 
 export class VectorStore {
-    _data = []
+    chunks = []
     embedder
 
     constructor(embedder) {
@@ -45,36 +88,37 @@ export class VectorStore {
         this.embedder = embedder
     }
 
-    add(chunk, embedding) {
-        this._data.push({ chunk, embedding })
+    async add(text, meta = {}) {
+        const embedding = await this.embedder.getArray(text)
+        const chunk = new Chunk(text, { ...meta, embedding })
+        this.chunks.push(chunk)
+    }
+
+    async addArray(chunks, meta = {}) {
+        if (!Array.isArray(chunks)) {
+            throw new TypeError(`Expected an array. Got ${chunks} (${typeof chunks})`)
+        }
+
+        for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i]
+            const chunkMeta = { ...meta, chunkIndex: i }
+            if (i > 0) {
+                chunkMeta.previousIndex = i - 1
+            }
+            if (i < chunks.length - 1) {
+                chunkMeta.nextIndex = i + 1
+            }
+            await this.add(chunk, chunkMeta)
+        }
     }
 
     async search(query, k = 5) {
-        const queryEmbedding = await this.embedder.getVector(query)
-        const results = this._data.map((item) => {
-            const { chunk, embedding } = item
-            const similarity = VectorStore.cosineSimilarity(embedding, queryEmbedding)
+        const queryEmbedding = await this.embedder.getArray(query)
+        const results = this.chunks.map((chunk) => {
+            const similarity = chunk.getSimilarity(queryEmbedding)
             return { chunk, similarity }
         })
-        results.sort((a, b) => b.similarity - a.similarity)
-        return results.slice(0, k).map((result) => result.chunk)
-    }
-
-    static cosineSimilarity(vector1, vector2) {
-        if (!Array.isArray(vector1) || !Array.isArray(vector2)) {
-            throw new TypeError('Both vectors must be arrays')
-        }
-        if (vector1.length !== vector2.length) {
-            throw new Error('Vectors must have the same length')
-        }
-        let dotProduct = 0
-        let normA = 0
-        let normB = 0
-        for (let i = 0; i < vector1.length; i++) {
-            dotProduct += vector1[i] * vector2[i]
-            normA += vector1[i] * vector1[i]
-            normB += vector2[i] * vector2[i]
-        }
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+        results.sort((r1, r2) => r2.similarity - r1.similarity)
+        return results.slice(0, k)
     }
 }

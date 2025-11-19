@@ -6,10 +6,13 @@ const RUNTIME_DIR = 'runtime'
 // Since this script is in the root, __dirname is not available in ESM by default.
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+// These are the required WASM files for both CPU (WASM) and GPU (WebGPU) execution
+// in recent versions of onnxruntime-web.
 const filesToCopy = [
+    'ort-wasm-simd-threaded.mjs',
+    'ort-wasm-simd-threaded.wasm',
     'ort-wasm-simd-threaded.jsep.mjs',
     'ort-wasm-simd-threaded.jsep.wasm',
-    'ort-wasm-simd-threaded.wasm',
 ]
 
 async function copyRuntimeFiles() {

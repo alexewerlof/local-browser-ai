@@ -94,13 +94,15 @@ async function main() {
     const embedder = new Embedder()
     await embedder.init()
 
+    const vectorStore = new VectorStore(embedder)
     for (const chunk of chunks) {
-        console.time('Embed')
-        console.log('embedding', await embedder.getVector(chunk))
-        console.timeEnd('Embed')
+        console.time('Add chunk')
+        await vectorStore.add(chunk)
+        console.timeEnd('Add chunk')
     }
 
-    const vectorStore = new VectorStore(embedder)
+    const query = await vectorStore.search('Chrome', 5)
+    console.log(query)
 
     return 'Finished main successfully'
 }
