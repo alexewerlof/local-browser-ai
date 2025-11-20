@@ -3,8 +3,7 @@
 
 # Ignore the build script and friends
 build.js
-update-vendors.js
-update-icons.js
+update-*.js
 
 # Ignore build output
 *.zip

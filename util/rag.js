@@ -1,5 +1,5 @@
 import { pipeline, env, AutoTokenizer } from '../vendor/@huggingface/transformers.js'
-import * as modelsConfig from '../modelsconfig.js'
+import * as modelsConfig from '../config-transformers.js.js'
 
 // Prevent transformers.js from downloading models from the internet,
 // which would violate the Chrome Extension's Content Security Policy.
@@ -9,8 +9,8 @@ env.allowLocalModels = true
 
 // Set the local model path to the absolute URL of the 'runtime' directory within the extension.
 // This is necessary because the page has a <base> tag that would otherwise interfere with relative paths.
-env.localModelPath = chrome.runtime.getURL('models/')
-env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('runtime/')
+env.localModelPath = chrome.runtime.getURL(modelsConfig.MODELS_DIR)
+env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(modelsConfig.RUNTIME_DIR)
 
 export class Embedder {
     constructor(model = modelsConfig.embedding.model) {
