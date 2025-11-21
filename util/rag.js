@@ -12,12 +12,23 @@ env.allowLocalModels = true
 env.localModelPath = chrome.runtime.getURL(modelsConfig.MODELS_DIR)
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(modelsConfig.RUNTIME_DIR)
 
+async function isWebGPUAvailable() {
+    try {
+        const adapter = await navigator.gpu?.requestAdapter()
+        return !!adapter
+    } catch (e) {
+        console.error('Error checking for WebGPU availability:', e)
+        return false
+    }
+}
+
 export class Embedder {
     constructor(model = modelsConfig.embedding.model) {
         this.model = model
     }
 
     async init() {
+        const device = (await isWebGPUAvailable()) ? 'webgpu' : 'wasm'
         const tokenizer = await AutoTokenizer.from_pretrained(this.model)
         this.extractor = await pipeline('feature-extraction', this.model, {
             dtype: modelsConfig.embedding.dtype, // Load the non-quantized model
@@ -25,7 +36,7 @@ export class Embedder {
             normalize: true,
             revision: 'default',
             tokenizer,
-            device: 'webgpu',
+            device: device,
         })
     }
 
