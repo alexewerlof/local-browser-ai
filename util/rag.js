@@ -41,13 +41,11 @@ export class Embedder {
     }
 
     async getVector(text) {
-        // The feature-extraction pipeline returns token-level embeddings.
         // We need to perform pooling and normalization to get a sentence-level embedding.
-        const result = await this.extractor(text, { pooling: 'mean', normalize: true })
-        return result
+        return await this.extractor(text, { pooling: 'mean', normalize: true })
     }
 
-    async getArray(text) {
+    async getVectorArray(text) {
         const vector = await this.getVector(text)
         return Array.from(vector.data)
     }
@@ -86,6 +84,10 @@ class Chunk {
 
         return dotProduct / magnitude
     }
+
+    toString() {
+        return this.text
+    }
 }
 
 export class VectorStore {
@@ -100,7 +102,7 @@ export class VectorStore {
     }
 
     async add(text, meta = {}) {
-        const embedding = await this.embedder.getArray(text)
+        const embedding = await this.embedder.getVectorArray(text)
         const chunk = new Chunk(text, { ...meta, embedding })
         this.chunks.push(chunk)
     }
@@ -123,13 +125,18 @@ export class VectorStore {
         }
     }
 
-    async search(query, k = 5) {
-        const queryEmbedding = await this.embedder.getArray(query)
+    async search(prompt, k = 5) {
+        const queryEmbedding = await this.embedder.getVectorArray(prompt)
         const results = this.chunks.map((chunk) => {
             const similarity = chunk.getSimilarity(queryEmbedding)
             return { chunk, similarity }
         })
         results.sort((r1, r2) => r2.similarity - r1.similarity)
         return results.slice(0, k)
+    }
+
+    async query(prompt, k) {
+        const results = await this.search(prompt, k)
+        return results.map((result) => result.chunk.text)
     }
 }

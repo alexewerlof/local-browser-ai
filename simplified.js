@@ -101,7 +101,7 @@ async function main() {
         console.timeEnd('Add chunk')
     }
 
-    const query = await vectorStore.search('Chrome', 5)
+    const query = await vectorStore.query('Chrome', 5)
     console.log(query)
 
     return 'Finished main successfully'
