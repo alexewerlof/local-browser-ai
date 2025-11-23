@@ -9,8 +9,12 @@ env.allowLocalModels = true
 
 // Set the local model path to the absolute URL of the 'runtime' directory within the extension.
 // This is necessary because the page has a <base> tag that would otherwise interfere with relative paths.
-env.localModelPath = chrome.runtime.getURL(modelsConfig.MODELS_DIR)
-env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(modelsConfig.RUNTIME_DIR)
+if (typeof chrome?.runtime?.getURL === 'function') {
+    env.localModelPath = chrome.runtime.getURL(modelsConfig.MODELS_DIR)
+    if (env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL(modelsConfig.RUNTIME_DIR)
+    }
+}
 
 async function isWebGPUAvailable() {
     try {
@@ -125,18 +129,18 @@ export class VectorStore {
         }
     }
 
-    async search(prompt, k = 5) {
+    async search(prompt, k = 5, scoreThreshold = 0) {
         const queryEmbedding = await this.embedder.getVectorArray(prompt)
         const results = this.chunks.map((chunk) => {
             const similarity = chunk.getSimilarity(queryEmbedding)
             return { chunk, similarity }
         })
         results.sort((r1, r2) => r2.similarity - r1.similarity)
-        return results.slice(0, k)
+        return results.filter((r) => r.similarity >= scoreThreshold).slice(0, k)
     }
 
-    async query(prompt, k) {
-        const results = await this.search(prompt, k)
+    async query(prompt, k, scoreThreshold) {
+        const results = await this.search(prompt, k, scoreThreshold)
         return results.map((result) => result.chunk.text)
     }
 }
