@@ -10,20 +10,46 @@ export class ChatMessage extends HTMLElement {
     _content
     wrappedShadow
 
-    constructor(role, content = '', options = {}) {
+    static attrName = {
+        role: 'role',
+        content: 'content',
+        source: 'source',
+        tokenCount: 'token-count',
+    }
+
+    static get observedAttributes() {
+        return Object.values(this.attrName)
+    }
+
+    constructor() {
         super()
         this.wrapped = new Wrapper(this)
-        this.wrapped.addClass(role)
-
         this.wrappedShadow = this.wrapped.setShadow().getShadow()
         this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
-        // this.shadowRoot.adoptedStyleSheets = [extra.css]
         this.wrappedShadow.setHtml(files.html)
+    }
 
-        this.role = role
-        this.content = content
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (oldValue === newValue) return
 
-        const { source, tokenCount } = options
+        switch (name) {
+            case ChatMessage.attrName.role:
+                this.role = newValue
+                break
+            case ChatMessage.attrName.content:
+                this.content = newValue
+                break
+            case ChatMessage.attrName.source:
+                this.source = JSON.parse(newValue)
+                break
+            case ChatMessage.attrName.tokenCount:
+                this.tokenCount = Number(newValue)
+                break
+        }
+    }
+
+    set source(source) {
+        this._source = source
         if (source) {
             const { faviconUrl, title, url } = source
             this.wrappedShadow.byId('source').setAttr('href', url)
@@ -35,15 +61,23 @@ export class ChatMessage extends HTMLElement {
         } else {
             this.wrappedShadow.byId('source').rm()
         }
+    }
 
-        if (Number.isFinite(tokenCount)) {
-            this.tokenCount = tokenCount
-        }
+    get source() {
+        return this._source
     }
 
     set tokenCount(tokens) {
+        this._tokenCount = tokens
         this.wrappedShadow.byId('token-count').setText(`${format.num(tokens)} tok`)
+        if (this.getAttribute(ChatMessage.attrName.tokenCount) !== String(tokens)) {
+            this.setAttribute(ChatMessage.attrName.tokenCount, tokens)
+        }
         return this
+    }
+
+    get tokenCount() {
+        return this._tokenCount
     }
 
     get role() {
@@ -56,7 +90,11 @@ export class ChatMessage extends HTMLElement {
         }
 
         this._role = value
+        this.wrapped.addClass(value)
         this.wrappedShadow.byId('role').setText(value)
+        if (this.getAttribute(ChatMessage.attrName.role) !== value) {
+            this.setAttribute(ChatMessage.attrName.role, value)
+        }
         return this
     }
 
@@ -71,6 +109,9 @@ export class ChatMessage extends HTMLElement {
 
         this._content = value
         this.wrappedShadow.byId('content').setHtml(markdown2html(value))
+        if (this.getAttribute(ChatMessage.attrName.content) !== value) {
+            this.setAttribute(ChatMessage.attrName.content, value)
+        }
         this.scrollIntoView()
         return this
     }

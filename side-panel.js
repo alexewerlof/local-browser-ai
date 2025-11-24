@@ -245,9 +245,10 @@ btnSubmitPrompt.onClick(async () => {
         btnSubmitPrompt.disable()
 
         console.debug('Sending prompt')
-        const userMessage = new ChatMessage('user', userPrompt, {
-            tokenCount: await session.measureInputUsage(userPrompt),
-        })
+        const userMessage = new ChatMessage()
+        userMessage.role = 'user'
+        userMessage.content = userPrompt
+        userMessage.tokenCount = await session.measureInputUsage(userPrompt)
         pastChats.append(userMessage)
 
         downloadProgress.setValue(0)
@@ -258,7 +259,8 @@ btnSubmitPrompt.onClick(async () => {
         btnStopPrompt.show()
         btnSubmitPrompt.hide()
 
-        const assistantMessage = new ChatMessage('assistant')
+        const assistantMessage = new ChatMessage()
+        assistantMessage.role = 'assistant'
 
         pastChats.append(assistantMessage)
 
@@ -343,9 +345,10 @@ async function add(message) {
     }
     try {
         const { title, faviconUrl, url } = message
-        const importedContent = new ChatMessage('user', normalizeImportedContent(message), {
-            source: { title, faviconUrl, url },
-        })
+        const importedContent = new ChatMessage()
+        importedContent.role = 'user'
+        importedContent.content = normalizeImportedContent(message)
+        importedContent.source = { title, faviconUrl, url }
 
         const inputUsageBefore = session.inputUsage
         console.time('session.append()')
