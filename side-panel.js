@@ -14,6 +14,7 @@ import {
     sidePanelStatus,
 } from './config.js'
 import { ChatMessage } from './components/chat-message.js'
+import { ChatThread } from './components/chat-thread.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 
@@ -35,7 +36,7 @@ const optStreaming = Wrapper.query('#option-streaming')
 const optSysPrompt = Wrapper.query('#option-system-prompt')
 const optTemp = Wrapper.query('#option-temperature')
 const optTopK = Wrapper.query('#option-top-k')
-const pastChats = Wrapper.query('#chat-history')
+const pastChats = Wrapper.query('chat-thread')
 const promptApiInit = Wrapper.query('#prompt-api-init')
 const promptApiUi = Wrapper.query('#prompt-api-ui')
 const promptTokens = Wrapper.query('#prompt-tokens')
