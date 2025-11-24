@@ -1,3 +1,8 @@
+/** Used to Give the UI a moment to update */
+export function nextAnimationFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
 export function on(target, eventName, handler) {
     return target.addEventListener(eventName, handler)
 }
