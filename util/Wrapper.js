@@ -237,7 +237,7 @@ export class Wrapper {
     }
 
     empty() {
-        this.el.innerHTML = ''
+        this.el.innerText = ''
         return this
     }
 
@@ -329,6 +329,11 @@ export class Frag {
 
     queryAll(selector) {
         return wrapAll(this.frag.querySelectorAll(selector))
+    }
+
+    empty() {
+        this.frag.replaceChildren()
+        return this
     }
 
     append(...children) {
