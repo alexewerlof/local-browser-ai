@@ -40,7 +40,7 @@ export class Embedder {
             normalize: true,
             revision: 'default',
             tokenizer,
-            device: device,
+            device,
         })
     }
 
