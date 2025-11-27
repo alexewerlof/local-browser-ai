@@ -144,8 +144,8 @@ export class VectorStore {
         return results.map((result) => result.chunk.text)
     }
 
-    get isEmpty() {
-        return this.chunks.length === 0
+    get length() {
+        return this.chunks.length
     }
 
     empty() {
