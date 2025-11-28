@@ -409,3 +409,10 @@ export async function fetchComponentFiles(componentName, baseUrl) {
     ])
     return { html, sheet }
 }
+
+export async function defineComponent(name, constructor, options) {
+    if (!customElements.get('chat-thread')) {
+        customElements.define(name, constructor, options)
+    }
+    return customElements.whenDefined(name)
+}
