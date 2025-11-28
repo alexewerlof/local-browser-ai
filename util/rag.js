@@ -129,7 +129,7 @@ export class VectorStore {
         }
     }
 
-    async search(prompt, k = 5, scoreThreshold = 0.7) {
+    async search(prompt, k = 3, scoreThreshold = 0.4) {
         const queryEmbedding = await this.embedder.getVectorArray(prompt)
         const results = this.chunks.map((chunk) => {
             const similarity = chunk.getSimilarity(queryEmbedding)
@@ -150,5 +150,6 @@ export class VectorStore {
 
     empty() {
         this.chunks.length = 0
+        console.debug('VectorStore emptied')
     }
 }
