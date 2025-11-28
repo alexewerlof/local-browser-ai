@@ -4,8 +4,8 @@
   "description": "A simple Browser extension for using the Prompt API.",
   "main": "background.js",
   "scripts": {
-    "update-vendors": "node update-vendors.js & node update-icons.js",
-    "postinstall": "npm run update-vendors.js",
+    "update:vendors": "node update-vendors.js & node update-icons.js && node update-transformers.js",
+    "postinstall": "npm run update:vendors",
     "fmt": "prettier --write .",
     "build": "npm t & node build.js",
     "test": "node --test",
@@ -21,6 +21,7 @@
     "prettier": "^3.6.2"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
     "@mozilla/readability": "^0.6.0",
     "markdown-it": "^14.1.0",
     "turndown": "^7.2.1",

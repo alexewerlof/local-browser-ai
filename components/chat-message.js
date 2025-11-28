@@ -1,53 +1,73 @@
 import { markdown2html } from '../util/markdown.js'
 import * as format from '../util/format.js'
 import * as msg from '../util/msg.js'
-import { fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
+import { defineComponent, fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
 
 const files = await fetchComponentFiles('chat-message', import.meta.url)
 
 export class ChatMessage extends HTMLElement {
-    _role
-    _content
+    wrapped
     wrappedShadow
+    _contentMarkdown
 
-    constructor(role, content = '', options = {}) {
+    static attrNames = {
+        role: 'role',
+        favicon: 'favicon',
+        context: 'context',
+        content: 'content',
+        tokenCount: 'token-count',
+    }
+
+    static get observedAttributes() {
+        return Object.values(ChatMessage.attrNames)
+    }
+
+    constructor() {
         super()
         this.wrapped = new Wrapper(this)
-        this.wrapped.addClass(role)
-
         this.wrappedShadow = this.wrapped.setShadow().getShadow()
         this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
-        // this.shadowRoot.adoptedStyleSheets = [extra.css]
         this.wrappedShadow.setHtml(files.html)
+        this.role = msg.VALID_ROLES[0]
+        this.favicon = ''
+        this.context = ''
+        this.content = ''
+        this.tokenCount = 0
+    }
 
-        this.role = role
-        this.content = content
-
-        const { source, tokenCount } = options
-        if (source) {
-            const { faviconUrl, title, url } = source
-            this.wrappedShadow.byId('source').setAttr('href', url)
-            this.wrappedShadow.byId('title').setText(title)
-            if (faviconUrl) {
-                this.wrappedShadow.byId('favicon').setAttr('src', faviconUrl)
-            }
-            this.wrappedShadow.byId('content').hide()
-        } else {
-            this.wrappedShadow.byId('source').rm()
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (oldValue !== newValue) {
+            const propName = ChatMessage.attrName[name]
+            this[propName] = newValue
         }
+    }
 
-        if (Number.isFinite(tokenCount)) {
-            this.tokenCount = tokenCount
-        }
+    get favicon() {
+        return this.wrappedShadow.byId('favicon').getAttr('src')
+    }
+
+    set favicon(value) {
+        this.wrappedShadow.byId('favicon').setAttr('src', value)
+    }
+
+    get context() {
+        return this.wrappedShadow.byId('context').getText()
+    }
+
+    set context(value) {
+        this.wrappedShadow.byId('context').setText(value)
+    }
+
+    get tokenCount() {
+        return this.wrappedShadow.byId('token-count').getText()
     }
 
     set tokenCount(tokens) {
         this.wrappedShadow.byId('token-count').setText(`${format.num(tokens)} tok`)
-        return this
     }
 
     get role() {
-        return this._role
+        return this.wrappedShadow.byId('role')
     }
 
     set role(value) {
@@ -55,13 +75,18 @@ export class ChatMessage extends HTMLElement {
             throw new Error(`Invalid role: ${value}`)
         }
 
-        this._role = value
+        for (const role of msg.VALID_ROLES) {
+            if (role === value) {
+                this.wrapped.addClass(value)
+            } else {
+                this.wrapped.rmClass(role)
+            }
+        }
         this.wrappedShadow.byId('role').setText(value)
-        return this
     }
 
     get content() {
-        return this._content
+        return this._contentMarkdown
     }
 
     set content(value) {
@@ -69,7 +94,8 @@ export class ChatMessage extends HTMLElement {
             throw new Error(`Invalid content: ${value}`)
         }
 
-        this._content = value
+        this._contentMarkdown = value
+
         this.wrappedShadow.byId('content').setHtml(markdown2html(value))
         this.scrollIntoView()
         return this
@@ -80,8 +106,12 @@ export class ChatMessage extends HTMLElement {
     }
 
     toJSON() {
-        return msg.base(this.role, this.content)
+        let finalContent = this.content
+        if (this.context) {
+            finalContent = `Context:\n${this.context}\n\nQuery:\n${this.content}`
+        }
+        return msg.base(this.role, finalContent)
     }
 }
 
-customElements.define('chat-message', ChatMessage)
+await defineComponent('chat-message', ChatMessage)

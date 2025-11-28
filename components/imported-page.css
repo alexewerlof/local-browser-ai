@@ -1,0 +1,47 @@
+@import url('../theme.css');
+
+:host {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap2);
+    margin-block-start: var(--gap2);
+}
+
+#header {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+}
+
+#favicon {
+    width: 16px;
+    height: 16px;
+}
+
+#title {
+    font-weight: bold;
+    color: var(--interactive-color);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#status {
+    font-style: italic;
+    color: var(--text-color-secondary);
+    font-size: 0.9em;
+}
+
+#content {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--gap2);
+}
+
+progress {
+    width: 100%;
+}

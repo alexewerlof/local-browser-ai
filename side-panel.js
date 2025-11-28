@@ -4,7 +4,6 @@ import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
 import * as format from './util/format.js'
 import * as msg from './util/msg.js'
-import { html2markdown } from './util/markdown.js'
 import {
     defaultSystemPrompt,
     examplePrompts,
@@ -14,51 +13,50 @@ import {
     sidePanelStatus,
 } from './config.js'
 import { ChatMessage } from './components/chat-message.js'
+import { ImportedPage } from './components/imported-page.js'
+import './components/chat-thread.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
 
-const apiStatus = Wrapper.query('#api-status').setText('Loading...')
-const systemRequirements = Wrapper.query('#system-requirements')
-const btnClone = Wrapper.query('#new-session-button')
-const btnInit = Wrapper.query('#init-button')
-const btnInitStop = Wrapper.query('#init-stop-button')
-const btnReload = Wrapper.query('#reset-button')
-const btnStopPrompt = Wrapper.query('#stop-prompt-button')
-const btnSubmitPrompt = Wrapper.query('#submit-prompt-button')
-const downloadEta = Wrapper.query('#download-eta')
-const downloadProgress = Wrapper.query('#download-progress')
-const chatLoadingAnimation = Wrapper.query('#chat-loading-animation')
-const optSystemLang = Wrapper.query('#option-sys-lang')
-const optUserLang = Wrapper.query('#option-user-lang')
-const optAssistantLang = Wrapper.query('#option-assistant-lang')
-const optStreaming = Wrapper.query('#option-streaming')
-const optSysPrompt = Wrapper.query('#option-system-prompt')
-const optTemp = Wrapper.query('#option-temperature')
-const optTopK = Wrapper.query('#option-top-k')
-const pastChats = Wrapper.query('#chat-history')
-const promptApiInit = Wrapper.query('#prompt-api-init')
-const promptApiUi = Wrapper.query('#prompt-api-ui')
-const promptTokens = Wrapper.query('#prompt-tokens')
-const promptInput = Wrapper.query('#prompt-input')
-const tokenPerSecondStatus = Wrapper.query('#token-per-second')
-const durationStatus = Wrapper.query('#duration')
-const promptStats = Wrapper.query('#prompt-stats')
-const statsTimeToFirstToken = Wrapper.query('#time-to-first-token')
-const statsInferenceDuration = Wrapper.query('#inference-duration')
-const usageRatio = Wrapper.query('#usage-ratio')
-const sessionEstablished = Wrapper.query('#session-established')
-const chatPlaceholder = Wrapper.query('#chat-placeholder')
-const version = Wrapper.query('#version')
-const downloadStatus = Wrapper.query('#download-status')
-const optTempVal = Wrapper.query('#option-temperature-value')
-const optTopKVal = Wrapper.query('#option-top-k-value')
-const examplePromptsContainer = Wrapper.query('#example-prompts')
-const addContextReminder = Wrapper.query('#add-context-reminder')
-const addContextWarning = Wrapper.query('#add-context-warning')
-
-new RPC.MessageServer('side-panel', {
-    add,
-})
+const apiStatus = Wrapper.byId('api-status').setText('Loading...')
+const systemRequirements = Wrapper.byId('system-requirements')
+const btnClone = Wrapper.byId('new-session-button')
+const btnInit = Wrapper.byId('init-button')
+const btnInitStop = Wrapper.byId('init-stop-button')
+const btnReload = Wrapper.byId('reset-button')
+const btnStopPrompt = Wrapper.byId('stop-prompt-button')
+const btnSubmitPrompt = Wrapper.byId('submit-prompt-button')
+const downloadEta = Wrapper.byId('download-eta')
+const downloadProgress = Wrapper.byId('download-progress')
+const chatLoadingAnimation = Wrapper.byId('chat-loading-animation')
+const optSystemLang = Wrapper.byId('option-sys-lang')
+const optUserLang = Wrapper.byId('option-user-lang')
+const optAssistantLang = Wrapper.byId('option-assistant-lang')
+const optStreaming = Wrapper.byId('option-streaming')
+const optSysPrompt = Wrapper.byId('option-system-prompt')
+const optTemp = Wrapper.byId('option-temperature')
+const optTopK = Wrapper.byId('option-top-k')
+await customElements.whenDefined('chat-thread')
+const chatThread = Wrapper.byId('chat-thread')
+const promptApiInit = Wrapper.byId('prompt-api-init')
+const promptApiUi = Wrapper.byId('prompt-api-ui')
+const promptTokens = Wrapper.byId('prompt-tokens')
+const promptInput = Wrapper.byId('prompt-input')
+const tokenPerSecondStatus = Wrapper.byId('token-per-second')
+const durationStatus = Wrapper.byId('duration')
+const promptStats = Wrapper.byId('prompt-stats')
+const statsTimeToFirstToken = Wrapper.byId('time-to-first-token')
+const statsInferenceDuration = Wrapper.byId('inference-duration')
+const usageRatio = Wrapper.byId('usage-ratio')
+const sessionEstablished = Wrapper.byId('session-established')
+const chatPlaceholder = Wrapper.byId('chat-placeholder')
+const version = Wrapper.byId('version')
+const downloadStatus = Wrapper.byId('download-status')
+const optTempVal = Wrapper.byId('option-temperature-value')
+const optTopKVal = Wrapper.byId('option-top-k-value')
+const examplePromptsContainer = Wrapper.byId('example-prompts')
+const addContextReminder = Wrapper.byId('add-context-reminder')
+const addContextWarning = Wrapper.byId('add-context-warning')
 
 optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
     return new Wrapper('option').setValue(value).setText(title)
@@ -236,7 +234,6 @@ btnSubmitPrompt.onClick(async () => {
         if (!userPrompt.trim()) {
             return
         }
-        console.log('Submitting prompt...')
         chatPlaceholder.hide()
         chatLoadingAnimation.show()
         debouncedCountPromptTokens()
@@ -244,12 +241,18 @@ btnSubmitPrompt.onClick(async () => {
         promptInput.setValue('').disable()
         btnSubmitPrompt.disable()
 
-        console.debug('Sending prompt')
-        const userMessage = new ChatMessage('user', userPrompt, {
-            tokenCount: await session.measureInputUsage(userPrompt),
-        })
-        pastChats.append(userMessage)
+        console.debug('Sending prompt...')
+        const userMessage = new ChatMessage()
+        userMessage.role = 'user'
+        userMessage.content = userPrompt
 
+        const promptToSend = await chatThread.el.addContext(userPrompt)
+        console.log('promptToSend', promptToSend)
+
+        userMessage.tokenCount = await session.measureInputUsage(userPrompt)
+        chatThread.el.appendChatMessage(userMessage)
+
+        // TODO: we are not in that view anymore
         downloadProgress.setValue(0)
         downloadEta.setText('')
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
@@ -258,9 +261,10 @@ btnSubmitPrompt.onClick(async () => {
         btnStopPrompt.show()
         btnSubmitPrompt.hide()
 
-        const assistantMessage = new ChatMessage('assistant')
+        const assistantMessage = new ChatMessage()
+        assistantMessage.role = 'assistant'
 
-        pastChats.append(assistantMessage)
+        chatThread.el.appendChatMessage(assistantMessage)
 
         const inputUsageBefore = session.inputUsage
         let firstTokenTimestamp
@@ -271,7 +275,7 @@ btnSubmitPrompt.onClick(async () => {
         promptStats.hide()
         const startTimestamp = Date.now()
         if (isStreaming) {
-            const stream = session.promptStreaming(userPrompt, {
+            const stream = session.promptStreaming(promptToSend, {
                 signal: submitController.signal,
                 monitor,
             })
@@ -284,7 +288,7 @@ btnSubmitPrompt.onClick(async () => {
                 assistantMessage.scrollIntoView({ behavior: 'instant' })
             }
         } else {
-            assistantMessage.content = await session.prompt(userPrompt, {
+            assistantMessage.content = await session.prompt(promptToSend, {
                 signal: submitController.signal,
                 monitor,
             })
@@ -326,44 +330,59 @@ btnSubmitPrompt.onClick(async () => {
     debouncedCountPromptTokens()
 })
 
-function normalizeImportedContent({ format, payload }) {
-    switch (format) {
-        case 'text':
-            return payload
-        case 'html':
-            return html2markdown(payload)
-        default:
-            throw new TypeError(`Unknown format: ${format}`)
-    }
-}
-
-async function add(message) {
-    if (!session) {
-        throw new Error(`No session initialized to append: "${message}"`)
-    }
-    try {
-        const { title, faviconUrl, url } = message
-        const importedContent = new ChatMessage('user', normalizeImportedContent(message), {
-            source: { title, faviconUrl, url },
-        })
-
-        const inputUsageBefore = session.inputUsage
-        console.time('session.append()')
-        await session.append([importedContent.toJSON()])
-        console.timeEnd('session.append()')
-        importedContent.tokenCount = session.inputUsage - inputUsageBefore
-        pastChats.append(importedContent)
-        updateSessionTokens()
-        console.log('Appended message successfully')
-        addContextReminder.hide()
-        addContextWarning.show()
-    } catch (error) {
-        if (error instanceof QuotaExceededError) {
-            alert('Too much text! Add smaller bits.')
+new RPC.MessageServer('side-panel', {
+    async addSelection(message) {
+        if (!session) {
+            throw new Error(`No session initialized to append: "${message}"`)
         }
-        console.log(error)
-    }
-}
+        try {
+            const { title, favIconUrl, url, selectionText } = message
+            const chatMessage = new ChatMessage()
+            chatMessage.role = 'user'
+            chatMessage.content = `Selection from [${title}](${url})`
+            chatMessage.context = selectionText
+            chatMessage.favicon = favIconUrl
+
+            const inputUsageBefore = session.inputUsage
+            console.time('session.append()')
+            await session.append([chatMessage.toJSON()])
+            console.timeEnd('session.append()')
+            chatMessage.tokenCount = session.inputUsage - inputUsageBefore
+            chatThread.el.appendChatMessage(chatMessage)
+            updateSessionTokens()
+            console.log('Appended selection successfully')
+            addContextReminder.hide()
+            addContextWarning.show()
+        } catch (error) {
+            if (error instanceof QuotaExceededError) {
+                alert('Too much text! Add smaller bits.')
+            }
+            console.log(error)
+        }
+    },
+
+    async addPage(message) {
+        if (!session) {
+            throw new Error(`No session initialized to append page`)
+        }
+        try {
+            const { html, url, title, favIconUrl } = message
+            const importedPage = new ImportedPage()
+
+            importedPage.url = url
+            importedPage.title = title
+            importedPage.favicon = favIconUrl
+            importedPage.pageHtml = html
+
+            await chatThread.el.appendImportedPage(importedPage)
+            console.log(`Appended page successfully: ${url}`)
+            addContextReminder.hide()
+            addContextWarning.show()
+        } catch (error) {
+            console.error('Error appending page:', error)
+        }
+    },
+})
 
 btnStopPrompt.onClick(() => {
     if (submitController) {
@@ -384,7 +403,7 @@ btnClone.onClick(async () => {
     console.timeEnd('Session Clone')
     btnClone.hide()
     promptStats.hide()
-    pastChats.empty()
+    chatThread.empty()
     updateSessionTokens()
     promptInput.focus().setValue('')
     debouncedCountPromptTokens()
@@ -468,6 +487,7 @@ async function main() {
     }
 
     promptApiUi.show()
+    await chatThread.el.initRAG()
     optSysPrompt.focus()
 
     const params = await LanguageModel.params()

@@ -51,13 +51,6 @@
     justify-content: center;
 }
 
-.chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap4);
-    padding: var(--gap4) 0;
-}
-
 /* Inspired by https://css-loaders.com/dots/ */
 .loading-animation {
     margin: 0;

@@ -19,7 +19,7 @@ new RPC.MessageServer('background', {
     },
 })
 
-const sidePanelRpc = new RPC.MessageClient('side-panel', 'add')
+const sidePanelRpc = new RPC.MessageClient('side-panel', 'addSelection', 'addPage')
 
 chrome.runtime.onInstalled.addListener(async () => {
     try {
@@ -68,6 +68,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     try {
+        const { title, favIconUrl, url: tagUrlStr } = tab
         switch (info.menuItemId) {
             case contextMenuIds.simplify:
                 const scrapeReturns = await chrome.scripting.executeScript({
@@ -90,17 +91,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 chrome.sidePanel.open({ windowId: tab.windowId })
                 break
             case contextMenuIds.sendSelection:
-                console.log('Selected text:', info.selectionText)
-                const url = new URL(tab.url)
-                if (!url.hash) {
-                    url.hash = ':~:text=' + encodeURIComponent(info.selectionText)
+                const { selectionText } = info
+
+                console.log('Selected text:', selectionText)
+                const selectionUrl = new URL(tagUrlStr)
+                // @see https://web.dev/articles/text-fragments
+                if (!selectionUrl.hash) {
+                    selectionUrl.hash = ':~:text=' + encodeURIComponent(selectionText)
                 }
-                await sidePanelRpc.add({
-                    format: 'text',
-                    payload: info.selectionText,
-                    title: tab.title || 'Selection',
-                    faviconUrl: tab.favIconUrl,
-                    url: url.toString(),
+                await sidePanelRpc.addSelection({
+                    selectionText,
+                    title,
+                    favIconUrl,
+                    url: selectionUrl.toString(),
                 })
                 break
             case contextMenuIds.sendPage:
@@ -112,14 +115,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 let added = 0
                 for (const fnReturn of fnReturns) {
                     const { result } = fnReturn
+                    const pageUrlStr = result.base || tagUrlStr
 
                     if (result) {
-                        await sidePanelRpc.add({
-                            format: 'html',
-                            payload: result.html,
-                            title: tab.title || 'Page',
-                            faviconUrl: tab.favIconUrl,
-                            url: result.base || tab.url,
+                        await sidePanelRpc.addPage({
+                            html: result.html,
+                            title,
+                            favIconUrl,
+                            url: pageUrlStr,
                         })
                         added++
                     }

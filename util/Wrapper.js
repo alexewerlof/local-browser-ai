@@ -1,3 +1,8 @@
+/** Used to Give the UI a moment to update */
+export function nextAnimationFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
 export function on(target, eventName, handler) {
     return target.addEventListener(eventName, handler)
 }
@@ -232,7 +237,7 @@ export class Wrapper {
     }
 
     empty() {
-        this.el.innerHTML = ''
+        this.el.innerText = ''
         return this
     }
 
@@ -326,6 +331,11 @@ export class Frag {
         return wrapAll(this.frag.querySelectorAll(selector))
     }
 
+    empty() {
+        this.frag.replaceChildren()
+        return this
+    }
+
     append(...children) {
         this.frag.append(...unwrapAll(children))
         return this
@@ -398,4 +408,11 @@ export async function fetchComponentFiles(componentName, baseUrl) {
         fetchComponentSheet(componentName, baseUrl),
     ])
     return { html, sheet }
+}
+
+export async function defineComponent(name, constructor, options) {
+    if (!customElements.get('chat-thread')) {
+        customElements.define(name, constructor, options)
+    }
+    return customElements.whenDefined(name)
 }

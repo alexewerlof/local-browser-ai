@@ -1,6 +1,7 @@
 import { Readability } from './vendor/@mozilla/readability.js'
 import { Wrapper } from './util/Wrapper.js'
 import { html2markdown, markdown2html, splitByHeaders } from './util/markdown.js'
+import { Embedder, VectorStore } from './util/rag.js'
 
 class TabbedUi {
     tabs
@@ -89,6 +90,19 @@ async function main() {
 
     const chunks = splitByHeaders(readabilityAsMarkdown)
     Wrapper.byId('output-chunked').mapAppend(chunks, (chunk) => new Wrapper('section').setText(chunk))
+
+    const embedder = new Embedder()
+    await embedder.init()
+
+    const vectorStore = new VectorStore(embedder)
+    for (const chunk of chunks) {
+        console.time('Add chunk')
+        await vectorStore.add(chunk)
+        console.timeEnd('Add chunk')
+    }
+
+    const query = await vectorStore.query('Chrome', 5)
+    console.log(query)
 
     return 'Finished main successfully'
 }
