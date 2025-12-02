@@ -1,37 +1,11 @@
-import { defineComponent, fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
-
-const files = await fetchComponentFiles('imported-page', import.meta.url)
+import { registerComponent } from '../util/Wrapper.js'
 
 export class ImportedPage extends HTMLElement {
-    wrapped
     wrappedShadow
-
-    static attrName = {
-        url: 'url',
-        title: 'title',
-        favicon: 'favicon',
-        pageHtml: 'page-html',
-        status: 'status',
-        progress: 'progress',
-    }
-
-    static get observedAttributes() {
-        return Object.values(ImportedPage.attrName)
-    }
 
     constructor() {
         super()
-        this.wrapped = new Wrapper(this)
-        this.wrappedShadow = this.wrapped.setShadow().getShadow()
-        this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
-        this.wrappedShadow.setHtml(files.html)
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            const propName = ImportedPage.attrName[name]
-            this[propName] = newValue
-        }
+        this.wrappedShadow = this.initShadow()
     }
 
     get favicon() {
@@ -102,4 +76,14 @@ export class ImportedPage extends HTMLElement {
     }
 }
 
-await defineComponent('imported-page', ImportedPage)
+await registerComponent(
+    'imported-page',
+    ImportedPage,
+    import.meta.url,
+    'url',
+    'title',
+    'favicon',
+    'page-html',
+    'status',
+    'progress',
+)

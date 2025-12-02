@@ -1,24 +1,18 @@
 import { Readability } from '../vendor/@mozilla/readability.js'
 import { html2markdown, splitByHeaders } from '../util/markdown.js'
-import { defineComponent, fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
+import { Frag, registerComponent } from '../util/Wrapper.js'
 import { ChatMessage } from './chat-message.js'
 import { ImportedPage } from './imported-page.js'
 import { Embedder, VectorStore } from '../util/rag.js'
 
-const files = await fetchComponentFiles('chat-thread', import.meta.url)
-
 export class ChatThread extends HTMLElement {
     vectorStore
     embedder
-    wrapped
     wrappedShadow
 
     constructor() {
         super()
-        this.wrapped = new Wrapper(this)
-        this.wrappedShadow = this.wrapped.setShadow().getShadow()
-        this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
-        this.wrappedShadow.setHtml(files.html)
+        this.wrappedShadow = this.initShadow()
     }
 
     async initRAG() {
@@ -99,4 +93,4 @@ export class ChatThread extends HTMLElement {
     }
 }
 
-await defineComponent('chat-thread', ChatThread)
+await registerComponent('chat-thread', ChatThread, import.meta.url)

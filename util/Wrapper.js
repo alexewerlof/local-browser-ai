@@ -402,18 +402,59 @@ async function fetchComponentSheet(componentName, baseUrl) {
     return fetchSheet(new URL(`${componentName}.css`, baseUrl))
 }
 
-export async function fetchComponentFiles(componentName, baseUrl) {
-    const [html, sheet] = await Promise.all([
-        fetchComponentTemplate(componentName, baseUrl),
-        fetchComponentSheet(componentName, baseUrl),
-    ])
-    return { html, sheet }
+function attributeChangedCallback(attrName, oldValue, newValue) {
+    if (oldValue !== newValue) {
+        const propName = keb2cam(attrName)
+        if (propName in this) {
+            this[propName] = newValue
+        } else {
+            console.warn(`Unknown attribute: ${attrName} (no prop ${propName})`)
+        }
+    }
 }
 
-export async function defineComponent(name, constructor, options) {
-    if (!customElements.get('chat-thread')) {
-        customElements.define(name, constructor, options)
+function initShadow(mode = 'open') {
+    const shadow = this.attachShadow({ mode })
+    if (this._componentFiles?.sheet) {
+        shadow.adoptedStyleSheets.push(this._componentFiles.sheet)
     }
+    if (this._componentFiles?.template) {
+        shadow.innerHTML = this._componentFiles.template
+    }
+    return new Frag(shadow)
+}
+
+/**
+ * Fetches component files, attaches them to the constructor, and defines the custom element.
+ * @param {string} name The name of the custom element.
+ * @param {HTMLElement} constructor The component's class constructor.
+ * @param {string} importMetaUrl The `import.meta.url` of the component module.
+ * @returns {Promise<void>} A promise that resolves when the custom element is defined.
+ */
+export async function registerComponent(name, constructor, importMetaUrl, ...observedAttributes) {
+    if (customElements.get(name)) {
+        return constructor
+    }
+    if (typeof name !== 'string') {
+        throw new TypeError(`Expected a component name string. Got ${name} (${typeof name})`)
+    }
+    if (typeof constructor !== 'function') {
+        throw new TypeError(`Expected a constructor function. Got ${constructor} (${typeof constructor})`)
+    }
+    if (typeof importMetaUrl !== 'string') {
+        throw new TypeError(`Expected an import.meta.url string. Got ${importMetaUrl} (${typeof importMetaUrl})`)
+    }
+    if (observedAttributes.length) {
+        constructor.observedAttributes = observedAttributes
+        constructor.attributeChangedCallback = attributeChangedCallback
+    }
+    const [template, sheet] = await Promise.all([
+        fetchComponentTemplate(name, importMetaUrl),
+        fetchComponentSheet(name, importMetaUrl),
+    ])
+    constructor.prototype._componentFiles = { template, sheet }
+    constructor.prototype.initShadow = initShadow
+    customElements.define(name, constructor) // There's also an options that we're skipping
     return customElements.whenDefined(name)
 }
 
