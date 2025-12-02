@@ -1,45 +1,22 @@
 import { markdown2html } from '../util/markdown.js'
 import * as format from '../util/format.js'
 import * as msg from '../util/msg.js'
-import { defineComponent, fetchComponentFiles, Wrapper } from '../util/Wrapper.js'
-
-const files = await fetchComponentFiles('chat-message', import.meta.url)
+import { registerComponent, Wrapper } from '../util/Wrapper.js'
 
 export class ChatMessage extends HTMLElement {
     wrapped
     wrappedShadow
     _contentMarkdown
 
-    static attrNames = {
-        role: 'role',
-        favicon: 'favicon',
-        context: 'context',
-        content: 'content',
-        tokenCount: 'token-count',
-    }
-
-    static get observedAttributes() {
-        return Object.values(ChatMessage.attrNames)
-    }
-
     constructor() {
         super()
         this.wrapped = new Wrapper(this)
-        this.wrappedShadow = this.wrapped.setShadow().getShadow()
-        this.wrappedShadow.frag.adoptedStyleSheets = [files.sheet]
-        this.wrappedShadow.setHtml(files.html)
+        this.wrappedShadow = this.initShadow()
         this.role = msg.VALID_ROLES[0]
         this.favicon = ''
         this.context = ''
         this.content = ''
         this.tokenCount = 0
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            const propName = ChatMessage.attrName[name]
-            this[propName] = newValue
-        }
     }
 
     get favicon() {
@@ -114,4 +91,13 @@ export class ChatMessage extends HTMLElement {
     }
 }
 
-await defineComponent('chat-message', ChatMessage)
+await registerComponent(
+    'chat-message',
+    ChatMessage,
+    import.meta.url,
+    'role',
+    'favicon',
+    'context',
+    'content',
+    'token-count',
+)
