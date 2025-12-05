@@ -463,7 +463,7 @@ async function main() {
     version.setText(getVersionString())
 
     if (typeof globalThis.LanguageModel !== 'function') {
-        return `LanguageModel is not supported in this environment.`
+        throw new Error('LanguageModel is not available in your browser.')
     }
 
     const modelOptions = getModelOptions()
