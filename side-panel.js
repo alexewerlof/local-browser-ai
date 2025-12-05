@@ -449,11 +449,18 @@ optSysPrompt.on('keydown', (e) => {
     }
 })
 
+function getVersionString() {
+    const manifestJson = chrome.runtime.getManifest()
+    if ('update_url' in manifestJson) {
+        return manifestJson.version
+    } else {
+        return `${manifestJson.version}*`
+    }
+}
+
 async function main() {
     await backgroundRpc.updateStatus(sidePanelStatus.STARTED)
-    const manifestJson = chrome.runtime.getManifest()
-    const localIndicator = 'update_url' in manifestJson ? '' : '*'
-    version.setText(manifestJson.version + localIndicator)
+    version.setText(getVersionString())
 
     if (typeof globalThis.LanguageModel !== 'function') {
         return `LanguageModel is not supported in this environment.`
