@@ -39,7 +39,6 @@ const optTopK = Wrapper.byId('option-top-k')
 await customElements.whenDefined('chat-thread')
 const chatThread = Wrapper.byId('chat-thread')
 const promptApiInit = Wrapper.byId('prompt-api-init')
-const promptApiUi = Wrapper.byId('prompt-api-ui')
 const promptTokens = Wrapper.byId('prompt-tokens')
 const promptInput = Wrapper.byId('prompt-input')
 const tokenPerSecondStatus = Wrapper.byId('token-per-second')
@@ -489,29 +488,29 @@ async function main() {
         case 'downloading':
             downloadStatus.show()
             break
-        default:
+        case 'available':
+            promptApiInit.show()
+            await chatThread.el.initRAG()
+            optSysPrompt.focus()
+            const params = await LanguageModel.params()
+            console.debug(`\tTemperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
+            console.debug(`\tTopK: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
+
+            // maxTemperature
+            optTemp.setAttr('max', params.maxTemperature)
+            // defaultTemperature
+            optTemp.setValue(params.defaultTemperature)
+            updateTempSlider()
+            // maxTopK
+            optTopK.setAttr('max', params.maxTopK)
+            // defaultTopK
+            optTopK.setValue(params.defaultTopK)
+            updateTopKSlider()
+            await backgroundRpc.updateStatus(sidePanelStatus.AWAITING_INIT)
             break
+        default:
+            throw new Error(`Unexpected availability: ${availability}`)
     }
-
-    promptApiUi.show()
-    await chatThread.el.initRAG()
-    optSysPrompt.focus()
-
-    const params = await LanguageModel.params()
-    console.debug(`\tTemperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
-    console.debug(`\tTopK: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
-
-    // maxTemperature
-    optTemp.setAttr('max', params.maxTemperature)
-    // defaultTemperature
-    optTemp.setValue(params.defaultTemperature)
-    updateTempSlider()
-    // maxTopK
-    optTopK.setAttr('max', params.maxTopK)
-    // defaultTopK
-    optTopK.setValue(params.defaultTopK)
-    updateTopKSlider()
-    await backgroundRpc.updateStatus(sidePanelStatus.AWAITING_INIT)
 }
 
 // Scripts with `type="module"` are deferred by default, so we don't need to
