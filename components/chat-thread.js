@@ -1,18 +1,29 @@
 import { Readability } from '../vendor/@mozilla/readability.js'
 import { html2markdown, splitByHeaders } from '../util/markdown.js'
-import { Frag, registerComponent } from '../util/Wrapper.js'
+import { defineComponent, fetchTemplate, fetchStyle, JJHE } from '../vendor/jj.js'
 import { ChatMessage } from './chat-message.js'
 import { ImportedPage } from './imported-page.js'
 import { Embedder, VectorStore } from '../util/rag.js'
 
+const templatePromise = fetchTemplate(import.meta.resolve('./chat-thread.html'))
+const stylePromise = fetchStyle(import.meta.resolve('./chat-thread.css'))
+
 export class ChatThread extends HTMLElement {
+    static defined = defineComponent('chat-thread', ChatThread)
+
     vectorStore
     embedder
-    wrappedShadow
+    #jjHost
+    #jjShadow
 
     constructor() {
         super()
-        this.wrappedShadow = this.initShadow()
+        this.#jjHost = JJHE.from(this).setShadow('open')
+        this.#jjShadow = this.#jjHost.getShadow(true)
+    }
+
+    async connectedCallback() {
+        this.#jjHost.initShadow(await templatePromise, await stylePromise)
     }
 
     async initRAG() {
@@ -33,14 +44,14 @@ export class ChatThread extends HTMLElement {
         if (!(child instanceof ChatMessage)) {
             throw new TypeError(`Expected ChatMessage. Got: ${child} (${typeof child})`)
         }
-        this.wrappedShadow.append(child)
+        this.#jjShadow.addChild(child)
     }
 
     async appendImportedPage(importedPage) {
         if (!(importedPage instanceof ImportedPage)) {
             throw new TypeError(`Expected ImportedPage. Got: ${importedPage} (${typeof importedPage})`)
         }
-        this.wrappedShadow.append(importedPage)
+        this.#jjShadow.addChild(importedPage)
 
         try {
             importedPage.update(1, 'Processing html')
@@ -93,4 +104,4 @@ export class ChatThread extends HTMLElement {
     }
 }
 
-await registerComponent('chat-thread', ChatThread, import.meta.url)
+await ChatThread.defined

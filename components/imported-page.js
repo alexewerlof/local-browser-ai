@@ -1,59 +1,81 @@
-import { registerComponent } from '../util/Wrapper.js'
+import { defineComponent, fetchTemplate, fetchStyle, attr2prop, JJHE } from '../vendor/jj.js'
+
+const templatePromise = fetchTemplate(import.meta.resolve('./imported-page.html'))
+const stylePromise = fetchStyle(import.meta.resolve('./imported-page.css'))
 
 export class ImportedPage extends HTMLElement {
-    wrappedShadow
+    static observedAttributes = ['url', 'title', 'favicon', 'page-html', 'status', 'progress']
+    static defined = defineComponent('imported-page', ImportedPage)
+
+    #jjHost
+    #jjShadow
 
     constructor() {
         super()
-        this.wrappedShadow = this.initShadow()
+        this.#jjHost = JJHE.from(this).setShadow('open')
+        this.#jjShadow = this.#jjHost.getShadow(true)
+    }
+
+    async connectedCallback() {
+        this.#jjHost.initShadow(await templatePromise, await stylePromise)
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        attr2prop(this, name, oldValue, newValue)
     }
 
     get favicon() {
-        return this.wrappedShadow.byId('favicon').getAttr('src')
+        return this.#jjShadow.find('#favicon', true).getAttr('src')
     }
 
     set favicon(value) {
-        this.wrappedShadow.byId('favicon').setAttr('src', value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#favicon', true).setAttr('src', value)
     }
 
     get url() {
-        return this.wrappedShadow.byId('title').getAttr('href')
+        return this.#jjShadow.find('#title', true).getAttr('href')
     }
 
     set url(value) {
-        this.wrappedShadow.byId('title').setAttr('href', value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#title', true).setAttr('href', value)
     }
 
     get title() {
-        return this.wrappedShadow.byId('title').getText()
+        return this.#jjShadow.find('#title', true).getText()
     }
 
     set title(value) {
-        this.wrappedShadow.byId('title').setText(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#title', true).setText(value)
     }
 
     get pageHtml() {
-        return this.wrappedShadow.byId('page-html').getHtml()
+        return this.#jjShadow.find('#page-html', true).getHTML()
     }
 
     set pageHtml(value) {
-        this.wrappedShadow.byId('page-html').setHtml(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#page-html', true).setHTML(value, true)
     }
 
     get status() {
-        return this.wrappedShadow.byId('status').getText()
+        return this.#jjShadow.find('#status', true).getText()
     }
 
     set status(value) {
-        this.wrappedShadow.byId('status').setText(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#status', true).setText(value)
     }
 
     get progress() {
-        return this.wrappedShadow.byId('progress').getValue()
+        return this.#jjShadow.find('#progress', true).getValue()
     }
 
     set progress(value) {
-        this.wrappedShadow.byId('progress').setValue(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#progress', true).setValue(value)
     }
 
     update(progress, status) {
@@ -76,14 +98,4 @@ export class ImportedPage extends HTMLElement {
     }
 }
 
-await registerComponent(
-    'imported-page',
-    ImportedPage,
-    import.meta.url,
-    'url',
-    'title',
-    'favicon',
-    'page-html',
-    'status',
-    'progress',
-)
+await ImportedPage.defined

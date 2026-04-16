@@ -1,17 +1,27 @@
 import { markdown2html } from '../util/markdown.js'
 import * as format from '../util/format.js'
 import * as msg from '../util/msg.js'
-import { registerComponent, Wrapper } from '../util/Wrapper.js'
+import { defineComponent, fetchTemplate, fetchStyle, attr2prop, JJHE } from '../vendor/jj.js'
+
+const templatePromise = fetchTemplate(import.meta.resolve('./chat-message.html'))
+const stylePromise = fetchStyle(import.meta.resolve('./chat-message.css'))
 
 export class ChatMessage extends HTMLElement {
-    wrapped
-    wrappedShadow
+    static observedAttributes = ['role', 'favicon', 'context', 'content', 'token-count']
+    static defined = defineComponent('chat-message', ChatMessage)
+
+    #jjHost
+    #jjShadow
     _contentMarkdown
 
     constructor() {
         super()
-        this.wrapped = new Wrapper(this)
-        this.wrappedShadow = this.initShadow()
+        this.#jjHost = JJHE.from(this).setShadow('open')
+        this.#jjShadow = this.#jjHost.getShadow(true)
+    }
+
+    async connectedCallback() {
+        this.#jjHost.initShadow(await templatePromise, await stylePromise)
         this.role = msg.VALID_ROLES[0]
         this.favicon = ''
         this.context = ''
@@ -19,32 +29,39 @@ export class ChatMessage extends HTMLElement {
         this.tokenCount = 0
     }
 
+    attributeChangedCallback(name, oldValue, newValue) {
+        attr2prop(this, name, oldValue, newValue)
+    }
+
     get favicon() {
-        return this.wrappedShadow.byId('favicon').getAttr('src')
+        return this.#jjShadow.find('#favicon', true).getAttr('src')
     }
 
     set favicon(value) {
-        this.wrappedShadow.byId('favicon').setAttr('src', value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#favicon', true).setAttr('src', value)
     }
 
     get context() {
-        return this.wrappedShadow.byId('context').getText()
+        return this.#jjShadow.find('#context', true).getText()
     }
 
     set context(value) {
-        this.wrappedShadow.byId('context').setText(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#context', true).setText(value)
     }
 
     get tokenCount() {
-        return this.wrappedShadow.byId('token-count').getText()
+        return this.#jjShadow.find('#token-count', true).getText()
     }
 
     set tokenCount(tokens) {
-        this.wrappedShadow.byId('token-count').setText(`${format.num(tokens)} tok`)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#token-count', true).setText(`${format.num(tokens)} tok`)
     }
 
     get role() {
-        return this.wrappedShadow.byId('role')
+        return this.#jjShadow.find('#role', true)
     }
 
     set role(value) {
@@ -54,12 +71,13 @@ export class ChatMessage extends HTMLElement {
 
         for (const role of msg.VALID_ROLES) {
             if (role === value) {
-                this.wrapped.addClass(value)
+                this.#jjHost.addClass(value)
             } else {
-                this.wrapped.rmClass(role)
+                this.#jjHost.rmClass(role)
             }
         }
-        this.wrappedShadow.byId('role').setText(value)
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#role', true).setText(value)
     }
 
     get content() {
@@ -73,13 +91,14 @@ export class ChatMessage extends HTMLElement {
 
         this._contentMarkdown = value
 
-        this.wrappedShadow.byId('content').setHtml(markdown2html(value))
+        if (!this.#jjShadow) return
+        this.#jjShadow.find('#content', true).setHTML(markdown2html(value), true)
         this.scrollIntoView()
         return this
     }
 
     scrollIntoView(params) {
-        this.wrappedShadow.byId('content').el.scrollIntoView(params)
+        this.#jjShadow.find('#content', true).ref.scrollIntoView(params)
     }
 
     toJSON() {
@@ -91,13 +110,4 @@ export class ChatMessage extends HTMLElement {
     }
 }
 
-await registerComponent(
-    'chat-message',
-    ChatMessage,
-    import.meta.url,
-    'role',
-    'favicon',
-    'context',
-    'content',
-    'token-count',
-)
+await ChatMessage.defined

@@ -1,4 +1,4 @@
-import { Wrapper, on } from './util/Wrapper.js'
+import { JJHE, JJET, JJD } from './vendor/jj.js'
 import * as RPC from './util/RPC.js'
 import { Estimator } from './util/estimator.js'
 import { debounce } from './util/debounce.js'
@@ -17,78 +17,73 @@ import { ImportedPage } from './components/imported-page.js'
 import './components/chat-thread.js'
 
 const backgroundRpc = new RPC.MessageClient('background', 'updateStatus')
+const h = JJHE.tree
+const jjDoc = JJD.from(document)
 
-const apiStatus = Wrapper.byId('api-status').setText('Loading...')
-const systemRequirements = Wrapper.byId('system-requirements')
-const btnClone = Wrapper.byId('new-session-button')
-const btnInit = Wrapper.byId('init-button')
-const btnInitStop = Wrapper.byId('init-stop-button')
-const btnReload = Wrapper.byId('reset-button')
-const btnStopPrompt = Wrapper.byId('stop-prompt-button')
-const btnSubmitPrompt = Wrapper.byId('submit-prompt-button')
-const downloadEta = Wrapper.byId('download-eta')
-const downloadProgress = Wrapper.byId('download-progress')
-const chatLoadingAnimation = Wrapper.byId('chat-loading-animation')
-const optSystemLang = Wrapper.byId('option-sys-lang')
-const optUserLang = Wrapper.byId('option-user-lang')
-const optAssistantLang = Wrapper.byId('option-assistant-lang')
-const optStreaming = Wrapper.byId('option-streaming')
-const optSysPrompt = Wrapper.byId('option-system-prompt')
-const optTemp = Wrapper.byId('option-temperature')
-const optTopK = Wrapper.byId('option-top-k')
+const jjApiStatus = jjDoc.find('#api-status', true).setText('Loading...')
+const jjSystemRequirements = jjDoc.find('#system-requirements', true)
+const jjBtnClone = jjDoc.find('#new-session-button', true)
+const jjBtnInit = jjDoc.find('#init-button', true)
+const jjBtnInitStop = jjDoc.find('#init-stop-button', true)
+const jjBtnReload = jjDoc.find('#reset-button', true)
+const jjBtnStopPrompt = jjDoc.find('#stop-prompt-button', true)
+const jjBtnSubmitPrompt = jjDoc.find('#submit-prompt-button', true)
+const jjDownloadEta = jjDoc.find('#download-eta', true)
+const jjDownloadProgress = jjDoc.find('#download-progress', true)
+const jjChatLoadingAnimation = jjDoc.find('#chat-loading-animation', true)
+const jjOptSystemLang = jjDoc.find('#option-sys-lang', true)
+const jjOptUserLang = jjDoc.find('#option-user-lang', true)
+const jjOptAssistantLang = jjDoc.find('#option-assistant-lang', true)
+const jjOptStreaming = jjDoc.find('#option-streaming', true)
+const jjOptSysPrompt = jjDoc.find('#option-system-prompt', true)
+const jjOptTemp = jjDoc.find('#option-temperature', true)
+const jjOptTopK = jjDoc.find('#option-top-k', true)
 await customElements.whenDefined('chat-thread')
-const chatThread = Wrapper.byId('chat-thread')
-const promptApiInit = Wrapper.byId('prompt-api-init')
-const promptTokens = Wrapper.byId('prompt-tokens')
-const promptInput = Wrapper.byId('prompt-input')
-const tokenPerSecondStatus = Wrapper.byId('token-per-second')
-const durationStatus = Wrapper.byId('duration')
-const promptStats = Wrapper.byId('prompt-stats')
-const statsTimeToFirstToken = Wrapper.byId('time-to-first-token')
-const statsInferenceDuration = Wrapper.byId('inference-duration')
-const usageRatio = Wrapper.byId('usage-ratio')
-const sessionEstablished = Wrapper.byId('session-established')
-const chatPlaceholder = Wrapper.byId('chat-placeholder')
-const version = Wrapper.byId('version')
-const downloadStatus = Wrapper.byId('download-status')
-const optTempVal = Wrapper.byId('option-temperature-value')
-const optTopKVal = Wrapper.byId('option-top-k-value')
-const examplePromptsContainer = Wrapper.byId('example-prompts')
-const addContextReminder = Wrapper.byId('add-context-reminder')
-const addContextWarning = Wrapper.byId('add-context-warning')
+const jjChatThread = jjDoc.find('#chat-thread', true)
+const jjPromptApiInit = jjDoc.find('#prompt-api-init', true)
+const jjPromptTokens = jjDoc.find('#prompt-tokens', true)
+const jjPromptInput = jjDoc.find('#prompt-input', true)
+const jjTokenPerSecondStatus = jjDoc.find('#token-per-second', true)
+const jjDurationStatus = jjDoc.find('#duration', true)
+const jjPromptStats = jjDoc.find('#prompt-stats', true)
+const jjStatsTimeToFirstToken = jjDoc.find('#time-to-first-token', true)
+const jjStatsInferenceDuration = jjDoc.find('#inference-duration', true)
+const jjUsageRatio = jjDoc.find('#usage-ratio', true)
+const jjSessionEstablished = jjDoc.find('#session-established', true)
+const jjChatPlaceholder = jjDoc.find('#chat-placeholder', true)
+const jjVersion = jjDoc.find('#version', true)
+const jjDownloadStatus = jjDoc.find('#download-status', true)
+const jjOptTempVal = jjDoc.find('#option-temperature-value', true)
+const jjOptTopKVal = jjDoc.find('#option-top-k-value', true)
+const jjExamplePromptsContainer = jjDoc.find('#example-prompts', true)
+const jjAddContextReminder = jjDoc.find('#add-context-reminder', true)
+const jjAddContextWarning = jjDoc.find('#add-context-warning', true)
 
-optSystemLang.mapAppend(supportedSystemLanguages, ({ value, title }) => {
-    return new Wrapper('option').setValue(value).setText(title)
-})
+jjOptSystemLang.addChildMap(supportedSystemLanguages, ({ value, title }) => h('option', { value }, title))
 
-optUserLang.mapAppend(supportedUserLanguages, ({ value, title }) => {
-    return new Wrapper('option').setValue(value).setText(title)
-})
+jjOptUserLang.addChildMap(supportedUserLanguages, ({ value, title }) => h('option', { value }, title))
 
-optAssistantLang.mapAppend(supportedAssistantLanguages, ({ value, title }) => {
-    return new Wrapper('option').setValue(value).setText(title)
-})
+jjOptAssistantLang.addChildMap(supportedAssistantLanguages, ({ value, title }) => h('option', { value }, title))
 
-examplePromptsContainer.mapAppend(examplePrompts, (prompt) => {
-    const newButton = new Wrapper('button').setText(prompt)
-    newButton.onClick(() => {
-        promptInput.setValue(prompt).focus()
-        btnSubmitPrompt.enable()
+jjExamplePromptsContainer.addChildMap(
+    examplePrompts,
+    (prompt) => h('button', null, prompt).on('click', () => {
+        jjPromptInput.setValue(prompt).focus()
+        jjBtnSubmitPrompt.enable()
         debouncedCountPromptTokens()
     })
-    return newButton
-})
+)
 
 function updateTempSlider() {
-    optTempVal.setText(optTemp.getValue())
+    jjOptTempVal.setText(jjOptTemp.getValue())
 }
 function updateTopKSlider() {
-    optTopKVal.setText(optTopK.getValue())
+    jjOptTopKVal.setText(jjOptTopK.getValue())
 }
-optTemp.on('input', updateTempSlider)
-optTopK.on('input', updateTopKSlider)
+jjOptTemp.on('input', updateTempSlider)
+jjOptTopK.on('input', updateTopKSlider)
 
-optSysPrompt.setValue(defaultSystemPrompt)
+jjOptSysPrompt.setValue(defaultSystemPrompt)
 
 let session
 let estimator
@@ -97,33 +92,33 @@ let submitController
 
 function getModelOptions() {
     return {
-        initialPrompts: [msg.system(optSysPrompt.getValue())],
-        temperature: optTemp.getValue(),
-        topK: optTopK.getValue(),
+        initialPrompts: [msg.system(jjOptSysPrompt.getValue())],
+        temperature: jjOptTemp.getValue(),
+        topK: jjOptTopK.getValue(),
         expectedInputs: [
             {
                 type: 'text',
-                languages: [optSystemLang.getValue(), optUserLang.getValue()],
+                languages: [jjOptSystemLang.getValue(), jjOptUserLang.getValue()],
             },
         ],
         expectedOutputs: [
             {
                 type: 'text',
-                languages: [optAssistantLang.getValue()],
+                languages: [jjOptAssistantLang.getValue()],
             },
         ],
     }
 }
 
 function monitor(m) {
-    on(m, 'downloadprogress', (e) => {
-        Wrapper.query('#if-download-is-stuck').hide()
-        Wrapper.query('#download-stop-warning').show()
+    JJET.from(m).on('downloadprogress', (e) => {
+        jjDoc.find('#if-download-is-stuck', true).hide()
+        jjDoc.find('#download-stop-warning', true).show()
         console.debug('Download Progress', Date.now(), e)
-        downloadProgress.setValue(e.loaded)
+        jjDownloadProgress.setValue(e.loaded)
 
         if (e.loaded === 1) {
-            downloadEta.setText('Done!')
+            jjDownloadEta.setText('Done!')
             return
         }
 
@@ -132,9 +127,9 @@ function monitor(m) {
             try {
                 const remainingMs = estimator.remaining
                 const remainingStr = format.dur(remainingMs)
-                downloadEta.setText(`ETA: ${remainingStr}`)
+                jjDownloadEta.setText(`ETA: ${remainingStr}`)
             } catch (err) {
-                downloadEta.setText(String(err))
+                jjDownloadEta.setText(String(err))
             }
         }
     })
@@ -145,9 +140,9 @@ function updateSessionTokens() {
         return
     }
     const { inputQuota, inputUsage } = session
-    usageRatio.setValue(inputUsage / inputQuota)
+    jjUsageRatio.setValue(inputUsage / inputQuota)
     const remainingPercent = Math.round((100 * (inputQuota - inputUsage)) / inputQuota)
-    usageRatio.setAttr('title', `Used: ${inputUsage} of ${inputQuota} tokens. Remaining: ${remainingPercent}%`)
+    jjUsageRatio.setAttr('title', `Used: ${inputUsage} of ${inputQuota} tokens. Remaining: ${remainingPercent}%`)
 }
 
 async function countPromptTokens() {
@@ -155,7 +150,7 @@ async function countPromptTokens() {
         return
     }
     try {
-        const userPrompt = promptInput.getValue()
+        const userPrompt = jjPromptInput.getValue()
         console.time('Counting prompt tokens')
         const promptTokenCount = await session.measureInputUsage(userPrompt, {
             /* accepts a signal too */
@@ -163,7 +158,7 @@ async function countPromptTokens() {
         })
         console.timeEnd('Counting prompt tokens')
         console.debug('Prompt token count:', promptTokenCount)
-        promptTokens.setText(format.num(promptTokenCount))
+        jjPromptTokens.setText(format.num(promptTokenCount))
     } catch (e) {
         console.error('Failed to count prompt tokens:', e)
     }
@@ -171,7 +166,7 @@ async function countPromptTokens() {
 
 const debouncedCountPromptTokens = debounce(countPromptTokens, 300)
 
-btnInit.onClick(async () => {
+jjBtnInit.on('click', async () => {
     // Note: no async call can happen in this function until LanguageModel.create() is called or it'll throw!
     if (!navigator.userActivation.isActive) {
         console.log('Not active')
@@ -179,15 +174,15 @@ btnInit.onClick(async () => {
     }
 
     try {
-        btnReload.show()
+        jjBtnReload.show()
         const modelOptions = getModelOptions()
         console.log('Initializing session...')
-        downloadProgress.setValue(0)
-        downloadEta.setText('Initializing...')
+        jjDownloadProgress.setValue(0)
+        jjDownloadEta.setText('Initializing...')
         estimator = new Estimator()
         console.debug('Creating session... (may require download)')
-        promptApiInit.hide()
-        downloadStatus.show()
+        jjPromptApiInit.hide()
+        jjDownloadStatus.show()
         initController = new AbortController()
         console.time('LanguageModel.create()')
         session = await LanguageModel.create({
@@ -198,25 +193,25 @@ btnInit.onClick(async () => {
         console.timeEnd('LanguageModel.create()')
         console.debug('Session initialized.')
         initController = null
-        on(session, 'quotaoverflow', () => {
+        JJET.from(session).on('quotaoverflow', () => {
             console.warn('Quota overflow')
         })
         await backgroundRpc.updateStatus(sidePanelStatus.INITIALIZED)
         updateSessionTokens()
-        downloadStatus.hide()
-        sessionEstablished.show()
-        promptInput.enable().focus()
+        jjDownloadStatus.hide()
+        jjSessionEstablished.show()
+        jjPromptInput.enable().focus()
         debouncedCountPromptTokens()
     } catch (e) {
         console.error('Could not initialize session', e)
-        promptApiInit.show()
-        downloadStatus.hide()
-        sessionEstablished.hide()
+        jjPromptApiInit.show()
+        jjDownloadStatus.hide()
+        jjSessionEstablished.hide()
         session = null
     }
 })
 
-btnInitStop.onClick(() => {
+jjBtnInitStop.on('click', () => {
     if (initController) {
         console.log('Stopping init')
         initController.abort('User stopped init')
@@ -224,54 +219,54 @@ btnInitStop.onClick(() => {
     initController = null
 })
 
-btnSubmitPrompt.onClick(async () => {
+jjBtnSubmitPrompt.on('click', async () => {
     try {
         if (!session) {
             throw new Error('No session')
         }
-        const userPrompt = promptInput.getValue()
+        const userPrompt = jjPromptInput.getValue()
         if (!userPrompt.trim()) {
             return
         }
-        chatPlaceholder.hide()
-        chatLoadingAnimation.show()
+        jjChatPlaceholder.hide()
+        jjChatLoadingAnimation.show()
         debouncedCountPromptTokens()
 
-        promptInput.setValue('').disable()
-        btnSubmitPrompt.disable()
+        jjPromptInput.setValue('').disable()
+        jjBtnSubmitPrompt.disable()
 
         console.debug('Sending prompt...')
         const userMessage = new ChatMessage()
         userMessage.role = 'user'
         userMessage.content = userPrompt
 
-        const promptToSend = await chatThread.el.addContext(userPrompt)
+        const promptToSend = await jjChatThread.ref.addContext(userPrompt)
         console.log('promptToSend', promptToSend)
 
         userMessage.tokenCount = await session.measureInputUsage(userPrompt)
-        chatThread.el.appendChatMessage(userMessage)
+        jjChatThread.ref.appendChatMessage(userMessage)
 
         // TODO: we are not in that view anymore
-        downloadProgress.setValue(0)
-        downloadEta.setText('')
+        jjDownloadProgress.setValue(0)
+        jjDownloadEta.setText('')
         estimator = new Estimator() // This is for download monitoring, which prompt() also supports
 
         submitController = new AbortController()
-        btnStopPrompt.show()
-        btnSubmitPrompt.hide()
+        jjBtnStopPrompt.show()
+        jjBtnSubmitPrompt.hide()
 
         const assistantMessage = new ChatMessage()
         assistantMessage.role = 'assistant'
 
-        chatThread.el.appendChatMessage(assistantMessage)
+        jjChatThread.ref.appendChatMessage(assistantMessage)
 
         const inputUsageBefore = session.inputUsage
         let firstTokenTimestamp
 
-        const isStreaming = optStreaming.el.checked
+        const isStreaming = jjOptStreaming.ref.checked
         console.debug('Streaming:', isStreaming)
 
-        promptStats.hide()
+        jjPromptStats.hide()
         const startTimestamp = Date.now()
         if (isStreaming) {
             const stream = session.promptStreaming(promptToSend, {
@@ -300,32 +295,32 @@ btnSubmitPrompt.onClick(async () => {
         assistantMessage.tokenCount = inputUsageDelta
 
         const totDuration = endTimestamp - startTimestamp
-        durationStatus.setText(format.num(totDuration))
+        jjDurationStatus.setText(format.num(totDuration))
 
         const timeToFirstToken = isStreaming ? firstTokenTimestamp - startTimestamp : totDuration
         console.debug('timeToFirstToken', timeToFirstToken)
-        statsTimeToFirstToken.setText(format.num(timeToFirstToken))
+        jjStatsTimeToFirstToken.setText(format.num(timeToFirstToken))
 
         const inferenceDuration = isStreaming ? endTimestamp - firstTokenTimestamp : totDuration
         console.debug('Inference Duration', inferenceDuration)
-        statsInferenceDuration.setText(format.num(inferenceDuration))
+        jjStatsInferenceDuration.setText(format.num(inferenceDuration))
 
         const tokenPerSecond = Math.round((1000 * inputUsageDelta) / inferenceDuration)
         console.debug('tokenPerSecond', tokenPerSecond)
-        tokenPerSecondStatus.setText(format.num(tokenPerSecond))
-        promptStats.show()
+        jjTokenPerSecondStatus.setText(format.num(tokenPerSecond))
+        jjPromptStats.show()
 
         updateSessionTokens()
         console.debug('Received response', assistantMessage.toJSON())
-        btnClone.show()
+        jjBtnClone.show()
     } catch (e) {
         console.error('Prompt failed:', e)
     }
     submitController = null
-    btnStopPrompt.hide()
-    btnSubmitPrompt.show()
-    chatLoadingAnimation.hide()
-    promptInput.enable().focus()
+    jjBtnStopPrompt.hide()
+    jjBtnSubmitPrompt.show()
+    jjChatLoadingAnimation.hide()
+    jjPromptInput.enable().focus()
     debouncedCountPromptTokens()
 })
 
@@ -347,11 +342,11 @@ new RPC.MessageServer('side-panel', {
             await session.append([chatMessage.toJSON()])
             console.timeEnd('session.append()')
             chatMessage.tokenCount = session.inputUsage - inputUsageBefore
-            chatThread.el.appendChatMessage(chatMessage)
+            jjChatThread.ref.appendChatMessage(chatMessage)
             updateSessionTokens()
             console.log('Appended selection successfully')
-            addContextReminder.hide()
-            addContextWarning.show()
+            jjAddContextReminder.hide()
+            jjAddContextWarning.show()
         } catch (error) {
             if (error instanceof QuotaExceededError) {
                 alert('Too much text! Add smaller bits.')
@@ -373,78 +368,78 @@ new RPC.MessageServer('side-panel', {
             importedPage.favicon = favIconUrl
             importedPage.pageHtml = html
 
-            await chatThread.el.appendImportedPage(importedPage)
+            await jjChatThread.ref.appendImportedPage(importedPage)
             console.log(`Appended page successfully: ${url}`)
-            addContextReminder.hide()
-            addContextWarning.show()
+            jjAddContextReminder.hide()
+            jjAddContextWarning.show()
         } catch (error) {
             console.error('Error appending page:', error)
         }
     },
 })
 
-btnStopPrompt.onClick(() => {
+jjBtnStopPrompt.on('click', () => {
     if (submitController) {
         console.debug('Stopping prompt')
         submitController.abort('User stopped prompt')
         submitController = null
-        btnClone.show()
+        jjBtnClone.show()
     } else {
         console.debug('No abort signal exists')
     }
 })
 
-btnClone.onClick(async () => {
+jjBtnClone.on('click', async () => {
     console.debug('New session')
-    btnClone.disable()
+    jjBtnClone.disable()
     console.time('Session Clone')
     session = await session.clone()
     console.timeEnd('Session Clone')
-    btnClone.hide()
-    promptStats.hide()
-    chatThread.empty()
+    jjBtnClone.hide()
+    jjPromptStats.hide()
+    jjChatThread.empty()
     updateSessionTokens()
-    promptInput.focus().setValue('')
+    jjPromptInput.focus().setValue('')
     debouncedCountPromptTokens()
-    chatPlaceholder.show()
-    btnClone.enable()
+    jjChatPlaceholder.show()
+    jjBtnClone.enable()
 })
 
-promptInput.on('input', () => {
-    if (promptInput.getValue().trim()) {
-        btnSubmitPrompt.enable()
+jjPromptInput.on('input', () => {
+    if (jjPromptInput.getValue().trim()) {
+        jjBtnSubmitPrompt.enable()
     } else {
-        btnSubmitPrompt.disable()
+        jjBtnSubmitPrompt.disable()
     }
     debouncedCountPromptTokens()
 })
 
-on(window, 'error', (e) => {
+JJET.from(window).on('error', (e) => {
     console.error('window.error', e)
 })
 
-on(window, 'unhandledrejection', (e) => {
+JJET.from(window).on('unhandledrejection', (e) => {
     console.error('unhandledrejection', e)
 })
 
-btnReload.onClick(() => {
+jjBtnReload.on('click', () => {
     console.debug('Reloading...')
     location.reload()
 })
 
-promptInput.on('keydown', (e) => {
+jjPromptInput.on('keydown', (e) => {
     // Submit on Enter, allow newline with Ctrl/Cmd+Enter
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault()
-        btnSubmitPrompt.click()
+        jjBtnSubmitPrompt.click()
     }
 })
 
-optSysPrompt.on('keydown', (e) => {
+jjOptSysPrompt.on('keydown', (e) => {
     // Submit on Enter, allow newline with Ctrl/Cmd+Enter
     if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault()
-        btnInit.click()
+        jjBtnInit.click()
     }
 })
 
@@ -459,7 +454,7 @@ function getVersionString() {
 
 async function main() {
     await backgroundRpc.updateStatus(sidePanelStatus.STARTED)
-    version.setText(getVersionString())
+    jjVersion.setText(getVersionString())
 
     if (typeof globalThis.LanguageModel !== 'function') {
         throw new Error('LanguageModel is not available in your browser.')
@@ -470,7 +465,7 @@ async function main() {
     const availability = await LanguageModel?.availability(modelOptions)
     console.timeEnd('LanguageModel.availability()')
 
-    apiStatus.setText('LanguageModel is supported in your browser.')
+    jjApiStatus.setText('LanguageModel is supported in your browser.')
 
     console.debug('Availability:', availability)
 
@@ -483,28 +478,28 @@ async function main() {
         case 'unavailable':
             throw new Error('The selected options are not supported')
         case 'downloadable':
-            Wrapper.query('#init-download-warning').show()
+            jjDoc.find('#init-download-warning', true).show()
             break
         case 'downloading':
-            downloadStatus.show()
+            jjDownloadStatus.show()
             break
         case 'available':
-            promptApiInit.show()
-            await chatThread.el.initRAG()
-            optSysPrompt.focus()
+            jjPromptApiInit.show()
+            await jjChatThread.ref.initRAG()
+            jjOptSysPrompt.focus()
             const params = await LanguageModel.params()
             console.debug(`\tTemperature: default = ${params.defaultTemperature}, max = ${params.maxTemperature}`)
             console.debug(`\tTopK: default = ${params.defaultTopK}, max = ${params.maxTopK}`)
 
             // maxTemperature
-            optTemp.setAttr('max', params.maxTemperature)
+            jjOptTemp.setAttr('max', params.maxTemperature)
             // defaultTemperature
-            optTemp.setValue(params.defaultTemperature)
+            jjOptTemp.setValue(params.defaultTemperature)
             updateTempSlider()
             // maxTopK
-            optTopK.setAttr('max', params.maxTopK)
+            jjOptTopK.setAttr('max', params.maxTopK)
             // defaultTopK
-            optTopK.setValue(params.defaultTopK)
+            jjOptTopK.setValue(params.defaultTopK)
             updateTopKSlider()
             await backgroundRpc.updateStatus(sidePanelStatus.AWAITING_INIT)
             break
@@ -517,10 +512,10 @@ async function main() {
 // wait for DOMContentLoaded. The script will execute after the DOM is parsed.
 try {
     await main()
-    apiStatus.hide()
-    systemRequirements.hide()
+    jjApiStatus.hide()
+    jjSystemRequirements.hide()
 } catch (e) {
-    apiStatus.show().setText(`Error: ${e}`)
+    jjApiStatus.show().setText(`Error: ${e}`)
     console.error(e)
-    systemRequirements.show()
+    jjSystemRequirements.show()
 }
