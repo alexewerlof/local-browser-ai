@@ -40,7 +40,7 @@ describe('VectorStore', () => {
 
         // Query with 'avocado' (starts with 'a') -> [0, 1, 0]
         // Should match 'apple' and 'apricot' with similarity 1, 'banana' with similarity 0
-        const results = await store.search('avocado', 3)
+        const results = await store.search('avocado', 3, 0)
 
         assert.strictEqual(results.length, 3)
         assert.strictEqual(results[0].similarity, 1)
