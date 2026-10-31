@@ -1,91 +1,92 @@
-[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/pdpikolagglmoahkmobpmloimhakkjmd?logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/pdpikolagglmoahkmobpmloimhakkjmd)
-[![Microsoft Edge Add-on](https://img.shields.io/microsoft-edge-add-on/v/becnhbaccnhaalnanlhjjboijablgjgj?logo=microsoft-edge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/becnhbaccnhaalnanlhjjboijablgjgj)
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-![logo](images/icon-128.png)
-
 # Local Browser AI
 
-This is the source code for
-[Local Browser AI](https://chromewebstore.google.com/detail/pdpikolagglmoahkmobpmloimhakkjmd).
+A browser-aware AI chat harness that lives in your sidebar. It talks to the page you are reading, keeps an honest eye on
+the model's context window, and lets you choose the model: the one built into your browser, a server on your own
+machine, or a hosted API.
 
-👉 [Read the announcement **here**](https://blog.alexewerlof.com/p/local-browser-ai).
+## What it does
 
-# Metrics
+- **Any provider, one interface.** Built-in Prompt API, local servers (llama.cpp, Ollama, LM Studio, vLLM) and hosted
+  APIs (OpenAI, Anthropic, DeepSeek) are adapters over the Vercel AI SDK. Add as many as you like and switch models per
+  chat.
+- **Chat with the current tab.** Click the toolbar icon and the page is extracted, cleaned with Readability, converted
+  to markdown and attached. The model sees the whole page when it fits, and an outline plus the most relevant excerpts
+  when it does not.
+- **Browser tools.** The model can read the page, list its sections, search it, read the current selection, and open
+  links in a new tab (with your approval).
+- **Context budgeting and compaction.** A meter below the composer shows what the system prompt, page, summary and
+  history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps going.
+- **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.
+- **Reasoning controls.** Thinking effort where the provider supports it (Anthropic budgets, OpenAI-style efforts), with
+  collapsible reasoning in the transcript.
+- **Local history.** Conversations live in IndexedDB in your browser profile.
 
-Inference timestamps:
+## Install
 
-- `TStart`: timestamp of starting the inference
-- `TFirstTok`: timestamp of receiving the first token (when not streaming, it's equal to `TD`)
-- `TEnd`: timestamp of ending the inference (including if it was interrupted)
+- Chrome Web Store: _coming soon for 3.0_
+- For development: `npm install && npm run build`, then open `chrome://extensions/`, enable **Developer mode**, choose
+  **Load unpacked** and point at `dist/`.
 
-Inference durations:
+## Providers
 
-| Duration | Streaming                   | Not Streaming        | Description                                |
-| :------- | :-------------------------- | :------------------- | :----------------------------------------- |
-| `TD`     | `TD = TEnd - TStart`        | `TD = TEnd - TStart` | Total duration of inference.               |
-| `TTFT`   | `TTFT = TFirstTok - TStart` | `TD`                 | Time to first token.                       |
-| `ID`     | `TEnd - TFirstTok`          | `TD`                 | The total time it took to generate tokens. |
-| `TPS`    | `T / ID`                    | `T / ID`             | Tokens per second (during `ID`, not `TD`). |
+### Built-in browser model
 
-# Install
+Chrome and Edge ship a small model behind the Prompt API. It needs no key and no network after the first download. Open
+the panel, attach a page and press **Download model** when prompted. Hardware requirements are Chrome's.
 
-- [Chrome Web Store](https://chromewebstore.google.com/detail/local-browser-ai/pdpikolagglmoahkmobpmloimhakkjmd)
-- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/local-browser-ai/becnhbaccnhaalnanlhjjboijablgjgj)
-- For development, head over to [chrome://extensions/](chrome://extensions/) and click **`Load unpacked`** and point to
-  where you have cloned this repo.
+### Local servers
 
-## Hardware requirements
+Add a provider in **Settings → Providers → Local server (OpenAI-compatible)**:
 
-- A graphic card with at least 4GB VRAM.
-- Windows, Linux, Mac, or Chrome OS.
-- At least 20GB storage and a good enough internet.
-- [See the full requirements](https://developer.chrome.com/docs/ai/prompt-api#hardware-requirements).
+| Server                     | Base URL                    |
+| -------------------------- | --------------------------- |
+| llama.cpp (`llama-server`) | `http://localhost:8080/v1`  |
+| Ollama                     | `http://localhost:11434/v1` |
+| LM Studio                  | `http://localhost:1234/v1`  |
 
-## Build
+Loopback hosts are already allowed. For a server on another machine, Chrome asks for permission the first time you save
+the provider or fetch its models — one prompt per host, and the grant covers every port on that host. Local servers
+usually do not report a context window, so set an override — the default is 8k and the meter and compaction depend on
+it.
 
-We lightly use esbuild for absolute minimum (packaging).
+### Hosted APIs
+
+OpenAI, Anthropic and DeepSeek presets ask for a base URL and an API key. Keys are stored in `chrome.storage.local`,
+never synced, and only sent to the endpoint you configured. Anthropic requests from a browser need the
+`anthropic-dangerous-direct-browser-access` header, which the adapter sets.
+
+## How page context is chosen
+
+| Page size relative to the window  | What the model gets                         |
+| --------------------------------- | ------------------------------------------- |
+| Fits (≤ 45% of the usable window) | The whole page as markdown                  |
+| Too large                         | The outline plus the best-matching excerpts |
+
+Tools can read any section on demand. Extraction drops scripts, styles, navigation chrome, hidden nodes and tracking
+parameters, resolves relative URLs, follows open shadow roots and same-origin iframes, and keeps code-fence languages.
+You can change the strategy in **Settings → Context**.
+
+## Privacy
+
+Page content is only read when you attach a tab, and only sent to the provider you selected. API keys never leave the
+extension's local storage except in requests to that provider. There is no telemetry. See
+[privacy.txt](public/privacy.txt).
+
+## Development
 
 ```shell
-npm run build
+npm run dev        # build in watch mode
+npm run serve      # serve dist/ at http://localhost:4173 for manual testing
+npm test           # unit tests (Vitest)
+npm run e2e        # browser scenarios against a fake OpenAI-compatible server
+npm run e2e:ext    # load dist/ as a real extension in Chromium
+npm run typecheck
+npm run fmt
 ```
 
-## Tests
+The side panel is a normal web page, so the e2e harness runs it with a small `chrome.*` shim and a recording fake
+server. See `AGENTS.md` for the architecture and the rules that keep it maintainable.
 
-We use the Node.js native testing framework.
+## Licence
 
-```shell
-npm test
-```
-
-## Dependency management
-
-We use npm as a package manager but since we don't want to build the entire code base (currently at least), the packages
-are exported to the `vendors` directory and updated using [update-vendors.js].
-
-It's a bit unconventional, I know, but it's my code base and I'm experimenting with tooling.
-
-The idea is for the main application code to go to the browser as is without any transformation. We'll see where we end
-up. 🙂
-
-## References
-
-- [Prompt API proposal](https://github.com/webmachinelearning/prompt-api/blob/main/README.md)
-- [Chrome Developer Docs for extensions: Prompt API](https://developer.chrome.com/docs/extensions/ai/prompt-api)
-- [Chrome Developer Docs: Prompt API](https://developer.chrome.com/docs/ai/prompt-api)
-- [Chrome Generative AI Privacy, Terms and Policy](https://policies.google.com/terms/generative-ai/use-policy)
-- [Chrome: Built-in AI](https://developer.chrome.com/docs/ai/built-in)
-- [Microsoft: Prompt API](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/prompt-api)
-
----
-
----
-
----
-
-<p align="center">
-    <img src="images/swedish-flag.svg" alt="Swedish Flag" style="height: 1em; vertical-align: middle;"/>
-    Made in Sweden by <a href="https://alexewerlof.com">Alex Ewerlöf</a>
-    <br>
-    <img src="images/logo.png" alt="logo" width="128">
-</p>
+MIT

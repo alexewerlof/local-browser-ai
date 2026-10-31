@@ -1,0 +1,488 @@
+/* Chrome settings page. Layout, metrics and colours mirror chrome://settings:
+ * a 266px pill navigation rail, a 680px content column, 8px cards with hairline rows. */
+
+body {
+	overflow: auto;
+}
+
+.boot {
+	display: grid;
+	place-items: center;
+	height: 100vh;
+	font-size: var(--text-md);
+	color: var(--fg-muted);
+}
+
+/* --------------------------------------------------------------------- shell */
+
+.options {
+	/* Chrome's control metrics. The side panel keeps its compact 28px controls. */
+	--button-height: 36px;
+	--control-height: 36px;
+
+	display: grid;
+	grid-template-columns: 266px minmax(0, 1fr);
+	height: 100%;
+	background: var(--bg);
+}
+
+.options__nav {
+	position: sticky;
+	top: 0;
+	align-self: start;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	height: 100vh;
+	padding: var(--space-4) var(--space-4) var(--space-5);
+	overflow-y: auto;
+}
+
+.options__brand {
+	display: flex;
+	align-items: center;
+	gap: var(--space-6);
+	padding: var(--space-2) var(--space-6) var(--space-6);
+	font-size: 20px;
+	font-weight: 500;
+	line-height: 28px;
+}
+
+.options__brand svg {
+	flex: none;
+	color: var(--nav-icon);
+}
+
+.options__nav-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-6);
+	width: 100%;
+	min-height: 40px;
+	padding: 10px var(--space-6);
+	border-radius: var(--radius-pill);
+	color: var(--nav-fg);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 20px;
+	text-align: left;
+	transition: background-color var(--duration-fast);
+}
+
+.options__nav-item svg {
+	flex: none;
+	color: var(--nav-icon);
+}
+
+.options__nav-item:hover {
+	background: var(--nav-bg-hover);
+	color: var(--nav-fg-hover);
+}
+
+.options__nav-item:hover svg {
+	color: var(--nav-fg-hover);
+}
+
+.options__nav-item--active,
+.options__nav-item--active:hover {
+	background: var(--nav-bg-selected);
+	color: var(--nav-fg-selected);
+}
+
+.options__nav-item--active svg,
+.options__nav-item--active:hover svg {
+	color: var(--nav-icon-selected);
+}
+
+.options__nav-item:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+.options__content {
+	height: 100vh;
+	min-width: 0;
+	padding: 40px var(--space-7) var(--space-8);
+	overflow-y: auto;
+}
+
+.options__column {
+	width: 96%;
+	max-width: 680px;
+	margin: 0 auto;
+}
+
+/* Below 900px Chrome collapses the rail to icons. */
+@media (max-width: 900px) {
+	.options {
+		grid-template-columns: 72px minmax(0, 1fr);
+	}
+
+	.options__brand {
+		justify-content: center;
+		padding-inline: 0;
+	}
+
+	.options__brand-label,
+	.options__nav-label {
+		display: none;
+	}
+
+	.options__nav-item {
+		justify-content: center;
+		gap: 0;
+		padding-inline: 0;
+	}
+}
+
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-7);
+}
+
+.group {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.group__title {
+	padding: 0 var(--space-1) var(--space-4);
+	font-size: var(--text-md);
+	font-weight: 500;
+	line-height: 20px;
+	color: var(--fg-muted);
+}
+
+.section__intro {
+	max-width: 62ch;
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--fg-muted);
+}
+
+.section > .section__intro {
+	padding: 0;
+}
+
+.section__action {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-4);
+}
+
+/* A Chrome card: hairline outline, 8px radius, no shadow. Rows are divided by
+ * hairlines instead of each bringing its own border. */
+.card {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--bg-raised);
+}
+
+.card > * + * {
+	border-top: 1px solid var(--separator);
+}
+
+/* Chrome fields sit on the card surface rather than in a filled well. */
+.options .input,
+.options .select,
+.options .textarea {
+	background-color: transparent;
+}
+
+/* ------------------------------------------------------------------- card rows */
+
+/* Label (and hint) on the left, control on the right, like .settings-box. */
+.field {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--space-6);
+}
+
+.card > .field,
+.card > .row {
+	min-height: 48px;
+	padding: 12px 20px;
+}
+
+.card > .progress-line,
+.card > .section__intro {
+	padding: 12px 20px;
+}
+
+/* "Two-line" rows grow to 64px; the content decides for the rest. */
+.row-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-6);
+	padding: 16px 20px;
+}
+
+.field__text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.field__label {
+	font-size: var(--text-md);
+	font-weight: 400;
+	color: var(--fg);
+}
+
+.field__hint {
+	max-width: 52ch;
+	font-size: var(--text-sm);
+	line-height: 1.45;
+	color: var(--fg-muted);
+}
+
+.field > .input,
+.field > .select {
+	flex: none;
+	width: 240px;
+}
+
+.field > .range {
+	flex: none;
+	width: 240px;
+}
+
+.field--stacked {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-2);
+}
+
+.grid-2,
+.grid-3 {
+	display: grid;
+	gap: var(--space-6);
+	padding: 16px 20px;
+}
+
+.grid-2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* Inside a grid the label stacks above the control. */
+.grid-2 > .field,
+.grid-3 > .field {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-2);
+}
+
+.grid-2 > .field > .input,
+.grid-2 > .field > .select,
+.grid-2 > .field > .range,
+.grid-3 > .field > .input,
+.grid-3 > .field > .select,
+.grid-3 > .field > .range,
+.field--stacked > .input,
+.field--stacked > .select,
+.field--stacked > .range {
+	width: 100%;
+}
+
+@media (max-width: 640px) {
+	.grid-2 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.provider {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	min-height: 64px;
+	padding: 12px 20px;
+}
+
+.provider__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.provider__label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	font-size: var(--text-md);
+	font-weight: 500;
+}
+
+.provider__meta {
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.preset {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-4);
+	padding: 16px 20px;
+}
+
+.preset__item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: 16px;
+	text-align: left;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: transparent;
+	transition:
+		background-color var(--duration-fast),
+		border-color var(--duration-fast);
+}
+
+.preset__item:hover {
+	background: var(--bg-hover);
+	border-color: var(--accent);
+}
+
+.preset__label {
+	font-size: var(--text-md);
+	font-weight: 500;
+}
+
+.preset__desc {
+	font-size: var(--text-sm);
+	line-height: 1.45;
+	color: var(--fg-muted);
+}
+
+.range {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+}
+
+.range input[type='range'] {
+	flex: 1;
+	min-width: 0;
+	accent-color: var(--accent);
+}
+
+.range__value {
+	min-width: 56px;
+	text-align: right;
+	font-size: var(--text-sm);
+	font-variant-numeric: tabular-nums;
+	color: var(--fg-muted);
+}
+
+.rows {
+	display: flex;
+	flex-direction: column;
+}
+
+.rows > * + * {
+	border-top: 1px solid var(--separator);
+}
+
+.row-item__text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.row-item__title {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	font-size: var(--text-md);
+	font-weight: 400;
+}
+
+.row-item__desc {
+	font-size: var(--text-sm);
+	line-height: 1.45;
+	color: var(--fg-muted);
+}
+
+/* Fields nested in a row (e.g. a skill prompt) should not draw row padding. */
+.row-item .field {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-2);
+	min-height: 0;
+	padding: 0;
+}
+
+/* An indented sub-control inside a row, like Chrome's dependent settings. */
+.tool-option {
+	display: flex;
+	align-items: center;
+	gap: var(--space-5);
+	margin-top: var(--space-2);
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+}
+
+.inline-code {
+	padding: 1px var(--space-2);
+	border-radius: var(--radius-sm);
+	background: var(--code-bg);
+	font-family: var(--font-mono);
+	font-size: 0.92em;
+}
+
+.notice {
+	padding: 12px 20px;
+	background: var(--bg-sunken);
+	color: var(--fg-muted);
+	font-size: var(--text-md);
+	line-height: 1.5;
+}
+
+/* A standalone banner (outside a card) keeps its own outline and radius. */
+.section > .notice {
+	padding: 12px 16px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+}
+
+.notice--good {
+	background: color-mix(in srgb, var(--success) 12%, transparent);
+	color: var(--success);
+}
+
+.notice--bad {
+	background: var(--danger-soft);
+	color: var(--danger-fg);
+}
+
+.progress-line {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+}
+
+.progress-line progress {
+	flex: 1;
+	accent-color: var(--accent);
+}

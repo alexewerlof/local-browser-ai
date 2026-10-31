@@ -1,0 +1,36 @@
+{
+	"manifest_version": 3,
+	"name": "Local Browser AI",
+	"version": "3.0.0",
+	"description": "A browser-aware AI chat harness in your sidebar, powered by any model you choose.",
+	"icons": {
+		"16": "images/icon-16.png",
+		"32": "images/icon-32.png",
+		"48": "images/icon-48.png",
+		"128": "images/icon-128.png"
+	},
+	"permissions": ["sidePanel", "scripting", "activeTab", "contextMenus", "storage"],
+	"host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
+	"optional_host_permissions": ["http://*/*", "https://*/*"],
+	"action": {
+		"default_title": "Local Browser AI",
+		"default_icon": {
+			"16": "images/icon-16.png",
+			"32": "images/icon-32.png"
+		}
+	},
+	"background": {
+		"service_worker": "background.js",
+		"type": "module"
+	},
+	"side_panel": {
+		"default_path": "side-panel.html"
+	},
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": true
+	},
+	"content_security_policy": {
+		"extension_pages": "script-src 'self'; object-src 'self'"
+	}
+}

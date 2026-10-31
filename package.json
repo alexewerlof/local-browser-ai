@@ -1,40 +1,58 @@
 {
-  "name": "local-browser-ai",
-  "version": "2.2.0",
-  "description": "A simple Browser extension for using the Prompt API.",
-  "main": "background.js",
-  "scripts": {
-    "update:vendors": "node update-vendors.js & node update-icons.js && node update-transformers.js",
-    "postinstall": "npm run update:vendors",
-    "fmt": "prettier --write .",
-    "build": "npm t & node build.js",
-    "test": "node --test",
-    "preversion": "npm t"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "type": "module",
-  "devDependencies": {
-    "archiver": "^7.0.1",
-    "esbuild": "^0.25.10",
-    "prettier": "^3.6.2"
-  },
-  "dependencies": {
-    "@huggingface/transformers": "^3.7.6",
-    "@mozilla/readability": "^0.6.0",
-    "jj": "^3.0.0-rc.8",
-    "markdown-it": "^14.1.0",
-    "turndown": "^7.2.1",
-    "turndown-plugin-gfm": "^1.0.2"
-  },
-  "_vendor": {
-    "markdown-it": "{ default as MarkdownIt }",
-    "turndown": {
-      "what": "{ default as TurndownService }"
-    },
-    "@mozilla/readability": {
-      "what": "{ Readability }"
-    }
-  }
+	"name": "local-browser-ai",
+	"version": "3.0.0",
+	"description": "A browser-aware AI chat harness in your sidebar.",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "node scripts/build.js",
+		"dev": "node scripts/dev.js",
+		"serve": "node scripts/serve.js",
+		"e2e": "npm run build && node dev/e2e/run.mjs",
+		"e2e:ext": "npm run build && node dev/e2e/extension.mjs",
+		"package": "npm run build && node scripts/package.js",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit",
+		"fmt": "prettier --write .",
+		"preversion": "npm run typecheck && npm test"
+	},
+	"license": "MIT",
+	"devDependencies": {
+		"@testing-library/dom": "^10.4.1",
+		"@testing-library/react": "^16.3.0",
+		"@testing-library/user-event": "^14.6.1",
+		"@types/markdown-it": "^14.1.2",
+		"@types/node": "^24.19.2",
+		"@types/react": "^19.2.2",
+		"@types/react-dom": "^19.2.2",
+		"@types/turndown": "^5.0.6",
+		"@vitejs/plugin-react": "^6.1.2",
+		"archiver": "^7.0.1",
+		"chrome-types": "^0.1.425",
+		"jsdom": "^27.0.0",
+		"playwright-core": "^1.64.0",
+		"prettier": "^3.6.2",
+		"typescript": "^6.0.2",
+		"vite": "^8.3.5",
+		"vitest": "^5.0.5"
+	},
+	"dependencies": {
+		"@ai-sdk/anthropic": "^4.0.90",
+		"@ai-sdk/deepseek": "^3.0.75",
+		"@ai-sdk/openai": "^4.0.104",
+		"@ai-sdk/openai-compatible": "^3.0.80",
+		"@browser-ai/core": "^3.0.4",
+		"@mozilla/readability": "^0.6.0",
+		"ai": "^7.0.155",
+		"highlight.js": "^11.12.0",
+		"idb": "^8.0.4",
+		"markdown-it": "^15.0.3",
+		"react": "^19.3.1",
+		"react-dom": "^19.3.1",
+		"turndown": "^7.2.1",
+		"turndown-plugin-gfm": "^1.0.2",
+		"zod": "^4.6.7",
+		"@ai-sdk/provider-utils": "^5.0.70"
+	}
 }

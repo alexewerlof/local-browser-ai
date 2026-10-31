@@ -1,0 +1,166 @@
+/*
+ * Design tokens.
+ *
+ * Values follow Chrome's own WebUI tokens (chrome://settings is built on `cr_elements`):
+ * neutral surfaces, a blue primary, hairline borders and pill-shaped controls. Both the
+ * side panel and the options page read these, so the panel stays compact while sharing
+ * the same visual language.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--font-ui: Roboto, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+	--font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+	--text-xs: 11px;
+	--text-sm: 12px;
+	--text-md: 13px;
+	--text-lg: 15px;
+	--text-xl: 18px;
+
+	--space-1: 2px;
+	--space-2: 4px;
+	--space-3: 6px;
+	--space-4: 8px;
+	--space-5: 12px;
+	--space-6: 16px;
+	--space-7: 24px;
+	--space-8: 32px;
+
+	--radius-sm: 4px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-pill: 100px;
+
+	--duration-fast: 120ms;
+	--duration-normal: 200ms;
+
+	/* Control sizing. The panel keeps compact controls; the options page raises both to
+	   Chrome's 36px in options.css. */
+	--button-height: 28px;
+	--control-height: 28px;
+
+	/* Light theme (default), from the --cr-fallback-color-* set. */
+	--accent: #0b57d0;
+	--accent-strong: #0842a0;
+	--accent-soft: rgb(11 87 208 / 0.08);
+	--accent-contrast: #ffffff;
+	--accent-border: rgb(11 87 208 / 0.35);
+
+	--danger: #b3261e;
+	--danger-soft: rgb(179 38 30 / 0.08);
+	--danger-fg: #b3261e;
+	--success: #1e8e3e;
+	--warning: #b06000;
+
+	--bg: #f8f9fa;
+	--bg-raised: #ffffff;
+	--bg-sunken: #f1f3f4;
+	--bg-hover: rgb(31 31 31 / 0.06);
+	--bg-active: rgb(31 31 31 / 0.12);
+	--fg: #1f1f1f;
+	--fg-muted: #444746;
+	--fg-faint: #747775;
+	--border: rgb(0 0 0 / 0.14);
+	--border-strong: rgb(0 0 0 / 0.24);
+	--separator: rgb(0 0 0 / 0.08);
+	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+	--shadow-md: rgb(0 0 0 / 0.3) 0 1px 2px 0, rgb(0 0 0 / 0.15) 0 2px 6px 2px;
+	--code-bg: #f1f3f4;
+
+	--user-bubble: #e8f0fe;
+
+	/* Navigation rail (cr-nav-menu-item). */
+	--nav-fg: #1f1f1f;
+	--nav-fg-selected: #1967d2;
+	--nav-fg-hover: #1f1f1f;
+	--nav-bg-hover: #e8eaed;
+	--nav-bg-selected: #e8f0fe;
+	--nav-icon: #5f6368;
+	--nav-icon-selected: #1a73e8;
+
+	--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--accent: #a8c7fa;
+		--accent-strong: #d3e3fd;
+		--accent-soft: rgb(168 199 250 / 0.16);
+		--accent-contrast: #062e6f;
+		--accent-border: rgb(168 199 250 / 0.5);
+
+		--danger: #f2b8b5;
+		--danger-soft: rgb(242 184 181 / 0.12);
+		--danger-fg: #f2b8b5;
+		--success: #81c995;
+		--warning: #fdd663;
+
+		--bg: #1f1f1f;
+		--bg-raised: #292a2d;
+		--bg-sunken: #171717;
+		--bg-hover: rgb(227 227 227 / 0.08);
+		--bg-active: rgb(227 227 227 / 0.12);
+		--fg: #e3e3e3;
+		--fg-muted: #c4c7c5;
+		--fg-faint: #9aa0a6;
+		--border: rgb(255 255 255 / 0.14);
+		--border-strong: rgb(255 255 255 / 0.24);
+		--separator: rgb(255 255 255 / 0.1);
+		--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+		--shadow-md: rgb(0 0 0 / 0.3) 0 1px 2px 0, rgb(0 0 0 / 0.15) 0 3px 6px 2px;
+		--code-bg: #202124;
+		--user-bubble: #303134;
+
+		--nav-fg: #ffffff;
+		--nav-fg-selected: #202124;
+		--nav-fg-hover: #ffffff;
+		--nav-bg-hover: #3c4043;
+		--nav-bg-selected: #8ab4f8;
+		--nav-icon: #9aa0a6;
+		--nav-icon-selected: #000000;
+
+		--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e3e3e3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	}
+}
+
+:root[data-theme='dark'] {
+	--accent: #a8c7fa;
+	--accent-strong: #d3e3fd;
+	--accent-soft: rgb(168 199 250 / 0.16);
+	--accent-contrast: #062e6f;
+	--accent-border: rgb(168 199 250 / 0.5);
+
+	--danger: #f2b8b5;
+	--danger-soft: rgb(242 184 181 / 0.12);
+	--danger-fg: #f2b8b5;
+	--success: #81c995;
+	--warning: #fdd663;
+
+	--bg: #1f1f1f;
+	--bg-raised: #292a2d;
+	--bg-sunken: #171717;
+	--bg-hover: rgb(227 227 227 / 0.08);
+	--bg-active: rgb(227 227 227 / 0.12);
+	--fg: #e3e3e3;
+	--fg-muted: #c4c7c5;
+	--fg-faint: #9aa0a6;
+	--border: rgb(255 255 255 / 0.14);
+	--border-strong: rgb(255 255 255 / 0.24);
+	--separator: rgb(255 255 255 / 0.1);
+	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+	--shadow-md: rgb(0 0 0 / 0.3) 0 1px 2px 0, rgb(0 0 0 / 0.15) 0 3px 6px 2px;
+	--code-bg: #202124;
+	--user-bubble: #303134;
+
+	--nav-fg: #ffffff;
+	--nav-fg-selected: #202124;
+	--nav-fg-hover: #ffffff;
+	--nav-bg-hover: #3c4043;
+	--nav-bg-selected: #8ab4f8;
+	--nav-icon: #9aa0a6;
+	--nav-icon-selected: #000000;
+
+	--select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e3e3e3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}

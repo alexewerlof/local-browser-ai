@@ -1,0 +1,10 @@
+Local Browser AI does not collect, use or share any user data.
+
+All settings, API keys and conversations are stored locally in your browser profile.
+Page content is only read when you explicitly attach the current tab, and it is only
+sent to the model provider you configured (a server you run yourself, a remote API you
+hold an account with, or the model built into your browser).
+
+The extension contains no analytics, no telemetry and no tracking.
+
+It is an open source project: https://github.com/alexewerlof/local-browser-ai

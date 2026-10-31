@@ -1,9 +1,0 @@
-@import url('../theme.css');
-
-:host {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap4);
-    padding: var(--gap4) 0;
-    overflow-y: auto;
-}
