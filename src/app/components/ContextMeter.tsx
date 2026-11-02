@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { ContextSnapshot } from '../../state/chat'
 import { formatTokens } from '../../core/util'
+import { RefreshCw, Settings } from 'lucide-react'
 import { openOptionsPage } from '../../platform/chrome'
 import { Popover } from './Popover'
-import { Icon } from './Icon'
 
 const PART_COLORS: Record<string, string> = {
 	system: 'var(--accent)',
@@ -106,7 +106,7 @@ export function ContextMeter({
 					}}
 					disabled={busy}
 				>
-					<Icon name="refresh" size={13} />
+					<RefreshCw size={13} />
 					Compact now
 				</button>
 				<button
@@ -117,7 +117,7 @@ export function ContextMeter({
 						void openOptionsPage()
 					}}
 				>
-					<Icon name="settings" size={13} />
+					<Settings size={13} />
 					Context settings
 				</button>
 			</div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import type { AppSettings, ProviderSettings, ProviderKind } from '../core/types'
 import { createId } from '../core/util'
 import { PROVIDER_PRESETS, type ProviderPreset } from '../providers/types'
@@ -9,7 +10,6 @@ import { hasHostAccess, hostOf, requestHostAccess } from '../platform/permission
 import { updateSettings } from '../state/settings'
 import { Field, SelectField, TextAreaField, TextField } from './fields'
 import { SettingsCard } from './SettingsCard'
-import { Icon } from '../app/components/Icon'
 
 export function ProvidersSection({ settings }: { settings: AppSettings }) {
 	const [editing, setEditing] = useState<ProviderSettings | null>(null)
@@ -122,7 +122,7 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 			) : (
 				<div className="section__action">
 					<button type="button" className="button" onClick={() => setPresetsOpen(true)}>
-						<Icon name="plus" size={18} />
+						<Plus size={18} />
 						Add provider
 					</button>
 				</div>

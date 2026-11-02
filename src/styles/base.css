@@ -247,14 +247,24 @@ a:hover {
 	outline-offset: -1px;
 }
 
+.select-wrap {
+	position: relative;
+	display: block;
+}
+
 .select {
 	appearance: none;
 	padding-inline-end: var(--space-7);
-	background-image: var(--select-arrow);
-	background-repeat: no-repeat;
-	background-position: right var(--space-4) center;
-	background-size: 16px;
 	cursor: pointer;
+}
+
+.select__chevron {
+	position: absolute;
+	top: 50%;
+	right: var(--space-4);
+	transform: translateY(-50%);
+	pointer-events: none;
+	color: var(--fg-muted);
 }
 
 .textarea {

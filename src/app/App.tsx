@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TriangleAlert, X } from 'lucide-react'
 import {
 	clearRunError,
 	compactNow,
@@ -21,7 +22,6 @@ import { attachClickedTab, detachAttachment, refreshAttachment } from '../state/
 import { Composer } from './components/Composer'
 import { Header } from './components/Header'
 import { HistoryPanel } from './components/HistoryPanel'
-import { Icon } from './components/Icon'
 import { Transcript } from './components/Transcript'
 import { useStore } from './useStore'
 
@@ -62,7 +62,7 @@ export function App() {
 
 			{(builtInUnavailable || noModel) && (
 				<div className="banner">
-					<Icon name="alert" size={14} />
+					<TriangleAlert size={14} />
 					<span>
 						{noModel
 							? 'No model is configured yet.'
@@ -86,7 +86,7 @@ export function App() {
 
 			{run.error && (
 				<div className="banner banner--error">
-					<Icon name="alert" size={14} />
+					<TriangleAlert size={14} />
 					<span>
 						{run.error.message}
 						{run.error.kind === 'permission' && (
@@ -103,7 +103,7 @@ export function App() {
 						onClick={clearRunError}
 						title="Dismiss"
 					>
-						<Icon name="close" size={13} />
+						<X size={13} />
 					</button>
 				</div>
 			)}

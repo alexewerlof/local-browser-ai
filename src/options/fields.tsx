@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 export function Field({
 	label,
@@ -96,13 +97,16 @@ export function SelectField<T extends string>({
 }) {
 	return (
 		<Field label={label} hint={hint}>
-			<select className="select" value={value} onChange={(event) => onChange(event.target.value as T)}>
-				{options.map((option) => (
-					<option key={option.value} value={option.value}>
-						{option.label}
-					</option>
-				))}
-			</select>
+			<span className="select-wrap">
+				<select className="select" value={value} onChange={(event) => onChange(event.target.value as T)}>
+					{options.map((option) => (
+						<option key={option.value} value={option.value}>
+							{option.label}
+						</option>
+					))}
+				</select>
+				<ChevronDown className="select__chevron" size={16} />
+			</span>
 		</Field>
 	)
 }

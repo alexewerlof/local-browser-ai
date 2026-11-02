@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileText, RefreshCw, Send, Sparkles, Square, TriangleAlert } from 'lucide-react'
 import type { AppSettings, Conversation, ModelRef, ThinkingSelection } from '../../core/types'
 import type { ContextSnapshot, RunState } from '../../state/chat'
 import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
@@ -9,7 +10,6 @@ import { getModelInfo } from '../../providers/catalog'
 import { AttachmentCard } from './AttachmentCard'
 import { ContextMeter } from './ContextMeter'
 import { SkillMenu, ToolsMenu } from './ComposerMenus'
-import { Icon } from './Icon'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
 import { useStore } from '../useStore'
@@ -120,7 +120,7 @@ export function Composer({
 
 			{attachError && (
 				<div className="composer__error">
-					<Icon name="alert" size={14} />
+					<TriangleAlert size={14} />
 					<span>{attachError}</span>
 				</div>
 			)}
@@ -136,7 +136,7 @@ export function Composer({
 								onMouseDown={(event) => event.preventDefault()}
 								onClick={() => applySkill(skill.id)}
 							>
-								<Icon name="sparkle" size={12} />
+								<Sparkles size={12} />
 								<span>{skill.name}</span>
 								{skill.description && <span className="faint">{skill.description}</span>}
 							</button>
@@ -166,7 +166,7 @@ export function Composer({
 						disabled={attachBusy}
 						title={attachment ? 'Re-read the page' : 'Attach the current tab'}
 					>
-						<Icon name={attachment ? 'refresh' : 'page'} size={13} />
+						{attachment ? <RefreshCw size={13} /> : <FileText size={13} />}
 					</button>
 
 					<SkillMenu
@@ -206,7 +206,7 @@ export function Composer({
 
 					{streaming ? (
 						<button type="button" className="button button--sm" onClick={onStop} title="Stop generating">
-							<Icon name="stop" size={13} />
+							<Square size={13} />
 							Stop
 						</button>
 					) : (
@@ -218,7 +218,7 @@ export function Composer({
 							title="Send"
 							aria-label="Send"
 						>
-							<Icon name="send" size={14} />
+							<Send size={14} />
 						</button>
 					)}
 				</div>

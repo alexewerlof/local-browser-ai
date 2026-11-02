@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
+import { Check, ChevronDown, Settings, Sparkles } from 'lucide-react'
 import type { AppSettings, ModelRef } from '../../core/types'
 import { getModelInfo } from '../../providers/catalog'
 import { openOptionsPage } from '../../platform/chrome'
 import { formatTokens } from '../../core/util'
 import { Popover } from './Popover'
-import { Icon } from './Icon'
 
 export function ModelPicker({
 	settings,
@@ -57,9 +57,9 @@ export function ModelPicker({
 					onClick={() => setOpen((value) => !value)}
 					title="Change model"
 				>
-					<Icon name="sparkle" size={12} />
+					<Sparkles size={12} />
 					<span className="chip__text">{label}</span>
-					<Icon name="chevron-down" size={12} />
+					<ChevronDown size={12} />
 				</button>
 			}
 		>
@@ -93,7 +93,7 @@ export function ModelPicker({
 										{provider.kind === 'prompt-api' ? 'Built-in browser model' : modelId}
 									</span>
 									<span className="badge">{formatTokens(info.contextWindow)}</span>
-									{selected && <Icon name="check" size={13} />}
+									{selected && <Check size={13} />}
 								</button>
 							)
 						})}
@@ -109,7 +109,7 @@ export function ModelPicker({
 						void openOptionsPage()
 					}}
 				>
-					<Icon name="settings" size={13} />
+					<Settings size={13} />
 					Manage models
 				</button>
 			</div>

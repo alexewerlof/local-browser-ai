@@ -1,10 +1,10 @@
 import { useState } from 'react'
+import { Brain, Check, ChevronDown } from 'lucide-react'
 import type { ThinkingSelection } from '../../core/types'
 import type { ModelInfo } from '../../providers/catalog'
 import { thinkingOptions } from '../../providers/catalog'
 import type { ProviderKind } from '../../core/types'
 import { Popover } from './Popover'
-import { Icon } from './Icon'
 
 export function ThinkingMenu({
 	kind,
@@ -38,9 +38,9 @@ export function ThinkingMenu({
 					onClick={() => setOpen((current) => !current)}
 					title="Reasoning effort"
 				>
-					<Icon name="brain" size={12} />
+					<Brain size={12} />
 					<span className="chip__text">{label}</span>
-					<Icon name="chevron-down" size={12} />
+					<ChevronDown size={12} />
 				</button>
 			}
 		>
@@ -57,7 +57,7 @@ export function ThinkingMenu({
 						}}
 					>
 						<span className="popover__item-main">{option.label}</span>
-						{value.level === option.value && <Icon name="check" size={13} />}
+						{value.level === option.value && <Check size={13} />}
 					</button>
 				))}
 			</div>

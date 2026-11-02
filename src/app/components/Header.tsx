@@ -1,6 +1,6 @@
+import { History, Plus, Settings } from 'lucide-react'
 import type { Conversation } from '../../core/types'
 import { getManifest, openOptionsPage } from '../../platform/chrome'
-import { Icon } from './Icon'
 
 export function Header({
 	conversation,
@@ -29,7 +29,7 @@ export function Header({
 				title="New chat"
 				aria-label="New chat"
 			>
-				<Icon name="plus" size={15} />
+				<Plus size={15} />
 			</button>
 			<button
 				type="button"
@@ -38,7 +38,7 @@ export function Header({
 				title="Chat history"
 				aria-label="Chat history"
 			>
-				<Icon name="history" size={15} />
+				<History size={15} />
 			</button>
 			<button
 				type="button"
@@ -47,7 +47,7 @@ export function Header({
 				title="Settings"
 				aria-label="Settings"
 			>
-				<Icon name="settings" size={15} />
+				<Settings size={15} />
 			</button>
 		</header>
 	)

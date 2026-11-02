@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
+import { Check, Copy, RefreshCw, Sparkles, TriangleAlert } from 'lucide-react'
 import type { ChatMessage } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
 import { formatDuration, formatTokens } from '../../core/util'
-import { Icon } from './Icon'
 import { Markdown } from './Markdown'
 import { ReasoningBlock } from './ReasoningBlock'
 import { ToolCallCard } from './ToolCallCard'
@@ -50,7 +50,7 @@ export function MessageItem({
 				<div className="message__bubble">
 					{skill && (
 						<div className="message__skill">
-							<Icon name="sparkle" size={12} />
+							<Sparkles size={12} />
 							{skill.name}
 						</div>
 					)}
@@ -84,7 +84,7 @@ export function MessageItem({
 						case 'error':
 							return (
 								<div className="message__error" key={`error-${index}`}>
-									<Icon name="alert" size={14} />
+									<TriangleAlert size={14} />
 									<div>
 										<strong>{part.message}</strong>
 										{part.retryable && <span className="faint"> This may be temporary.</span>}
@@ -123,7 +123,7 @@ export function MessageItem({
 							title="Copy answer"
 							aria-label="Copy answer"
 						>
-							<Icon name={copied ? 'check' : 'copy'} size={13} />
+							{copied ? <Check size={13} /> : <Copy size={13} />}
 						</button>
 					)}
 					{canRegenerate && (
@@ -133,7 +133,7 @@ export function MessageItem({
 							onClick={onRegenerate}
 							title="Generate this answer again"
 						>
-							<Icon name="refresh" size={13} />
+							<RefreshCw size={13} />
 							Retry
 						</button>
 					)}

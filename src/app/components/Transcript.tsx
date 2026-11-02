@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { Download, Sparkles } from 'lucide-react'
 import type { AppSettings, Conversation } from '../../core/types'
 import { setDraft } from '../../state/composer'
 import { preparePromptModel, downloadProgressStore, promptStatusStore } from '../../state/prompt'
 import { useStore } from '../useStore'
 import { EXAMPLE_PROMPTS } from '../examples'
-import { Icon } from './Icon'
 import { MessageItem, StreamingStats } from './MessageItem'
 import type { RunState } from '../../state/chat'
 
@@ -82,7 +82,7 @@ function EmptyState({ hasAttachment }: { hasAttachment: boolean }) {
 	return (
 		<div className="empty">
 			<div className="empty__mark">
-				<Icon name="sparkle" size={22} />
+				<Sparkles size={22} />
 			</div>
 			<h1 className="empty__title">{hasAttachment ? 'Ask about this page' : 'What are you reading?'}</h1>
 			<p className="empty__subtitle">
@@ -103,7 +103,7 @@ function EmptyState({ hasAttachment }: { hasAttachment: boolean }) {
 							className="button button--primary"
 							onClick={() => void preparePromptModel()}
 						>
-							<Icon name="download" size={14} />
+							<Download size={14} />
 							Download model
 						</button>
 					) : (

@@ -1,6 +1,6 @@
+import { FileText, RefreshCw, X } from 'lucide-react'
 import { formatBytes } from '../../core/util'
 import type { PageAttachment } from '../../core/types'
-import { Icon } from './Icon'
 
 export function AttachmentCard({
 	attachment,
@@ -25,7 +25,7 @@ export function AttachmentCard({
 			{attachment.faviconUrl ? (
 				<img className="attachment__icon" src={attachment.faviconUrl} alt="" width={14} height={14} />
 			) : (
-				<Icon name="page" size={14} />
+				<FileText size={14} />
 			)}
 			<div className="attachment__text">
 				<span className="attachment__title">{attachment.title || host}</span>
@@ -44,7 +44,7 @@ export function AttachmentCard({
 				title="Re-read the page"
 				aria-label="Re-read the page"
 			>
-				<Icon name="refresh" size={13} />
+				<RefreshCw size={13} />
 			</button>
 			<button
 				type="button"
@@ -53,7 +53,7 @@ export function AttachmentCard({
 				title="Detach the page"
 				aria-label="Detach the page"
 			>
-				<Icon name="close" size={13} />
+				<X size={13} />
 			</button>
 		</div>
 	)

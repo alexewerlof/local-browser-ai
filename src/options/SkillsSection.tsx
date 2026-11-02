@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import type { AppSettings, Skill } from '../core/types'
 import { builtInSkills } from '../core/settings'
 import { createId } from '../core/util'
 import { updateSettings } from '../state/settings'
-import { Icon } from '../app/components/Icon'
 import { TextAreaField, TextField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
@@ -66,7 +66,7 @@ export function SkillsSection({ settings }: { settings: AppSettings }) {
 											onClick={() => removeSkill(skill.id)}
 											title="Delete skill"
 										>
-											<Icon name="trash" size={13} />
+											<Trash2 size={13} />
 										</button>
 									)}
 								</div>
@@ -115,7 +115,7 @@ export function SkillsSection({ settings }: { settings: AppSettings }) {
 			) : (
 				<div className="section__action">
 					<button type="button" className="button" onClick={() => setAdding(true)}>
-						<Icon name="plus" size={18} />
+						<Plus size={18} />
 						Add skill
 					</button>
 				</div>

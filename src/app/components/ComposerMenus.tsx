@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { AppSettings, Skill } from '../../core/types'
+import { ChevronDown, Sparkles, Wrench } from 'lucide-react'
 import { TOOL_DEFINITIONS } from '../../browser/tools'
 import { Popover } from './Popover'
-import { Icon } from './Icon'
 
 export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
 	const [open, setOpen] = useState(false)
@@ -17,9 +17,9 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 			align="start"
 			trigger={
 				<button type="button" className="chip" onClick={() => setOpen((value) => !value)} title="Skills">
-					<Icon name="sparkle" size={12} />
+					<Sparkles size={12} />
 					<span className="chip__text">Skills</span>
-					<Icon name="chevron-down" size={12} />
+					<ChevronDown size={12} />
 				</button>
 			}
 		>
@@ -79,7 +79,7 @@ export function ToolsMenu({
 					onClick={() => setOpen((value) => !value)}
 					title={disabledReason ?? 'Tools the model may use'}
 				>
-					<Icon name="tool" size={12} />
+					<Wrench size={12} />
 					<span className="chip__text">Tools</span>
 					<span className="badge">{settings.tools.enabled.length}</span>
 				</button>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Plus, Trash2, X } from 'lucide-react'
 import { listConversations, type ConversationMeta } from '../../state/database'
 import { relativeTime } from '../../core/util'
-import { Icon } from './Icon'
 
 export function HistoryPanel({
 	open,
@@ -56,7 +56,7 @@ export function HistoryPanel({
 						}}
 						title="New chat"
 					>
-						<Icon name="plus" size={14} />
+						<Plus size={14} />
 					</button>
 					<button
 						type="button"
@@ -64,7 +64,7 @@ export function HistoryPanel({
 						onClick={onClose}
 						title="Close"
 					>
-						<Icon name="close" size={14} />
+						<X size={14} />
 					</button>
 				</header>
 
@@ -95,7 +95,7 @@ export function HistoryPanel({
 								}}
 								title="Delete chat"
 							>
-								<Icon name="trash" size={13} />
+								<Trash2 size={13} />
 							</button>
 						</div>
 					))}

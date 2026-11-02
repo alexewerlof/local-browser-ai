@@ -81,6 +81,9 @@ migration.
 
 - TypeScript strict, `verbatimModuleSyntax`; React 19 function components; no state library — plain `Store` +
   `useSyncExternalStore` (`src/core/store.ts`, `src/app/useStore.ts`).
+- Icons come from `lucide-react`, imported as components at the call site (`import { Settings } from 'lucide-react'`).
+  No icon registry or wrapper — Lucide is tree-shaken, defaults to stroke width 2 and adds `aria-hidden` unless the
+  element carries `aria-*`/`title`/`role`.
 - CSS is plain and token-based (`src/styles/tokens.css`), compact and panel-first. Components use BEM-ish classes.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
 - Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in provider and skills so a

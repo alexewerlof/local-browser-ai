@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 import type { ToolCallPart } from '../../core/types'
 import { resolveApproval } from '../../state/browser'
 import { useStore } from '../useStore'
 import { approvalsStore } from '../../state/browser'
-import { Icon } from './Icon'
 
 const TOOL_LABELS: Record<string, string> = {
 	read_attached_page: 'Reading page',
@@ -29,14 +29,14 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	return (
 		<div className={`tool tool--${part.state}`}>
 			<button type="button" className="tool__head" onClick={() => setOpen((value) => !value)}>
-				<Icon name="tool" size={13} />
+				<Wrench size={13} />
 				<span className="tool__name">{label}</span>
 				<span className="tool__arg">{summarizeInput(part)}</span>
 				<span className="spacer" />
 				<span className={`badge${part.state === 'error' ? ' badge--danger' : ''}`}>
 					{part.state === 'running' ? 'running' : part.state === 'pending' ? 'waiting' : part.state}
 				</span>
-				<Icon name={open ? 'chevron-down' : 'chevron-right'} size={13} />
+				{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
 			</button>
 
 			{approval && (
