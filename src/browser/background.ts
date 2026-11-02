@@ -6,6 +6,7 @@ import {
 	type BackgroundEvent,
 	type BackgroundRequest,
 	type BackgroundResponse,
+	type SearchDisposition,
 	type TabInfo,
 } from './protocol'
 
@@ -177,6 +178,36 @@ async function runExtraction(tabId: number | undefined, mode: 'page' | 'selectio
 
 /* ---------------------------------------------------------------- RPC handlers */
 
+/** `chrome.search` is Chrome 87+/Edge only and missing in some forks. */
+const SEARCH_DISPOSITIONS = new Set<SearchDisposition>(['CURRENT_TAB', 'NEW_TAB', 'NEW_WINDOW'])
+const MAX_SEARCH_CHARS = 400
+
+/**
+ * Run a query through the user's default search engine.
+ *
+ * `chrome.search.query` only navigates: it resolves with `void` and never yields the
+ * results. The model is told that, so it asks the user to attach the results tab
+ * instead of inventing an answer.
+ */
+async function runSearch(text: string, disposition: SearchDisposition): Promise<{ disposition: SearchDisposition }> {
+	const query = text.trim()
+	if (!query) throw new AppError('invalid-request', 'A search needs some text to look up.')
+	if (query.length > MAX_SEARCH_CHARS) {
+		throw new AppError('invalid-request', `A search query is limited to ${MAX_SEARCH_CHARS} characters.`)
+	}
+	if (!SEARCH_DISPOSITIONS.has(disposition)) {
+		throw new AppError('invalid-request', 'Unknown search disposition.')
+	}
+
+	const searchApi = (chrome as { search?: typeof chrome.search }).search
+	if (!searchApi?.query) {
+		throw new AppError('unsupported', 'This browser cannot search with the default search engine.')
+	}
+
+	await searchApi.query({ text: query, disposition })
+	return { disposition }
+}
+
 async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 	switch (request.type) {
 		case 'panel.claim':
@@ -201,6 +232,8 @@ async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 			const tab = await chrome.tabs.create({ url })
 			return { tabId: tab.id }
 		}
+		case 'search.query':
+			return runSearch(request.text, request.disposition)
 		default:
 			throw new AppError('invalid-request', 'Unknown request.')
 	}

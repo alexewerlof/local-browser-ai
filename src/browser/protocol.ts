@@ -8,12 +8,16 @@ export interface TabInfo {
 	faviconUrl?: string
 }
 
+/** Mirrors `chrome.search.Disposition`; the enum is local so the panel needs no chrome API. */
+export type SearchDisposition = 'CURRENT_TAB' | 'NEW_TAB' | 'NEW_WINDOW'
+
 export type BackgroundRequest =
 	| { type: 'panel.claim' }
 	| { type: 'tab.info'; tabId?: number }
 	| { type: 'tab.extract'; tabId?: number }
 	| { type: 'tab.selection'; tabId?: number }
 	| { type: 'tab.open'; url: string; newWindow?: boolean }
+	| { type: 'search.query'; text: string; disposition: SearchDisposition }
 
 export interface RequestResults {
 	'panel.claim': { tabId: number | null }
@@ -21,6 +25,7 @@ export interface RequestResults {
 	'tab.extract': import('./extract/inject').InjectResult
 	'tab.selection': { text: string }
 	'tab.open': { tabId?: number }
+	'search.query': { disposition: SearchDisposition }
 }
 
 export type BackgroundResponse =

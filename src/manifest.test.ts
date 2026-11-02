@@ -21,7 +21,7 @@ describe('manifest', () => {
 
 	it('requests only the permissions the app uses', () => {
 		expect(new Set(manifest.permissions)).toEqual(
-			new Set(['sidePanel', 'scripting', 'activeTab', 'contextMenus', 'storage']),
+			new Set(['sidePanel', 'scripting', 'activeTab', 'contextMenus', 'storage', 'search']),
 		)
 	})
 

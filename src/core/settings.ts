@@ -6,7 +6,7 @@ export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 export const PROMPT_API_MODEL_ID = 'text'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 2
+export const SETTINGS_VERSION = 3
 
 const modelRefSchema = z.object({
 	providerId: z.string(),
@@ -75,6 +75,7 @@ export const READ_ONLY_TOOL_IDS = [
 	'find_in_page',
 	'get_selection',
 	'get_current_datetime',
+	'search_web',
 ] as const
 
 export const ACTION_TOOL_IDS = ['open_url'] as const
@@ -138,7 +139,8 @@ export const defaultSystemPrompt = [
 	'When a page is attached, answer from that page first. Quote or reference the section you used.',
 	'If the page does not contain the answer, say so plainly instead of guessing.',
 	"When the answer depends on today's date, the weekday or the time of day, call `get_current_datetime` instead of guessing.",
-	'You can use tools to read the attached page, search it, check the current date and time, and open links in a new tab.',
+	'You can use tools to read the attached page, search it, search the web, check the current date and time, and open links in a new tab.',
+	'`search_web` opens its results in a tab you cannot read. Say what you searched for and ask the user to attach that tab before answering from it.',
 	'Use markdown: short paragraphs, lists, tables and fenced code blocks where they help.',
 	'Be direct and concise. Do not pad answers with pleasantries.',
 ].join('\n')
@@ -178,7 +180,10 @@ export const defaultSettings = (): AppSettings => ({
  * a toggle the user flips afterwards is preserved because the store then carries the
  * current version.
  */
-const TOOLS_ADDED_IN_V2 = ['get_current_datetime'] as const
+const TOOLS_ADDED_IN = [
+	{ version: 2, ids: ['get_current_datetime'] },
+	{ version: 3, ids: ['search_web'] },
+] as const
 
 /** Upgrade a stored settings document in place. Unknown shapes are left for the schema. */
 function migrateSettings(input: unknown): unknown {
@@ -200,9 +205,12 @@ function migrateSettings(input: unknown): unknown {
 
 	const enabled = ids(record.enabled)
 	const autoApprove = ids(record.autoApprove)
-	for (const id of TOOLS_ADDED_IN_V2) {
-		if (!enabled.includes(id)) enabled.push(id)
-		if (!autoApprove.includes(id)) autoApprove.push(id)
+	for (const entry of TOOLS_ADDED_IN) {
+		if (version >= entry.version) continue
+		for (const id of entry.ids) {
+			if (!enabled.includes(id)) enabled.push(id)
+			if (!autoApprove.includes(id)) autoApprove.push(id)
+		}
 	}
 
 	return { ...stored, version: SETTINGS_VERSION, tools: { ...record, enabled, autoApprove } }

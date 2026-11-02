@@ -5,6 +5,10 @@ Page content is only read when you explicitly attach the current tab, and it is 
 sent to the model provider you configured (a server you run yourself, a remote API you
 hold an account with, or the model built into your browser).
 
+The web search tool sends its query to your default search engine, exactly as if you
+had typed it into the address bar. It does not fetch or read the results page for the
+model; the results open in a tab you can read and attach yourself.
+
 The extension contains no analytics, no telemetry and no tracking.
 
 It is an open source project: https://github.com/alexewerlof/local-browser-ai

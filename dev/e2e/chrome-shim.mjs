@@ -104,6 +104,7 @@ export function chromeShim(config = {}) {
 	let extraction = config.extraction ?? defaultExtraction
 	let pendingTabId = config.tab ? tab.id : null
 	const opened = []
+	const searches = []
 
 	async function handleRequest(request) {
 		switch (request.type) {
@@ -131,6 +132,10 @@ export function chromeShim(config = {}) {
 			case 'tab.open': {
 				opened.push(request.url)
 				return { ok: true, value: { tabId: 999 } }
+			}
+			case 'search.query': {
+				searches.push({ text: request.text, disposition: request.disposition })
+				return { ok: true, value: { disposition: request.disposition } }
 			}
 			default:
 				return { ok: false, error: { kind: 'invalid-request', message: 'Unknown request' } }
@@ -302,6 +307,7 @@ export function chromeShim(config = {}) {
 
 	globalThis.__LB_AI_TEST__ = {
 		opened,
+		searches,
 		setExtraction(next) {
 			extraction = next
 		},

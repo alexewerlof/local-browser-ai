@@ -13,7 +13,9 @@ machine, or a hosted API.
   to markdown and attached. The model sees the whole page when it fits, and an outline plus the most relevant excerpts
   when it does not.
 - **Browser tools.** The model can read the page, list its sections, search it, read the current selection, check the
-  current date and time, and open links in a new tab (with your approval).
+  current date and time, search the web with your default search engine, and open links in a new tab (with your
+  approval). A web search opens the results in a new tab; the model cannot read them, so it asks you to attach that tab
+  when it needs the content.
 - **Context budgeting and compaction.** A meter below the composer shows what the system prompt, page, summary and
   history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps going.
 - **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.

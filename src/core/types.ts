@@ -219,7 +219,7 @@ export interface UiSettings {
 }
 
 export interface AppSettings {
-	version: 2
+	version: 3
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults

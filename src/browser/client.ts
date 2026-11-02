@@ -92,6 +92,20 @@ export async function openUrl(url: string, newWindow = false): Promise<void> {
 	await callBackground({ type: 'tab.open', url, newWindow })
 }
 
+/**
+ * Search with the user's default search engine. The results open in a tab; the API
+ * returns no text, so the caller must not expect any.
+ */
+export async function searchWeb(
+	text: string,
+	disposition: import('./protocol').SearchDisposition = 'NEW_TAB',
+): Promise<import('./protocol').SearchDisposition> {
+	const value = (await callBackground({ type: 'search.query', text, disposition })) as {
+		disposition: import('./protocol').SearchDisposition
+	}
+	return value.disposition
+}
+
 /** Subscribe to background events (action clicks, tab changes, context-menu selections). */
 export function onBackgroundEvent(listener: (event: import('./protocol').BackgroundEvent) => void): () => void {
 	const chromeApi = getChrome()

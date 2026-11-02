@@ -2,7 +2,8 @@ import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
 import type { PageAttachment } from '../core/types'
 import { describeClock } from '../core/clock'
-import { openUrl, getTabSelection } from './client'
+import { openUrl, getTabSelection, searchWeb } from './client'
+import type { SearchDisposition } from './protocol'
 import { findInAttachment, readSection } from './extract/sections'
 
 export interface ToolContext {
@@ -57,6 +58,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 		id: 'get_current_datetime',
 		label: 'Current date and time',
 		description: "Read today's date, weekday and time in the user's time zone and calendar.",
+		requiresApproval: false,
+	},
+	{
+		id: 'search_web',
+		label: 'Search the web',
+		description: "Search with the browser's default search engine and open the results in a new tab.",
 		requiresApproval: false,
 	},
 	{
@@ -256,6 +263,41 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 						ok: false,
 						error: `Unknown time zone "${timeZone}". Use an IANA name such as "Europe/Berlin", or omit it for the user's zone.`,
 					}
+				}
+			},
+		})
+	}
+
+	if (enabled.has('search_web')) {
+		tools.search_web = tool({
+			description:
+				"Search the web with the user's default search engine. Use it for current information the attached page does not contain. The results open in a browser tab that you cannot read: say what you searched for and ask the user to attach the results tab if you need its content. Never invent results.",
+			inputSchema: z.object({
+				query: z
+					.string()
+					.trim()
+					.min(1)
+					.max(400)
+					.describe('What to search for, as the user would type it into the address bar.'),
+				disposition: z
+					.enum(['CURRENT_TAB', 'NEW_TAB', 'NEW_WINDOW'])
+					.optional()
+					.describe(
+						'Where the results open. Defaults to NEW_TAB; CURRENT_TAB replaces the page the user is reading.',
+					),
+			}),
+			execute: async ({ query, disposition }) => {
+				const target: SearchDisposition = disposition ?? 'NEW_TAB'
+				try {
+					await searchWeb(query, target)
+					return {
+						searched: true,
+						query,
+						disposition: target,
+						note: 'The results opened in a browser tab you cannot read. Ask the user to attach that tab if you need its content.',
+					}
+				} catch (error) {
+					return { searched: false, reason: error instanceof Error ? error.message : String(error) }
 				}
 			},
 		})

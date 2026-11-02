@@ -4,7 +4,7 @@ import { defaultSettings, normalizeSettings } from './settings'
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(2)
+		expect(settings.version).toBe(3)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -51,16 +51,28 @@ describe('normalizeSettings', () => {
 		expect(settings.tools.autoApprove).toEqual([])
 	})
 
-	it('enables tools introduced after the stored settings version', () => {
+	it('enables every tool introduced after the stored settings version', () => {
 		const stored = {
 			...defaultSettings(),
 			version: 1,
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(2)
-		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime'])
-		expect(settings.tools.autoApprove).toEqual(['get_current_datetime'])
+		expect(settings.version).toBe(3)
+		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
+	})
+
+	it('adds only the tools newer than the stored version', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 2,
+			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.version).toBe(3)
+		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
 	})
 
 	it('respects disabling a migrated tool once the store is current', () => {
