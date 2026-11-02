@@ -114,6 +114,8 @@ export interface PageAttachment {
 	markdown: string
 	/** Which extractor produced `markdown`. Missing on attachments stored before it existed. */
 	representation?: PageRepresentation
+	/** The page's own `lang` attribute, e.g. `de-DE`. Missing when the page declares none. */
+	lang?: string
 	/** Plain-text version used for lexical search and estimates. */
 	outline: OutlineEntry[]
 	chunks: PageChunk[]

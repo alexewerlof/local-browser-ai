@@ -3,11 +3,12 @@ import type { AppSettings, ChatMessage, Conversation, PageAttachment } from '../
 import { bm25Rank } from './lexical'
 import { renderPageIndex } from './page-index'
 import { estimateMessagesTokens, estimateTokens, type TokenBudget } from './tokens'
+import { describeEnvironment } from './environment'
 
 export type PageContextMode = 'none' | 'full' | 'index' | 'outline' | 'excerpts'
 
 export interface ContextPart {
-	id: 'system' | 'page' | 'summary' | 'history'
+	id: 'system' | 'environment' | 'page' | 'summary' | 'history'
 	label: string
 	tokens: number
 	/** Extra explanation shown in the context panel. */
@@ -202,6 +203,20 @@ export function buildContext(options: BuildContextOptions): AssembledContext {
 	systemParts.push(settings.systemPrompt)
 	parts.push({ id: 'system', label: 'System prompt', tokens: systemTokens })
 
+	const attachment = conversation.attachments[0]
+
+	// Language applies to every answer, so it goes in the prompt instead of behind a tool.
+	const environment = describeEnvironment({ pageLanguage: attachment?.lang })
+	if (environment) {
+		systemParts.push(environment)
+		parts.push({
+			id: 'environment',
+			label: 'Language',
+			tokens: estimateTokens(environment),
+			detail: 'Language preferences reported by the browser, and the language of the page.',
+		})
+	}
+
 	if (conversation.summary) {
 		systemParts.push(['## Summary of earlier conversation', conversation.summary.text].join('\n'))
 		parts.push({
@@ -214,7 +229,6 @@ export function buildContext(options: BuildContextOptions): AssembledContext {
 
 	let pageMode: PageContextMode = 'none'
 	let pageTruncated = false
-	const attachment = conversation.attachments[0]
 	if (attachment) {
 		const chosen = choosePageMode(attachment, settings, budget, query, options.toolsEnabled)
 		if (chosen) {

@@ -56,7 +56,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	{
 		id: 'get_current_datetime',
 		label: 'Current date and time',
-		description: "Read today's date, weekday and time in the user's time zone.",
+		description: "Read today's date, weekday and time in the user's time zone and calendar.",
 		requiresApproval: false,
 	},
 	{
@@ -241,7 +241,7 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 	if (enabled.has('get_current_datetime')) {
 		tools.get_current_datetime = tool({
 			description:
-				'Read the current date, weekday and time. Use this whenever the answer depends on today, the day of the week, the time of day, or a relative date such as "tomorrow"; never guess the date.',
+				"Read the current date, weekday, week number and time in the user's time zone, calendar and clock convention. Call this instead of guessing whenever the answer depends on today, the weekday, the time of day or a relative date.",
 			inputSchema: z.object({
 				timeZone: z
 					.string()

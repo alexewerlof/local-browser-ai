@@ -75,6 +75,7 @@ export function processExtraction(result: InjectResult): PageAttachment {
 		url: result.url,
 		title,
 		faviconUrl: result.faviconUrl || undefined,
+		lang: result.lang || undefined,
 		markdown,
 		representation,
 		outline,

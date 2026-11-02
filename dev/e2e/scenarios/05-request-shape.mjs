@@ -20,6 +20,8 @@ export async function run(ctx) {
 		// System prompt is sent separately from the message list.
 		assert.equal(body.messages[0].role, 'system')
 		assert.match(body.messages[0].content, /You are a test assistant/)
+		// The language preferences ride in the prompt, so models without tools get them too.
+		assert.match(body.messages[0].content, /their browser prefers/)
 
 		const last = body.messages.at(-1)
 		assert.equal(last.role, 'user')

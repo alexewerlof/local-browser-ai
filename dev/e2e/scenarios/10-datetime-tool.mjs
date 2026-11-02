@@ -41,6 +41,28 @@ export async function run(ctx) {
 		assert.match(result.local, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/)
 		assert.ok(result.timeZone)
 		assert.ok(Number.isFinite(Date.parse(result.utc)))
+
+		// Locale preferences travel with the answer so the model can present the date the
+		// way this user reads it, while the ISO fields stay Gregorian for arithmetic.
+		assert.equal(typeof result.locale, 'string')
+		assert.equal(typeof result.calendar, 'string')
+		assert.equal(typeof result.numberingSystem, 'string')
+		assert.ok(['h11', 'h12', 'h23', 'h24'].includes(result.hourCycle))
+		assert.equal(typeof result.weekdayLocal, 'string')
+		assert.ok(['active', 'inactive', 'none'].includes(result.dst))
+		assert.ok(result.weekStart === undefined || (result.weekStart >= 1 && result.weekStart <= 7))
+
+		// The week number is ISO 8601 and the week-based year can differ from the
+		// calendar year; the epoch is whole seconds.
+		assert.ok(Number.isInteger(result.isoWeek) && result.isoWeek >= 1 && result.isoWeek <= 53)
+		assert.ok(Number.isInteger(result.isoWeekYear))
+		assert.ok(Math.abs(result.epochSeconds - Date.now() / 1000) < 3600)
+
+		// The week number is ISO 8601 and the week-based year can differ from the
+		// calendar year; the epoch is whole seconds.
+		assert.ok(Number.isInteger(result.isoWeek) && result.isoWeek >= 1 && result.isoWeek <= 53)
+		assert.ok(Number.isInteger(result.isoWeekYear))
+		assert.ok(Math.abs(result.epochSeconds - Date.now() / 1000) < 3600)
 	} finally {
 		await server.close()
 	}

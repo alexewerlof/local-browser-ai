@@ -162,6 +162,37 @@ describe('buildContext', () => {
 		expect(context.system).toContain('Summary of earlier conversation')
 		expect(context.system).toContain('comparing plans')
 	})
+
+	it('puts the language preferences in the prompt, not behind a tool', () => {
+		const original = navigator.languages
+		Object.defineProperty(navigator, 'languages', { value: ['fr-FR'], configurable: true })
+		try {
+			const context = buildContext({
+				conversation: conversation(),
+				settings: settings(),
+				budget,
+				query: '',
+				// Even a model without tools has to know which language to answer in.
+				toolsEnabled: false,
+			})
+			expect(context.system).toContain('fr-FR')
+			const part = context.parts.find((entry) => entry.id === 'environment')
+			expect(part?.tokens).toBeGreaterThan(0)
+		} finally {
+			Object.defineProperty(navigator, 'languages', { value: original, configurable: true })
+		}
+	})
+
+	it('mentions the language of the attached page', () => {
+		const context = buildContext({
+			conversation: conversation({ attachments: [{ ...attachment('# Preise'), lang: 'de-DE' }] }),
+			settings: settings(),
+			budget,
+			query: '',
+			toolsEnabled: true,
+		})
+		expect(context.system).toContain('"de-DE"')
+	})
 })
 
 describe('truncateToTokens', () => {

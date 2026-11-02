@@ -7,6 +7,7 @@ import { Popover } from './Popover'
 
 const PART_COLORS: Record<string, string> = {
 	system: 'var(--accent)',
+	environment: 'var(--fg-faint)',
 	page: 'var(--success)',
 	summary: 'var(--warning)',
 	history: 'var(--secondary, oklch(0.62 0.13 250))',
