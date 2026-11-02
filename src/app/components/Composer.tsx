@@ -205,9 +205,14 @@ export function Composer({
 					<span className="spacer" />
 
 					{streaming ? (
-						<button type="button" className="button button--sm" onClick={onStop} title="Stop generating">
+						<button
+							type="button"
+							className="button button--icon"
+							onClick={onStop}
+							title="Stop generating"
+							aria-label="Stop generating"
+						>
 							<Square size={13} />
-							Stop
 						</button>
 					) : (
 						<button

@@ -131,7 +131,8 @@ async function main() {
 		await page.waitForSelector('.app', { timeout: 20000 })
 
 		assert.equal(await page.locator('.composer__input').isVisible(), true)
-		assert.equal(await page.locator('.header__name').textContent(), 'Local Browser AI')
+		assert.equal(await page.locator('.header__name').count(), 0)
+		assert.equal(await page.locator('.header__logo').count(), 0)
 
 		// 1. Toolbar clicks must reach the extension. Chrome persists the old
 		//    `openPanelOnActionClick: true` behavior, which silently swallows onClicked.

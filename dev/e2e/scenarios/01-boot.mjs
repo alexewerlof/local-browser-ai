@@ -10,8 +10,11 @@ export async function run(ctx) {
 	await page.waitForSelector('.app')
 	await page.waitForSelector('.composer__input')
 
-	const header = await page.locator('.header__name').textContent()
-	assert.equal(header, 'Local Browser AI')
+	// The header shows the conversation, not the extension identity: Chrome's
+	// side panel already renders the extension name above it.
+	assert.equal(await page.locator('.header__name').count(), 0)
+	assert.equal(await page.locator('.header__logo').count(), 0)
+	assert.equal(await page.locator('.header__title').textContent(), 'New chat')
 
 	assert.equal(await page.locator('.empty__title').isVisible(), true)
 	assert.match(await page.locator('.empty__subtitle').textContent(), /click the extension icon/i)

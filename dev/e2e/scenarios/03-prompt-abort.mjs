@@ -18,7 +18,7 @@ export async function run(ctx) {
 
 		// Wait until the stream has produced something, then stop it.
 		await page.waitForFunction(() => document.body.innerText.includes('one two'))
-		await page.locator('button:has-text("Stop")').click()
+		await page.locator('button[aria-label="Stop generating"]').click()
 
 		await page.waitForFunction(() => document.body.innerText.includes('stopped'))
 

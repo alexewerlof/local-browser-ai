@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { MessagesSquare, Plus, Trash2, X } from 'lucide-react'
 import { listConversations, type ConversationMeta } from '../../state/database'
 import { relativeTime } from '../../core/util'
 
@@ -45,6 +45,7 @@ export function HistoryPanel({
 			<div className="drawer__backdrop" onClick={onClose} />
 			<aside className="drawer__panel">
 				<header className="drawer__header">
+					<MessagesSquare size={14} className="drawer__icon" />
 					<span className="label">Chats</span>
 					<span className="spacer" />
 					<button
@@ -81,9 +82,14 @@ export function HistoryPanel({
 									onClose()
 								}}
 							>
-								<span className="history__title">{item.title}</span>
-								<span className="history__meta">
-									{relativeTime(item.updatedAt)} · {item.messageCount} messages
+								<span className="history__icon">
+									<MessagesSquare size={15} />
+								</span>
+								<span className="history__body">
+									<span className="history__title">{item.title}</span>
+									<span className="history__meta">
+										{relativeTime(item.updatedAt)} · {item.messageCount} messages
+									</span>
 								</span>
 							</button>
 							<button
