@@ -2,11 +2,11 @@
 
 ## Storage Areas
 
-| Area | Persists | Syncs | Quota | Use For |
-|------|----------|-------|-------|---------|
-| `chrome.storage.local` | Yes | No | 10 MB | Most extension data |
-| `chrome.storage.sync` | Yes | Yes (across devices) | 100 KB total, 8 KB/item | User preferences, small data |
-| `chrome.storage.session` | Until browser close | No | 10 MB | Ephemeral state, survives SW restart |
+| Area                     | Persists            | Syncs                | Quota                   | Use For                              |
+| ------------------------ | ------------------- | -------------------- | ----------------------- | ------------------------------------ |
+| `chrome.storage.local`   | Yes                 | No                   | 10 MB                   | Most extension data                  |
+| `chrome.storage.sync`    | Yes                 | Yes (across devices) | 100 KB total, 8 KB/item | User preferences, small data         |
+| `chrome.storage.session` | Until browser close | No                   | 10 MB                   | Ephemeral state, survives SW restart |
 
 Permission required: `"storage"`
 
@@ -14,35 +14,36 @@ Permission required: `"storage"`
 
 ```js
 // Set
-await chrome.storage.local.set({ key: 'value', count: 42, items: [1,2,3] });
+await chrome.storage.local.set({ key: 'value', count: 42, items: [1, 2, 3] })
 
 // Get (with defaults)
-const { key = 'default', count = 0 } = await chrome.storage.local.get(['key', 'count']);
+const { key = 'default', count = 0 } = await chrome.storage.local.get(['key', 'count'])
 
 // Get all
-const allData = await chrome.storage.local.get(null);
+const allData = await chrome.storage.local.get(null)
 
 // Remove
-await chrome.storage.local.remove('key');
-await chrome.storage.local.remove(['key1', 'key2']);
+await chrome.storage.local.remove('key')
+await chrome.storage.local.remove(['key1', 'key2'])
 
 // Clear all
-await chrome.storage.local.clear();
+await chrome.storage.local.clear()
 ```
 
 ## Change Listener (Works Across All Contexts)
 
 ```js
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
-    console.log(`${areaName}.${key}: ${oldValue} → ${newValue}`);
-  }
-});
+	for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+		console.log(`${areaName}.${key}: ${oldValue} → ${newValue}`)
+	}
+})
 ```
 
 ## storage.sync Quotas
 
 Be aware of limits when using sync:
+
 - `QUOTA_BYTES_PER_ITEM`: 8,192 bytes per key-value pair
 - `MAX_ITEMS`: 512 items
 - `QUOTA_BYTES`: 102,400 bytes total
@@ -60,6 +61,5 @@ For large data, split across multiple keys or use `chrome.storage.local`.
 
 ## Why Not localStorage?
 
-`localStorage` works in popup and extension pages but NOT in service workers.
-`chrome.storage` works everywhere and supports the cross-context change listener.
-Always prefer `chrome.storage`.
+`localStorage` works in popup and extension pages but NOT in service workers. `chrome.storage` works everywhere and
+supports the cross-context change listener. Always prefer `chrome.storage`.

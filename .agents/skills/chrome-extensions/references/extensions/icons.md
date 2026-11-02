@@ -2,7 +2,8 @@
 
 ## Quick: Omit icons
 
-If generating real icon files is impractical, **omit `icons` and `default_icon` from manifest.json entirely**. Chrome uses a default puzzle-piece icon. This is always better than referencing files that don't exist.
+If generating real icon files is impractical, **omit `icons` and `default_icon` from manifest.json entirely**. Chrome
+uses a default puzzle-piece icon. This is always better than referencing files that don't exist.
 
 ## Generate with Python (Pillow)
 
@@ -32,32 +33,32 @@ for size in [16, 48, 128]:
 ## Generate with Node.js (canvas)
 
 ```js
-const { createCanvas } = require('canvas');
-const fs = require('fs');
-const path = require('path');
+const { createCanvas } = require('canvas')
+const fs = require('fs')
+const path = require('path')
 
-fs.mkdirSync('icons', { recursive: true });
+fs.mkdirSync('icons', { recursive: true })
 
 for (const size of [16, 48, 128]) {
-  const canvas = createCanvas(size, size);
-  const ctx = canvas.getContext('2d');
-  const r = size / 4;
-  
-  // Rounded rectangle
-  ctx.beginPath();
-  ctx.roundRect(1, 1, size - 2, size - 2, r);
-  ctx.fillStyle = '#4688F1';
-  ctx.fill();
-  
-  // Letter
-  ctx.fillStyle = 'white';
-  ctx.font = `bold ${size / 2}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('E', size / 2, size / 2);
-  
-  fs.writeFileSync(`icons/icon-${size}.png`, canvas.toBuffer('image/png'));
-  console.log(`Created icons/icon-${size}.png (${size}x${size})`);
+	const canvas = createCanvas(size, size)
+	const ctx = canvas.getContext('2d')
+	const r = size / 4
+
+	// Rounded rectangle
+	ctx.beginPath()
+	ctx.roundRect(1, 1, size - 2, size - 2, r)
+	ctx.fillStyle = '#4688F1'
+	ctx.fill()
+
+	// Letter
+	ctx.fillStyle = 'white'
+	ctx.font = `bold ${size / 2}px sans-serif`
+	ctx.textAlign = 'center'
+	ctx.textBaseline = 'middle'
+	ctx.fillText('E', size / 2, size / 2)
+
+	fs.writeFileSync(`icons/icon-${size}.png`, canvas.toBuffer('image/png'))
+	console.log(`Created icons/icon-${size}.png (${size}x${size})`)
 }
 ```
 
@@ -83,18 +84,18 @@ Note: For Chrome Web Store submission, PNG is required. SVG works for developmen
 
 ```json
 {
-  "icons": {
-    "16": "icons/icon-16.png",
-    "48": "icons/icon-48.png",
-    "128": "icons/icon-128.png"
-  },
-  "action": {
-    "default_icon": {
-      "16": "icons/icon-16.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
-    }
-  }
+	"icons": {
+		"16": "icons/icon-16.png",
+		"48": "icons/icon-48.png",
+		"128": "icons/icon-128.png"
+	},
+	"action": {
+		"default_icon": {
+			"16": "icons/icon-16.png",
+			"48": "icons/icon-48.png",
+			"128": "icons/icon-128.png"
+		}
+	}
 }
 ```
 

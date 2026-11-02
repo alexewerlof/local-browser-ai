@@ -10,15 +10,14 @@ To determine if this is sufficient, use `curl` to call the API with a test origi
 curl -H "Origin: https://example.com" -I https://api.openweathermap.org/data/2.5/weather?q=London&appid=KEY`
 ```
 
-If the response includes either `*` or `https://example.com` as the value for the `Access-Control-Allow-Origin` header, the API supports CORS.
+If the response includes either `*` or `https://example.com` as the value for the `Access-Control-Allow-Origin` header,
+the API supports CORS.
 
 If the API does not support CORS, request host permissions to bypass these restrictions:
 
 ```json
 {
-  "host_permissions": [
-    "https://no-cors-api.example.com/*"
-  ]
+	"host_permissions": ["https://no-cors-api.example.com/*"]
 }
 ```
 
@@ -30,8 +29,8 @@ API calls work from any extension context (service worker, popup, side panel, co
 
 ```js
 // From popup or service worker
-const response = await fetch('https://api.openweathermap.org/data/2.5/weather?q=London&appid=KEY');
-const data = await response.json();
+const response = await fetch('https://api.openweathermap.org/data/2.5/weather?q=London&appid=KEY')
+const data = await response.json()
 ```
 
 **Content scripts** can also make fetch calls, but they follow the web page's CORS rules.
@@ -40,21 +39,21 @@ const data = await response.json();
 
 ```js
 async function callAPI(url) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    return await response.json();
-  } catch (err) {
-    if (err instanceof TypeError) {
-      // Network error (offline, DNS failure, etc.)
-      console.error('Network error:', err.message);
-    } else {
-      console.error('API error:', err.message);
-    }
-    return null;
-  }
+	try {
+		const response = await fetch(url)
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+		}
+		return await response.json()
+	} catch (err) {
+		if (err instanceof TypeError) {
+			// Network error (offline, DNS failure, etc.)
+			console.error('Network error:', err.message)
+		} else {
+			console.error('API error:', err.message)
+		}
+		return null
+	}
 }
 ```
 
@@ -67,6 +66,5 @@ async function callAPI(url) {
 
 ## Service Worker Considerations
 
-If making API calls from the service worker, remember it can terminate. For long-polling or
-webhook-style patterns, use `chrome.offscreen` to create an offscreen document that stays alive,
-or use `chrome.alarms` for periodic polling.
+If making API calls from the service worker, remember it can terminate. For long-polling or webhook-style patterns, use
+`chrome.offscreen` to create an offscreen document that stays alive, or use `chrome.alarms` for periodic polling.
