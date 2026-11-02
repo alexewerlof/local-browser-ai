@@ -88,7 +88,7 @@ export function HistoryPanel({
 								<span className="history__body">
 									<span className="history__title">{item.title}</span>
 									<span className="history__meta">
-										{relativeTime(item.updatedAt)} · {item.messageCount} messages
+										{relativeTime(item.lastMessageAt)} · {item.messageCount} messages
 									</span>
 								</span>
 							</button>

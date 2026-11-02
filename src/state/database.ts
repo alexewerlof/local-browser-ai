@@ -6,6 +6,8 @@ export interface ConversationMeta {
 	title: string
 	createdAt: number
 	updatedAt: number
+	/** When the newest message in the conversation was created; drives the history order. */
+	lastMessageAt: number
 	messageCount: number
 	modelLabel: string
 }
@@ -40,16 +42,25 @@ function database(): Promise<IDBPDatabase<PanelDatabase>> | null {
 
 export async function listConversations(): Promise<ConversationMeta[]> {
 	const db = database()
-	if (!db) {
-		return [...memory.values()].sort((a, b) => b.updatedAt - a.updatedAt).map(toMeta)
-	}
+	if (!db) return historyEntries([...memory.values()])
 	try {
 		const handle = await db
-		const all = await handle.getAllFromIndex('conversations', 'by-updated')
-		return all.sort((a, b) => b.updatedAt - a.updatedAt).map(toMeta)
+		return historyEntries(await handle.getAllFromIndex('conversations', 'by-updated'))
 	} catch {
 		return []
 	}
+}
+
+/**
+ * What the history drawer shows: chats that hold messages, newest message first. Empty
+ * drafts stay out of the list (the open chat is still reachable by staying put), and a
+ * pure model change must not reorder the history.
+ */
+function historyEntries(conversations: Conversation[]): ConversationMeta[] {
+	return conversations
+		.filter((conversation) => conversation.messages.length > 0)
+		.map(toMeta)
+		.sort((a, b) => b.lastMessageAt - a.lastMessageAt)
 }
 
 export async function loadConversation(id: string): Promise<Conversation | null> {
@@ -110,11 +121,13 @@ export async function storageEstimate(): Promise<{ usage: number; quota: number 
 }
 
 function toMeta(conversation: Conversation): ConversationMeta {
+	const lastMessageAt = conversation.messages.reduce((latest, message) => Math.max(latest, message.createdAt), 0)
 	return {
 		id: conversation.id,
 		title: conversation.title,
 		createdAt: conversation.createdAt,
 		updatedAt: conversation.updatedAt,
+		lastMessageAt: lastMessageAt || conversation.updatedAt,
 		messageCount: conversation.messages.length,
 		modelLabel: conversation.model ? `${conversation.model.providerId}:${conversation.model.modelId}` : '',
 	}

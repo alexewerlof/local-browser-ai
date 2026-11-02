@@ -240,13 +240,25 @@ export function newChat(): void {
 	refreshContext()
 }
 
+/**
+ * Swap the transcript on screen for a saved one. The chat that was open stays in
+ * history: it is flushed to the database before the switch, so picking an older chat
+ * replaces the view without losing the current conversation.
+ */
 export async function openConversation(id: string): Promise<void> {
+	if (conversationStore.get().id === id) return
 	stopGeneration()
+	// Persist the outgoing transcript before swapping the store, otherwise the pending
+	// debounced save would fire against the conversation we are about to load.
+	await flushPersistence()
 	const stored = await loadConversation(id)
 	if (!stored) return
+	commit(stored)
+	runStore.set({ status: 'idle' })
 	// The live tab may belong to a different conversation; page tools still work from
 	// the attachment, but `get_selection` must not read an unrelated page.
 	tabIdStore.set(null)
+	refreshContext()
 }
 
 export async function removeConversation(id: string): Promise<void> {
@@ -313,6 +325,15 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		runStore.set({ status: 'idle' })
 		return
 	}
+	// The user can open another conversation from history while this one streams. Once
+	// that happens the run must not push its own transcript back into the panel: it
+	// persists to the database instead, so the partial answer is still there later.
+	const runConversationId = working.id
+	const isCurrentConversation = () => conversationStore.get().id === runConversationId
+	const commitRun = (conversation: Conversation) => {
+		if (isCurrentConversation()) commit(conversation)
+		else void saveConversation(conversation)
+	}
 	/** Set when this run hands control to a retried run, which owns the run state. */
 	let delegated = false
 
@@ -326,7 +347,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		if (context.totalTokens > context.budget.compactionAt) {
 			const compacted = await summarize(working, settings, selection)
 			working = compacted
-			commit(working)
+			commitRun(working)
 			context = publishContext(working, settings, selection)
 		}
 
@@ -363,7 +384,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 				parts: [...parts],
 				model: selection.ref,
 			}))
-			commit(working)
+			commitRun(working)
 		}
 
 		// Text deltas can arrive dozens of times per second. Committing each one would
@@ -514,7 +535,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			model: selection.ref,
 		}))
 		working = withTitle(working)
-		commit(working)
+		commitRun(working)
 
 		const duration = finishedAt - startedAt
 		runStore.set({
@@ -527,10 +548,11 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			steps,
 		})
 
-		publishContext(working, settings, selection)
-
-		const performed = await maybeAutoCompact(working, settings, selection)
-		if (performed) refreshContext()
+		if (isCurrentConversation()) {
+			publishContext(working, settings, selection)
+			const performed = await maybeAutoCompact(working, settings, selection, commitRun)
+			if (performed) refreshContext()
+		}
 	} catch (error) {
 		const appError = toAppError(error)
 
@@ -543,7 +565,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 					parts: [],
 					status: 'streaming',
 				}))
-				commit(working)
+				commitRun(working)
 				activeController = null
 				delegated = true
 				await runTurn(assistantId, { retried: true })
@@ -565,7 +587,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 				],
 			}))
 		}
-		commit(working)
+		commitRun(working)
 		runStore.set({
 			status: 'idle',
 			error:
@@ -573,7 +595,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 					? undefined
 					: { kind: appError.kind, message: appError.message, retryable: appError.retryable },
 		})
-		publishContext(working)
+		if (isCurrentConversation()) publishContext(working)
 	} finally {
 		if (activeController === controller) activeController = null
 		if (!delegated && runStore.get().status === 'streaming') runStore.set({ status: 'idle' })
@@ -682,12 +704,13 @@ async function maybeAutoCompact(
 	conversation: Conversation,
 	settings: AppSettings,
 	selection: Selection,
+	persist: (conversation: Conversation) => void = commit,
 ): Promise<boolean> {
 	const snapshot = contextStore.get()
 	if (snapshot.usedTokens < snapshot.compactionAt) return false
 	const compacted = await summarize(conversation, settings, selection)
 	if (compacted === conversation) return false
-	commit(compacted)
+	persist(compacted)
 	return true
 }
 
