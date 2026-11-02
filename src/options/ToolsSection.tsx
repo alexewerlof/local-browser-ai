@@ -19,11 +19,12 @@ export function ToolsSection({ settings }: { settings: AppSettings }) {
 	return (
 		<div className="section">
 			<p className="section__intro">
-				Tools let the model read the attached page, search it, and open links. Read-only tools are safe to run
-				automatically. Actions that change the browser ask for approval on the message itself.
+				Tools let the model read the attached page, search it, check the current date and time, and open links.
+				Read-only tools are safe to run automatically. Actions that change the browser ask for approval on the
+				message itself.
 			</p>
 
-			<SettingsCard title="Browser tools">
+			<SettingsCard title="Tools">
 				<div className="rows">
 					{TOOL_DEFINITIONS.map((definition) => {
 						const isEnabled = enabled.has(definition.id)

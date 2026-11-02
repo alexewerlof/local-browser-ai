@@ -6,6 +6,7 @@ export const ALL_TOOLS = [
 	'read_page_section',
 	'find_in_page',
 	'get_selection',
+	'get_current_datetime',
 	'open_url',
 ]
 

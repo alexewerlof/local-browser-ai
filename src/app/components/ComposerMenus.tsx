@@ -89,7 +89,7 @@ export function ToolsMenu({
 				<p className="popover__empty">{disabledReason}</p>
 			) : (
 				<div className="popover__group">
-					<div className="popover__group-label">Browser tools</div>
+					<div className="popover__group-label">Tools</div>
 					{TOOL_DEFINITIONS.map((definition) => {
 						const checked = enabled.has(definition.id)
 						return (

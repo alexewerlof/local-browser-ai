@@ -1,6 +1,7 @@
 import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
 import type { PageAttachment } from '../core/types'
+import { describeClock } from '../core/clock'
 import { openUrl, getTabSelection } from './client'
 import { findInAttachment, readSection } from './extract/sections'
 
@@ -50,6 +51,12 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 		id: 'get_selection',
 		label: 'Read current selection',
 		description: 'Read the text currently selected in the browser tab.',
+		requiresApproval: false,
+	},
+	{
+		id: 'get_current_datetime',
+		label: 'Current date and time',
+		description: "Read today's date, weekday and time in the user's time zone.",
 		requiresApproval: false,
 	},
 	{
@@ -226,6 +233,29 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 					return { text: text || '', message: text ? undefined : 'Nothing is selected.' }
 				} catch (error) {
 					return { text: '', message: error instanceof Error ? error.message : String(error) }
+				}
+			},
+		})
+	}
+
+	if (enabled.has('get_current_datetime')) {
+		tools.get_current_datetime = tool({
+			description:
+				'Read the current date, weekday and time. Use this whenever the answer depends on today, the day of the week, the time of day, or a relative date such as "tomorrow"; never guess the date.',
+			inputSchema: z.object({
+				timeZone: z
+					.string()
+					.optional()
+					.describe('IANA time zone such as "Europe/Berlin". Defaults to the user local time zone.'),
+			}),
+			execute: async ({ timeZone }) => {
+				try {
+					return { ok: true, ...describeClock(new Date(), timeZone) }
+				} catch {
+					return {
+						ok: false,
+						error: `Unknown time zone "${timeZone}". Use an IANA name such as "Europe/Berlin", or omit it for the user's zone.`,
+					}
 				}
 			},
 		})

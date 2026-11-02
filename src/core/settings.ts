@@ -5,6 +5,9 @@ export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 /** The Prompt API exposes a single model; `@browser-ai/core` names it "text". */
 export const PROMPT_API_MODEL_ID = 'text'
 
+/** Version of the settings document this build writes. Bump it with a migration step. */
+export const SETTINGS_VERSION = 2
+
 const modelRefSchema = z.object({
 	providerId: z.string(),
 	modelId: z.string(),
@@ -36,7 +39,7 @@ const skillSchema = z.object({
 })
 
 export const settingsSchema = z.object({
-	version: z.literal(1),
+	version: z.literal(SETTINGS_VERSION),
 	providers: z.array(providerSchema),
 	defaultModel: modelRefSchema.nullable(),
 	modelDefaults: z.object({
@@ -71,6 +74,7 @@ export const READ_ONLY_TOOL_IDS = [
 	'read_page_section',
 	'find_in_page',
 	'get_selection',
+	'get_current_datetime',
 ] as const
 
 export const ACTION_TOOL_IDS = ['open_url'] as const
@@ -133,13 +137,14 @@ export const defaultSystemPrompt = [
 	'Only an index of an attached page is usually in the prompt: its title, URL, outline and size. Read the sections you need with the page tools before answering from details.',
 	'When a page is attached, answer from that page first. Quote or reference the section you used.',
 	'If the page does not contain the answer, say so plainly instead of guessing.',
-	'You can use tools to read the attached page, search it, and open links in a new tab.',
+	"When the answer depends on today's date, the weekday or the time of day, call `get_current_datetime` instead of guessing.",
+	'You can use tools to read the attached page, search it, check the current date and time, and open links in a new tab.',
 	'Use markdown: short paragraphs, lists, tables and fenced code blocks where they help.',
 	'Be direct and concise. Do not pad answers with pleasantries.',
 ].join('\n')
 
 export const defaultSettings = (): AppSettings => ({
-	version: 1,
+	version: SETTINGS_VERSION,
 	providers: [defaultProvider()],
 	defaultModel: { providerId: PROMPT_API_PROVIDER_ID, modelId: PROMPT_API_MODEL_ID },
 	modelDefaults: {
@@ -168,6 +173,42 @@ export const defaultSettings = (): AppSettings => ({
 })
 
 /**
+ * Tool ids introduced after the settings version in which they first shipped. A store
+ * written by an older version has no opinion about them, so the migration enables them;
+ * a toggle the user flips afterwards is preserved because the store then carries the
+ * current version.
+ */
+const TOOLS_ADDED_IN_V2 = ['get_current_datetime'] as const
+
+/** Upgrade a stored settings document in place. Unknown shapes are left for the schema. */
+function migrateSettings(input: unknown): unknown {
+	if (!input || typeof input !== 'object') return input
+
+	const stored = input as Record<string, unknown>
+	const version = typeof stored.version === 'number' ? stored.version : 1
+	if (version >= SETTINGS_VERSION) return stored
+
+	const tools = stored.tools
+	if (!tools || typeof tools !== 'object') {
+		// Without a tools object the defaults fill in below, including the new ids.
+		return { ...stored, version: SETTINGS_VERSION }
+	}
+
+	const record = tools as { enabled?: unknown; autoApprove?: unknown }
+	const ids = (value: unknown) =>
+		Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []
+
+	const enabled = ids(record.enabled)
+	const autoApprove = ids(record.autoApprove)
+	for (const id of TOOLS_ADDED_IN_V2) {
+		if (!enabled.includes(id)) enabled.push(id)
+		if (!autoApprove.includes(id)) autoApprove.push(id)
+	}
+
+	return { ...stored, version: SETTINGS_VERSION, tools: { ...record, enabled, autoApprove } }
+}
+
+/**
  * Turn whatever was stored into a valid settings object.
  *
  * Built-in skills are always present (user copies are kept alongside them), and the
@@ -177,21 +218,22 @@ export function normalizeSettings(input: unknown): AppSettings {
 	const defaults = defaultSettings()
 
 	// Fill fields added after a store was written so older settings keep parsing.
+	const stored = migrateSettings(input)
 	const candidate =
-		input && typeof input === 'object'
+		stored && typeof stored === 'object'
 			? {
 					...defaults,
-					...(input as Record<string, unknown>),
+					...(stored as Record<string, unknown>),
 					context: {
 						...defaults.context,
-						...((input as { context?: Record<string, unknown> }).context ?? {}),
+						...((stored as { context?: Record<string, unknown> }).context ?? {}),
 					},
 					systemPrompt:
-						typeof (input as { systemPrompt?: unknown }).systemPrompt === 'string'
-							? (input as { systemPrompt: string }).systemPrompt
+						typeof (stored as { systemPrompt?: unknown }).systemPrompt === 'string'
+							? (stored as { systemPrompt: string }).systemPrompt
 							: defaults.systemPrompt,
 				}
-			: input
+			: stored
 
 	const parsed = settingsSchema.safeParse(candidate)
 	if (!parsed.success) return defaults

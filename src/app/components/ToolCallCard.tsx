@@ -11,6 +11,7 @@ const TOOL_LABELS: Record<string, string> = {
 	read_page_section: 'Reading section',
 	find_in_page: 'Searching page',
 	get_selection: 'Reading selection',
+	get_current_datetime: 'Checking the clock',
 	open_url: 'Opening link',
 }
 

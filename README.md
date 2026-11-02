@@ -12,8 +12,8 @@ machine, or a hosted API.
 - **Chat with the current tab.** Click the toolbar icon and the page is extracted, cleaned with Readability, converted
   to markdown and attached. The model sees the whole page when it fits, and an outline plus the most relevant excerpts
   when it does not.
-- **Browser tools.** The model can read the page, list its sections, search it, read the current selection, and open
-  links in a new tab (with your approval).
+- **Browser tools.** The model can read the page, list its sections, search it, read the current selection, check the
+  current date and time, and open links in a new tab (with your approval).
 - **Context budgeting and compaction.** A meter below the composer shows what the system prompt, page, summary and
   history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps going.
 - **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.

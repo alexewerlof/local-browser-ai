@@ -4,7 +4,7 @@ import { defaultSettings, normalizeSettings } from './settings'
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(1)
+		expect(settings.version).toBe(2)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -49,6 +49,27 @@ describe('normalizeSettings', () => {
 		const settings = normalizeSettings(stored)
 		expect(settings.tools.enabled).toEqual(['find_in_page'])
 		expect(settings.tools.autoApprove).toEqual([])
+	})
+
+	it('enables tools introduced after the stored settings version', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 1,
+			tools: { enabled: ['find_in_page'], autoApprove: [] },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.version).toBe(2)
+		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime'])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime'])
+	})
+
+	it('respects disabling a migrated tool once the store is current', () => {
+		const stored = {
+			...defaultSettings(),
+			tools: { enabled: ['find_in_page'], autoApprove: [] },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.tools.enabled).toEqual(['find_in_page'])
 	})
 
 	it('resets the default model when its provider is gone', () => {
