@@ -142,3 +142,74 @@ describe('extractPageInPageContext', () => {
 		expect(result.error).toBeUndefined()
 	})
 })
+
+describe('accessibility view', () => {
+	it('keeps headings as markdown so the page still has sections', () => {
+		setup('<main><h1>Workspace settings</h1><p>Manage your workspace here.</p><h2>Members</h2></main>')
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('# Workspace settings')
+		expect(result.aria).toContain('## Members')
+	})
+
+	it('names controls and reports their state', () => {
+		setup(`
+			<main>
+				<button>Save changes</button>
+				<input type="checkbox" checked aria-label="Audit logging">
+				<button disabled>Delete workspace</button>
+			</main>
+		`)
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('- button "Save changes"')
+		expect(result.aria).toContain('- checkbox "Audit logging" [checked]')
+		expect(result.aria).toMatch(/button "Delete workspace" \[disabled\]/)
+	})
+
+	it('marks text fields and their labels', () => {
+		setup('<main><input type="text" aria-label="Workspace name"></main>')
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('- textbox "Workspace name"')
+	})
+
+	it('keeps same-origin link targets but drops externals', () => {
+		document.body.innerHTML =
+			'<main><a href="/billing">Billing</a><a href="https://other.example/x">Elsewhere</a></main>'
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('link "Billing" → /billing')
+		expect(result.aria).toContain('link "Elsewhere"')
+		expect(result.aria).not.toContain('other.example')
+	})
+
+	it('keeps list structure without the list item wrappers', () => {
+		setup('<main><ul aria-label="Plans"><li>Starter</li><li>Teams</li></ul></main>')
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('- list "Plans"')
+		expect(result.aria).not.toContain('listitem')
+		expect(result.aria).toContain('Starter')
+	})
+
+	it('treats unnamed wrappers as transparent', () => {
+		setup('<main><div><div><span>Deep text</span></div></div></main>')
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('- Deep text')
+		expect(result.aria).not.toContain('div')
+	})
+
+	it('drops the site banner and footer', () => {
+		setup(`
+			<header role="banner"><a href="/">Site home</a></header>
+			<main><p>Real content</p></main>
+			<footer role="contentinfo">Built with something</footer>
+		`)
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.aria).toContain('Real content')
+		expect(result.aria).not.toContain('Site home')
+		expect(result.aria).not.toContain('Built with something')
+	})
+
+	it('counts the controls it found', () => {
+		setup('<main><button>One</button><a href="/two">Two</a><input type="text"></main>')
+		const result = extractPageInPageContext({ mode: 'page' })
+		expect(result.controls).toBeGreaterThanOrEqual(3)
+	})
+})

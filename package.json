@@ -13,6 +13,7 @@
 		"package": "npm run build && node scripts/package.js",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"bench": "vitest run --config dev/bench/vitest.config.ts --reporter=verbose",
 		"typecheck": "tsc --noEmit",
 		"fmt": "prettier --write .",
 		"preversion": "npm run typecheck && npm test"

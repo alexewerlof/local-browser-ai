@@ -31,6 +31,7 @@ export function AttachmentCard({
 				<span className="attachment__title">{attachment.title || host}</span>
 				<span className="attachment__meta">
 					{host} · {formatBytes(attachment.totalChars)} · {attachment.outline.length} headings
+					{attachment.representation === 'app' ? ' · app view' : ''}
 					{attachment.truncated ? ' · truncated' : ''}
 				</span>
 			</div>

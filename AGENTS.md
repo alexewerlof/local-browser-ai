@@ -20,6 +20,19 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 Entry points: `side-panel.html` + `src/app/main.tsx`, `options.html` + `src/options/main.tsx`, and the service worker
 `src/browser/background.ts` (built separately to keep React and the AI SDK out of it).
 
+## Page context
+
+Extraction happens in the page (`src/browser/extract/inject.ts`) and returns three things: cleaned HTML, the page's own
+text, and an accessibility skeleton (roles, names, states) built from the live DOM. `pipeline.ts` picks a representation
+— Readability for articles, the skeleton for control-heavy app shells, plain text as a last resort — and
+`PageAttachment.representation` records which one won.
+
+The prompt does **not** get the page by default. `core/context/page-index.ts` renders a few hundred tokens of index
+(outline with section ids and sizes, likely sections, a short opening) and the model pulls sections through
+`read_page_section` / `find_in_page`. `choosePageMode` in `core/context/assembly.ts` owns that decision: whole page only
+when it is under ~400 tokens, when the strategy says so, or when the model has no page tools (then outline + excerpts).
+`npm run bench` prints the tokens each representation costs on four page shapes — run it before changing extraction.
+
 ## Non-negotiables
 
 - **The side panel is the only place that talks to a model.** The service worker only extracts pages, opens tabs and

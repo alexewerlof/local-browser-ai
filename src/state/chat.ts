@@ -184,7 +184,9 @@ function publishContext(
 		settings,
 		budget,
 		query,
-		toolsEnabled: Boolean(resolved?.info.capabilities.tools),
+		// Must match the send path: a model that supports tools but has none enabled
+		// cannot act on a page index either.
+		toolsEnabled: Boolean(resolved?.info.capabilities.tools) && settings.tools.enabled.length > 0,
 	})
 
 	contextStore.set({

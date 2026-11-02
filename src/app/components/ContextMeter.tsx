@@ -87,9 +87,11 @@ export function ContextMeter({
 							? 'not attached'
 							: snapshot.pageMode === 'full'
 								? 'whole page'
-								: snapshot.pageMode === 'excerpts'
-									? 'outline + excerpts'
-									: 'outline only'}
+								: snapshot.pageMode === 'index'
+									? 'page index'
+									: snapshot.pageMode === 'excerpts'
+										? 'outline + excerpts'
+										: 'outline only'}
 					</span>
 				</div>
 			</div>

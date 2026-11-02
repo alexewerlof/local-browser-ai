@@ -99,6 +99,12 @@ export interface PageChunk {
 	line: number
 }
 
+/**
+ * How the attachment text was produced. `article` is cleaned prose, `app` is the
+ * accessibility skeleton of a UI-shaped page, `text` is a plain fallback.
+ */
+export type PageRepresentation = 'article' | 'app' | 'text'
+
 export interface PageAttachment {
 	id: string
 	url: string
@@ -106,6 +112,8 @@ export interface PageAttachment {
 	faviconUrl?: string
 	/** Extracted, cleaned markdown. */
 	markdown: string
+	/** Which extractor produced `markdown`. Missing on attachments stored before it existed. */
+	representation?: PageRepresentation
 	/** Plain-text version used for lexical search and estimates. */
 	outline: OutlineEntry[]
 	chunks: PageChunk[]
@@ -185,8 +193,16 @@ export interface ContextSettings {
 	outputReserveRatio: number
 	maxToolSteps: number
 	pageContext: 'auto' | 'always' | 'never'
-	strategy: 'tiered' | 'full' | 'outline'
+	strategy: PageContextStrategy
+	/** Share of the usable window the attached page may occupy (0.1 - 0.9). */
+	pageShare: number
 }
+
+/**
+ * `index` is the default: send an outline the model can navigate. `tiered` sends the
+ * whole page only when it is smaller than `pageShare`, otherwise the index.
+ */
+export type PageContextStrategy = 'index' | 'tiered' | 'full' | 'outline'
 
 export interface ToolSettings {
 	/** Tool ids that are enabled; unknown ids are ignored. */

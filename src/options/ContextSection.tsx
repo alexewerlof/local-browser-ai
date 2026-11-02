@@ -60,6 +60,10 @@ export function ContextSection({ settings }: { settings: AppSettings }) {
 			</SettingsCard>
 
 			<SettingsCard title="Page context">
+				<p className="section__intro">
+					Sending the whole page costs a prefill on every turn, which is slow on local models. By default only
+					an index of the page is sent, and the model reads the sections it needs.
+				</p>
 				<SelectField
 					label="Attached page"
 					value={context.pageContext}
@@ -77,13 +81,27 @@ export function ContextSection({ settings }: { settings: AppSettings }) {
 					label="Strategy"
 					value={context.strategy}
 					options={[
-						{ value: 'tiered', label: 'Smart: whole page if it fits, otherwise outline + excerpts' },
+						{ value: 'index', label: 'Index only, read sections with tools (fastest)' },
+						{ value: 'tiered', label: 'Whole page when it is smaller than the share below' },
 						{ value: 'full', label: 'Whole page (truncate to fit)' },
-						{ value: 'outline', label: 'Outline only, read sections with tools' },
+						{ value: 'outline', label: 'Outline only, no excerpts' },
 					]}
 					onChange={(strategy) =>
 						updateSettings((current) => ({ ...current, context: { ...current.context, strategy } }))
 					}
+					hint="Without page tools the page falls back to outline plus excerpts, so the model still sees content."
+				/>
+				<RangeField
+					label="Page budget"
+					min={0.1}
+					max={0.9}
+					step={0.05}
+					value={context.pageShare}
+					format={(value) => `${Math.round(value * 100)}%`}
+					onChange={(pageShare) =>
+						updateSettings((current) => ({ ...current, context: { ...current.context, pageShare } }))
+					}
+					hint="The largest share of the usable window the attached page may occupy."
 				/>
 			</SettingsCard>
 

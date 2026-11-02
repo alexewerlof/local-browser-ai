@@ -31,13 +31,13 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	{
 		id: 'get_page_outline',
 		label: 'Page outline',
-		description: 'List the headings of the attached page.',
+		description: 'List the headings of the attached page, with their size.',
 		requiresApproval: false,
 	},
 	{
 		id: 'read_page_section',
 		label: 'Read page section',
-		description: 'Read one section of the attached page by heading.',
+		description: 'Read one or more sections of the attached page by heading.',
 		requiresApproval: false,
 	},
 	{
@@ -60,7 +60,9 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	},
 ]
 
-const MAX_TOOL_CHARS = 12_000
+/** Default ceiling for one tool result. Smaller than the prompt it replaced, because
+ * a tool result is paid for once and the model can always ask for more. */
+const MAX_TOOL_CHARS = 4_000
 
 function clip(text: string, limit = MAX_TOOL_CHARS): { text: string; truncated: boolean } {
 	if (text.length <= limit) return { text, truncated: false }
@@ -83,7 +85,7 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 	if (enabled.has('read_attached_page')) {
 		tools.read_attached_page = tool({
 			description:
-				'Read the attached page as markdown. Use this when the conversation does not already contain the part of the page you need. Optionally pass a section heading to read only that part.',
+				'Read the attached page as markdown, limited to 4000 characters by default. Prefer `get_page_outline` plus `read_page_section`; only read the whole page when the question spans all of it. Pass a section heading to read one section.',
 			inputSchema: z.object({
 				section: z.string().optional().describe('Optional heading to read instead of the whole page.'),
 				maxChars: z.number().int().min(500).max(20_000).optional(),
@@ -106,16 +108,23 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 
 	if (enabled.has('get_page_outline')) {
 		tools.get_page_outline = tool({
-			description: 'List the headings of the attached page with their level.',
+			description:
+				'List the headings of the attached page with their level, id and approximate token size. Use the id or heading with `read_page_section`.',
 			inputSchema: z.object({}),
 			execute: async () => {
 				const attachment = requireAttachment(context)
+				const sizes = new Map<string, number>()
+				for (const chunk of attachment.chunks) {
+					sizes.set(chunk.heading, (sizes.get(chunk.heading) ?? 0) + chunk.text.length)
+				}
 				return {
 					title: attachment.title,
 					url: attachment.url,
 					outline: attachment.outline.map((entry) => ({
+						id: entry.id,
 						level: entry.level,
 						heading: entry.text,
+						chars: sizes.get(entry.text) ?? 0,
 					})),
 				}
 			},
@@ -125,26 +134,64 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 	if (enabled.has('read_page_section')) {
 		tools.read_page_section = tool({
 			description:
-				'Read one section of the attached page. Pass a heading from the outline (or a distinctive part of it).',
+				'Read one or more sections of the attached page. Pass headings or outline ids. Results are capped, so read the sections you need rather than the whole page.',
 			inputSchema: z.object({
-				heading: z.string().describe('Heading text of the section to read.'),
+				heading: z.string().optional().describe('Heading text or outline id of the section to read.'),
+				headings: z
+					.array(z.string())
+					.max(8)
+					.optional()
+					.describe('Several headings or ids to read in one call.'),
+				maxChars: z.number().int().min(500).max(20_000).optional(),
 			}),
-			execute: async ({ heading }) => {
+			execute: async ({ heading, headings, maxChars }) => {
 				const attachment = requireAttachment(context)
-				const section = readSection(attachment, heading)
-				if (!section) {
+				const requested = [...(heading ? [heading] : []), ...(headings ?? [])]
+				if (requested.length === 0) {
 					return {
 						found: false,
-						message: `No section matching "${heading}". Available headings: ${attachment.outline
+						message: 'Pass `heading` or `headings`. Use `get_page_outline` to see what is available.',
+					}
+				}
+
+				const limit = maxChars ?? MAX_TOOL_CHARS
+				const found: Array<{ id: string; heading: string; text: string }> = []
+				const missing: string[] = []
+				for (const reference of requested) {
+					const section = readSection(attachment, reference)
+					if (!section) {
+						missing.push(reference)
+						continue
+					}
+					const id = attachment.outline.find((entry) => entry.text === section.heading)?.id ?? ''
+					found.push({ id, heading: section.heading, text: section.text })
+				}
+
+				if (found.length === 0) {
+					return {
+						found: false,
+						message: `No section matching ${missing.map((value) => `"${value}"`).join(', ')}. Available headings: ${attachment.outline
 							.map((entry) => entry.text)
 							.slice(0, 20)
 							.join(' | ')}`,
 					}
 				}
-				const limited = clip(section.text)
+
+				const limited = clip(
+					found.map((section) => `## ${section.heading}\n${section.text}`).join('\n\n'),
+					limit,
+				)
 				return {
 					found: true,
-					heading: section.heading,
+					heading: found[0]?.heading ?? '',
+					// Only metadata: the text is in `text`, which is capped above. Returning the
+					// full text here as well would silently double the tool result.
+					sections: found.map((section) => ({
+						id: section.id,
+						heading: section.heading,
+						chars: section.text.length,
+					})),
+					missing,
 					text: limited.text,
 					truncated: limited.truncated,
 				}

@@ -44,7 +44,7 @@ function conversation(overrides: Partial<Conversation> = {}): Conversation {
 
 function settings(overrides: Partial<AppSettings['context']> = {}): AppSettings {
 	const base = defaultSettings()
-	return { ...base, context: { ...base.context, pageContext: 'auto', strategy: 'tiered', ...overrides } }
+	return { ...base, context: { ...base.context, pageContext: 'auto', strategy: 'index', ...overrides } }
 }
 
 describe('buildContext', () => {
@@ -74,18 +74,73 @@ describe('buildContext', () => {
 		expect(context.system).toContain('untrusted data')
 	})
 
-	it('switches to excerpts when a page is too large for the window', () => {
+	it('switches to an index when a page is too large for the window', () => {
 		const huge = `# Pricing\n\n${'A long paragraph about pricing. '.repeat(4000)}`
 		const context = buildContext({
 			conversation: conversation({ attachments: [attachment(huge)] }),
-			settings: settings({ strategy: 'tiered' }),
+			settings: settings(),
 			budget,
 			query: 'teams audit logs',
 			toolsEnabled: true,
 		})
-		expect(context.pageMode).toBe('excerpts')
+		expect(context.pageMode).toBe('index')
 		expect(context.system).toContain('Outline')
+		expect(context.system).toContain('read_page_section')
+		// Only a short lead-in survives, not the 4000-repeat body.
+		const repeats = (context.system.match(/A long paragraph about pricing\./g) ?? []).length
+		expect(repeats).toBeLessThan(100)
+		// The index is a fraction of the page it describes.
+		expect(context.system.length).toBeLessThan(huge.length / 4)
+	})
+
+	it('sends the whole page when the strategy asks for it, even if large', () => {
+		const context = buildContext({
+			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
+			settings: settings({ strategy: 'full' }),
+			budget,
+			query: '',
+			toolsEnabled: true,
+		})
+		expect(context.pageMode).toBe('full')
+		expect(context.system).toContain('Starter is 10 EUR.')
+	})
+
+	it('keeps the whole page for the tiered strategy when it fits', () => {
+		const context = buildContext({
+			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
+			settings: settings({ strategy: 'tiered' }),
+			budget,
+			query: '',
+			toolsEnabled: true,
+		})
+		expect(context.pageMode).toBe('full')
+	})
+
+	it('falls back to excerpts when the model has no page tools', () => {
+		const huge = `# Pricing\n\n${'A long paragraph about pricing. '.repeat(4000)}\n\n## Teams\n\nAudit logs are included.`
+		const context = buildContext({
+			conversation: conversation({ attachments: [attachment(huge)] }),
+			settings: settings(),
+			budget,
+			query: 'teams audit logs',
+			toolsEnabled: false,
+		})
+		expect(context.pageMode).toBe('excerpts')
 		expect(context.system).toContain('Excerpts most relevant')
+		expect(context.pageTruncated).toBe(true)
+	})
+
+	it('never exceeds the page share, whatever the strategy', () => {
+		const huge = `# Pricing\n\n${'- a heading-like line\n'.repeat(3000)}`
+		const context = buildContext({
+			conversation: conversation({ attachments: [attachment(huge)] }),
+			settings: settings({ strategy: 'full', pageShare: 0.1 }),
+			budget,
+			query: '',
+			toolsEnabled: true,
+		})
+		const page = context.parts.find((part) => part.id === 'page')
+		expect(page?.tokens).toBeLessThanOrEqual(Math.round(budget.usable * 0.1) + 200)
 		expect(context.pageTruncated).toBe(true)
 	})
 

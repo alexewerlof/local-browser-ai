@@ -24,6 +24,10 @@ export interface InjectResult {
 	publishedTime: string
 	html: string
 	text: string
+	/** Accessibility skeleton of the live page: roles, names, states, headings. */
+	aria: string
+	/** Visible interactive elements, used to recognise app-shaped pages. */
+	controls: number
 	selection: string
 	/** True when a size cap cut the payload. */
 	truncated: boolean
@@ -46,6 +50,8 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 		publishedTime: '',
 		html: '',
 		text: '',
+		aria: '',
+		controls: 0,
 		selection: '',
 		truncated: false,
 	}
@@ -119,6 +125,13 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 			'aside',
 		]
 		const REMOVE_TAGS_SET = new Set(REMOVE_TAGS)
+		/**
+		 * Page chrome that survives the tag filter because it lives in a `<div>`.
+		 * Matched on the element's own hints and only removed when it looks like a
+		 * banner rather than real content, so an article named "Cookie policy" stays.
+		 */
+		const BOILERPLATE_HINT =
+			/(cookie|consent|gdpr|newsletter|subscribe|signup|breadcrumb|pagination|pager|share|social|related|sponsor|advert|promo|sidebar|site-nav|skip-link|toolbar|masthead)/i
 		const KEEP_ATTRIBUTES = new Set([
 			'href',
 			'src',
@@ -158,6 +171,35 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 			return false
 		}
 
+		/** Beyond this many images the payload is mostly URLs nobody will read. */
+		const MAX_IMAGES = 20
+		let imagesCopied = 0
+
+		/**
+		 * Page chrome that survives the tag filter because it lives in a `<div>`.
+		 * Matched on the element's own hints, and only removed when it looks like a
+		 * banner rather than real content, so an article about cookies stays.
+		 */
+		const isBoilerplate = (element: Element): boolean => {
+			const role = element.getAttribute('role')
+			if (
+				role === 'navigation' ||
+				role === 'banner' ||
+				role === 'contentinfo' ||
+				role === 'complementary' ||
+				role === 'search'
+			) {
+				return true
+			}
+			const hints = `${element.id} ${element.getAttribute('class') ?? ''} ${element.getAttribute('aria-label') ?? ''}`
+			if (!BOILERPLATE_HINT.test(hints)) return false
+			// Only drop small, low-structure blocks: a pricing table inside a wrapper
+			// called `sidebar-layout` is still content.
+			if ((element.textContent ?? '').trim().length > 600) return false
+			if (element.querySelectorAll('p, pre, table, h1, h2, h3').length > 3) return false
+			return true
+		}
+
 		/** Deep-clone a node, following open shadow roots so web components keep their text. */
 		const cloneWithShadow = (node: Node, into: Node): void => {
 			if (node.nodeType === Node.TEXT_NODE) {
@@ -168,6 +210,15 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 
 			const element = node as Element
 			if (isHidden(element)) return
+
+			// An image without alt text contributes nothing to a text summary: its URL is
+			// a token cost with no answer behind it.
+			if (element.tagName === 'IMG') {
+				const alt = (element.getAttribute('alt') ?? '').trim()
+				if (!alt || imagesCopied >= MAX_IMAGES) return
+				imagesCopied += 1
+			}
+
 			const copy = document.createElement(element.tagName)
 
 			for (const attribute of Array.from(element.attributes)) {
@@ -219,7 +270,7 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 		while (current) {
 			const element = current as Element
 			const tag = element.tagName.toLowerCase()
-			if (REMOVE_TAGS_SET.has(tag)) {
+			if (REMOVE_TAGS_SET.has(tag) || isBoilerplate(element)) {
 				doomed.push(element)
 			} else {
 				for (const attribute of Array.from(element.attributes)) {
@@ -254,9 +305,311 @@ export function extractPageInPageContext(request: InjectRequest): InjectResult {
 			truncated = true
 		}
 
-		const text = (body.innerText ?? '').slice(0, 400_000)
+		const text = (body.innerText ?? '').slice(0, 60_000)
 
-		return { ...metadata, html, text, truncated }
+		/* --------------------------------------------------------------- aria view */
+
+		/**
+		 * A second, much smaller representation: the accessibility skeleton of the
+		 * page. Built from the live DOM (not the clone) because role, name and state
+		 * come from attributes and inputs the clone drops.
+		 *
+		 * It is markup-shaped so the section splitter still sees headings: headings
+		 * become markdown headings, everything else becomes list lines.
+		 */
+		const CONTROLS_SELECTOR =
+			'a[href], button, input, select, textarea, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="checkbox"], [role="switch"]'
+		let controls = 0
+		try {
+			controls = document.querySelectorAll(CONTROLS_SELECTOR).length
+		} catch {
+			controls = 0
+		}
+
+		const MAX_ARIA_LINES = 600
+		const MAX_ARIA_CHARS = 60_000
+		const MAX_NAME_CHARS = 90
+		const MAX_TEXT_CHARS = 240
+
+		const flatten = (value: string, limit = MAX_NAME_CHARS): string =>
+			value.replace(/\s+/g, ' ').trim().slice(0, limit)
+
+		const impliedRole = (element: Element): string => {
+			const tag = element.tagName.toLowerCase()
+			if (/^h[1-6]$/.test(tag)) return 'heading'
+			switch (tag) {
+				case 'a':
+					return element.hasAttribute('href') ? 'link' : ''
+				case 'button':
+				case 'summary':
+					return 'button'
+				case 'img':
+					return (element.getAttribute('alt') ?? '').trim() ? 'image' : ''
+				case 'ul':
+				case 'ol':
+				case 'menu':
+					return 'list'
+				case 'li':
+					return 'listitem'
+				case 'table':
+					return 'table'
+				case 'tr':
+					return 'row'
+				case 'th':
+				case 'td':
+					return 'cell'
+				case 'caption':
+					return 'caption'
+				case 'select':
+					return 'combobox'
+				case 'textarea':
+					return 'textbox'
+				case 'dialog':
+					return 'dialog'
+				case 'details':
+				case 'fieldset':
+					return 'group'
+				case 'form':
+					return 'form'
+				case 'main':
+					return 'main'
+				case 'article':
+					return 'article'
+				case 'p':
+					return 'paragraph'
+				case 'pre':
+					return 'code'
+				case 'blockquote':
+					return 'quote'
+				case 'input': {
+					const type = (element.getAttribute('type') ?? 'text').toLowerCase()
+					const map: Record<string, string> = {
+						checkbox: 'checkbox',
+						radio: 'radio',
+						range: 'slider',
+						submit: 'button',
+						button: 'button',
+						reset: 'button',
+						file: 'button',
+						color: 'button',
+						image: 'button',
+						search: 'searchbox',
+						number: 'spinbutton',
+					}
+					return map[type] ?? 'textbox'
+				}
+				default:
+					return ''
+			}
+		}
+
+		const headingLevel = (element: Element): number => {
+			const tag = element.tagName.toLowerCase()
+			if (/^h[1-6]$/.test(tag)) return Number(tag.slice(1))
+			const level = Number(element.getAttribute('aria-level') ?? '')
+			return level >= 1 && level <= 6 ? level : 2
+		}
+
+		/** Name from attributes only: never from descendant text, which is emitted separately. */
+		const labelOf = (element: Element): string => {
+			const labelledBy = element.getAttribute('aria-labelledby')
+			if (labelledBy) {
+				const parts = labelledBy
+					.split(/\s+/)
+					.map((id) => document.getElementById(id))
+					.filter((node): node is HTMLElement => Boolean(node))
+					.map((node) => node.innerText ?? node.textContent ?? '')
+					.join(' ')
+				const name = flatten(parts)
+				if (name) return name
+			}
+			const ariaLabel = flatten(element.getAttribute('aria-label') ?? '')
+			if (ariaLabel) return ariaLabel
+			return flatten(element.getAttribute('title') ?? element.getAttribute('placeholder') ?? '')
+		}
+
+		const textOf = (element: Element): string =>
+			flatten((element as HTMLElement).innerText ?? element.textContent ?? '', MAX_TEXT_CHARS)
+
+		/** Controls are named by their visible text when nothing else is available. */
+		const controlName = (element: Element): string => labelOf(element) || textOf(element)
+
+		const stateOf = (element: Element): string => {
+			const states: string[] = []
+			if (element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true') {
+				states.push('disabled')
+			}
+			const type = (element.getAttribute('type') ?? '').toLowerCase()
+			const checked = (element as HTMLInputElement).checked
+			if (typeof checked === 'boolean' && (type === 'checkbox' || type === 'radio')) {
+				if (checked) states.push('checked')
+			} else if (element.getAttribute('aria-checked') === 'true') {
+				states.push('checked')
+			}
+			if (element.getAttribute('aria-expanded') === 'true') states.push('expanded')
+			if (element.getAttribute('aria-selected') === 'true') states.push('selected')
+			if (element.getAttribute('aria-pressed') === 'true') states.push('pressed')
+			return states.length ? ` [${states.join(', ')}]` : ''
+		}
+
+		/** Same-origin link target, kept only when it is short enough to be worth it. */
+		const shortHref = (element: Element): string => {
+			const raw = element.getAttribute('href') ?? ''
+			if (!raw || raw.startsWith('#') || raw.startsWith('javascript:')) return ''
+			try {
+				const url = new URL(raw, document.baseURI)
+				if (url.origin !== location.origin) return ''
+				const path = `${url.pathname}${url.search}`
+				return path.length <= 60 ? path : ''
+			} catch {
+				return ''
+			}
+		}
+
+		const ariaLines: string[] = []
+		let ariaChars = 0
+
+		const emitAria = (line: string, depth: number): void => {
+			if (ariaLines.length >= MAX_ARIA_LINES || ariaChars >= MAX_ARIA_CHARS) return
+			const rendered = `${'  '.repeat(Math.min(depth, 6))}- ${line}`
+			ariaLines.push(rendered)
+			ariaChars += rendered.length + 1
+			return
+		}
+
+		const walkAria = (element: Element, depth: number): void => {
+			if (ariaLines.length >= MAX_ARIA_LINES || ariaChars >= MAX_ARIA_CHARS) return
+			if (isHidden(element)) return
+
+			const tag = element.tagName.toLowerCase()
+			if (tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'template' || tag === 'svg') {
+				return
+			}
+
+			const walkChildren = (nextDepth: number): void => {
+				for (const child of Array.from(element.children)) walkAria(child, nextDepth)
+			}
+
+			const explicitRole = (element.getAttribute('role') ?? '').trim().toLowerCase()
+			if (explicitRole === 'presentation' || explicitRole === 'none') {
+				walkChildren(depth)
+				return
+			}
+			// Page chrome rather than content: the ARIA view is for app surfaces, where a
+			// nav *is* content, but the site banner and footer never are.
+			if (explicitRole === 'banner' || explicitRole === 'contentinfo') return
+
+			const role = explicitRole || impliedRole(element)
+
+			switch (role) {
+				case 'heading': {
+					const name = textOf(element)
+					if (name) emitAria(`${'#'.repeat(headingLevel(element))} ${name}`, depth)
+					return
+				}
+				case 'link': {
+					const name = controlName(element)
+					if (!name) {
+						walkChildren(depth)
+						return
+					}
+					const href = shortHref(element)
+					emitAria(`link "${name}"${href ? ` → ${href}` : ''}`, depth)
+					return
+				}
+				case 'image': {
+					const alt = flatten(element.getAttribute('alt') ?? '')
+					if (alt) emitAria(`image "${alt}"`, depth)
+					return
+				}
+				case 'button':
+				case 'tab':
+				case 'menuitem':
+				case 'option': {
+					const name = controlName(element)
+					if (name) emitAria(`${role} "${name}"${stateOf(element)}`, depth)
+					return
+				}
+				case 'textbox':
+				case 'searchbox':
+				case 'combobox':
+				case 'spinbutton':
+				case 'checkbox':
+				case 'radio':
+				case 'slider':
+				case 'switch': {
+					const name = controlName(element)
+					emitAria(`${role}${name ? ` "${name}"` : ''}${stateOf(element)}`, depth)
+					return
+				}
+				case 'list': {
+					const name = labelOf(element)
+					emitAria(name ? `list "${name}"` : 'list', depth)
+					walkChildren(depth + 1)
+					return
+				}
+				case 'listitem': {
+					if (element.children.length === 0) {
+						const text = textOf(element)
+						if (text) emitAria(text, depth + 1)
+						return
+					}
+					walkChildren(depth + 1)
+					return
+				}
+				case 'table':
+				case 'row': {
+					const name = role === 'table' ? labelOf(element) : ''
+					emitAria(name ? `${role} "${name}"` : role, depth)
+					walkChildren(depth + 1)
+					return
+				}
+				case 'paragraph':
+				case 'quote':
+				case 'code':
+				case 'cell':
+				case 'caption': {
+					const text = textOf(element)
+					if (text) emitAria(text, depth)
+					return
+				}
+				case 'main':
+				case 'article': {
+					// These say nothing by themselves and would only add a line.
+					walkChildren(depth)
+					return
+				}
+				case 'dialog':
+				case 'group':
+				case 'form':
+				case 'region':
+				case 'navigation': {
+					const name = labelOf(element)
+					if (name) emitAria(`${role} "${name}"`, depth)
+					walkChildren(depth + 1)
+					return
+				}
+				default: {
+					if (element.children.length === 0) {
+						const text = textOf(element)
+						if (text) emitAria(text, depth)
+						return
+					}
+					// Unnamed wrappers are transparent: their children stay at this depth.
+					walkChildren(depth)
+				}
+			}
+		}
+
+		let aria = ''
+		try {
+			for (const child of Array.from(body.children)) walkAria(child, 0)
+			aria = ariaLines.join('\n')
+		} catch {
+			aria = ''
+		}
+
+		return { ...metadata, html, text, aria, controls, truncated }
 	} catch (error) {
 		return {
 			...empty,

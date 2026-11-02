@@ -50,7 +50,8 @@ export const settingsSchema = z.object({
 		outputReserveRatio: z.number().min(0.05).max(0.5),
 		maxToolSteps: z.number().int().min(1).max(20),
 		pageContext: z.enum(['auto', 'always', 'never']),
-		strategy: z.enum(['tiered', 'full', 'outline']),
+		strategy: z.enum(['index', 'tiered', 'full', 'outline']),
+		pageShare: z.number().min(0.1).max(0.9),
 	}),
 	tools: z.object({
 		enabled: z.array(z.string()),
@@ -129,6 +130,7 @@ export const defaultProvider = (): ProviderSettings => ({
 export const defaultSystemPrompt = [
 	'You are Local Browser AI, a chat assistant that runs in the browser sidebar.',
 	'The user is looking at a web page and may attach it to the conversation.',
+	'Only an index of an attached page is usually in the prompt: its title, URL, outline and size. Read the sections you need with the page tools before answering from details.',
 	'When a page is attached, answer from that page first. Quote or reference the section you used.',
 	'If the page does not contain the answer, say so plainly instead of guessing.',
 	'You can use tools to read the attached page, search it, and open links in a new tab.',
@@ -148,9 +150,10 @@ export const defaultSettings = (): AppSettings => ({
 		compactionThreshold: 0.75,
 		keepRecentTurns: 4,
 		outputReserveRatio: 0.2,
-		maxToolSteps: 6,
+		maxToolSteps: 4,
 		pageContext: 'auto',
-		strategy: 'tiered',
+		strategy: 'index',
+		pageShare: 0.35,
 	},
 	tools: {
 		enabled: [...READ_ONLY_TOOL_IDS, ...ACTION_TOOL_IDS],
@@ -179,6 +182,10 @@ export function normalizeSettings(input: unknown): AppSettings {
 			? {
 					...defaults,
 					...(input as Record<string, unknown>),
+					context: {
+						...defaults.context,
+						...((input as { context?: Record<string, unknown> }).context ?? {}),
+					},
 					systemPrompt:
 						typeof (input as { systemPrompt?: unknown }).systemPrompt === 'string'
 							? (input as { systemPrompt: string }).systemPrompt
@@ -190,6 +197,7 @@ export function normalizeSettings(input: unknown): AppSettings {
 	if (!parsed.success) return defaults
 
 	const settings = parsed.data as AppSettings
+
 	const providerIds = new Set(settings.providers.map((provider) => provider.id))
 	if (!providerIds.has(PROMPT_API_PROVIDER_ID)) {
 		settings.providers.unshift(defaultProvider())

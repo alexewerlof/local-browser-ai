@@ -116,6 +116,9 @@ function createService(): TurndownService {
 			const href = cleanUrl((node as HTMLAnchorElement).getAttribute('href') ?? '')
 			const text = content.trim() || href
 			if (!href || href.startsWith('javascript:')) return text
+			// `[https://example.com/x](https://example.com/x)` pays for the URL twice.
+			const strip = (value: string) => value.replace(/^https?:\/\/(www\.)?/, '')
+			if (text === href || strip(text) === strip(href)) return text
 			return `[${text}](${href})`
 		},
 	})
@@ -126,6 +129,8 @@ function createService(): TurndownService {
 			const src = (node as HTMLImageElement).getAttribute('src') ?? ''
 			if (!src || src.startsWith('data:')) return ''
 			const alt = (node as HTMLImageElement).getAttribute('alt') ?? ''
+			// Without alt text the URL is a token cost with nothing behind it.
+			if (!alt.trim()) return ''
 			return `![${alt}](${src})`
 		},
 	})
