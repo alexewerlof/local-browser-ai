@@ -55,7 +55,7 @@ export async function run(ctx) {
 
 		await page.waitForSelector('.attachment')
 		await page.locator('.composer__input').fill('Which key does authentication use?')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('olshausen.'))
 
 		// The prompt carried an index, not the page.

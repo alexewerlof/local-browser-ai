@@ -16,7 +16,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(4)
+		expect(settings.version).toBe(5)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -70,7 +70,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(4)
+		expect(settings.version).toBe(5)
 		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
 		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
 	})
@@ -82,7 +82,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(4)
+		expect(settings.version).toBe(5)
 		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
 		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
 	})
@@ -121,8 +121,26 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(4)
+		expect(settings.version).toBe(5)
 		expect(settings.tools.mcp).toEqual([])
+	})
+
+	it('carries a stored submit key over from the old sendKey field', () => {
+		const { submitKey: _renamed, ...legacyUi } = defaultSettings().ui
+		const stored = {
+			...defaultSettings(),
+			version: 4,
+			ui: { ...legacyUi, sendKey: 'mod+enter' },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.version).toBe(5)
+		expect(settings.ui.submitKey).toBe('mod+enter')
+	})
+
+	it('fills in a missing submit key with the default', () => {
+		const stored = { ...defaultSettings(), ui: { theme: 'dark' } }
+		const settings = normalizeSettings(stored)
+		expect(settings.ui).toEqual({ theme: 'dark', submitKey: 'enter' })
 	})
 
 	it('keeps MCP servers across normalization, including a disabled one', () => {

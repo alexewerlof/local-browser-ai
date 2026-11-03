@@ -26,6 +26,12 @@ body {
 	background: var(--bg);
 }
 
+/* cr-button pads 16px inline. :not() keeps icon buttons square (their rule sets
+ * `padding: 0`), and the extra class outweighs .button--sm's 8px. */
+.options .button:not(.button--icon) {
+	padding-inline: var(--space-6);
+}
+
 .options__nav {
 	position: sticky;
 	top: 0;
@@ -41,16 +47,26 @@ body {
 .options__brand {
 	display: flex;
 	align-items: center;
-	gap: var(--space-6);
+	gap: var(--space-4);
+	min-width: 0;
 	padding: var(--space-2) var(--space-6) var(--space-6);
-	font-size: 20px;
+	font-size: var(--text-lg);
 	font-weight: 500;
-	line-height: 28px;
+	line-height: 20px;
 }
 
-.options__brand svg {
+.options__brand-icon {
 	flex: none;
-	color: var(--nav-icon);
+	width: 24px;
+	height: 24px;
+	border-radius: 6px;
+}
+
+.options__brand-label {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .options__nav-item {
@@ -147,16 +163,26 @@ body {
 	min-width: 0;
 }
 
+/* settings-section header: primary colour, 14px/400, hairline-wide tracking. */
 .group__title {
-	padding: 0 var(--space-1) var(--space-4);
-	font-size: var(--text-md);
-	font-weight: 500;
+	padding: 0 0 var(--space-5);
+	font-size: var(--text-title);
+	font-weight: 400;
 	line-height: 20px;
-	color: var(--fg-muted);
+	letter-spacing: 0.25px;
+	color: var(--fg);
 }
 
 .section__intro {
 	max-width: 62ch;
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--fg-muted);
+}
+
+/* Chrome's secondary text is its 13px base size; only the colour is muted.
+ * The base .hint stays 11px because the side panel is compact. */
+.options .hint {
 	font-size: var(--text-md);
 	line-height: 1.5;
 	color: var(--fg-muted);
@@ -172,19 +198,27 @@ body {
 	gap: var(--space-4);
 }
 
-/* A Chrome card: hairline outline, 8px radius, no shadow. Rows are divided by
- * hairlines instead of each bringing its own border. */
+/* A Chrome card: 8px radius, elevation-2 shadow, no outline. Rows are divided
+ * by hairlines instead of each bringing its own border. */
 .card {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	border: 1px solid var(--border);
+	border: none;
 	border-radius: var(--radius-md);
 	background: var(--bg-raised);
+	box-shadow: var(--shadow-md);
 }
 
 .card > * + * {
 	border-top: 1px solid var(--separator);
+}
+
+/* Like Chrome's --cr-border-hcm: shadows do not render in forced colours. */
+@media (forced-colors: active) {
+	.card {
+		border: 1px solid;
+	}
 }
 
 /* Chrome fields sit on the card surface rather than in a filled well. */
@@ -204,10 +238,16 @@ body {
 	gap: var(--space-6);
 }
 
-.card > .field,
-.card > .row {
+.card > .field {
 	min-height: 48px;
 	padding: 12px 20px;
+}
+
+/* Action rows get Chrome's two-line breathing room: a 36px pill plus 16px above
+ * and below, so buttons are not crowded against the hairlines. */
+.card > .row {
+	min-height: 48px;
+	padding: 16px 20px;
 }
 
 .card > .progress-line,
@@ -239,8 +279,8 @@ body {
 
 .field__hint {
 	max-width: 52ch;
-	font-size: var(--text-sm);
-	line-height: 1.45;
+	font-size: var(--text-md);
+	line-height: 1.5;
 	color: var(--fg-muted);
 }
 
@@ -327,7 +367,7 @@ body {
 }
 
 .provider__meta {
-	font-size: var(--text-sm);
+	font-size: var(--text-md);
 	color: var(--fg-muted);
 	white-space: nowrap;
 	overflow: hidden;
@@ -366,8 +406,8 @@ body {
 }
 
 .preset__desc {
-	font-size: var(--text-sm);
-	line-height: 1.45;
+	font-size: var(--text-md);
+	line-height: 1.5;
 	color: var(--fg-muted);
 }
 
@@ -386,7 +426,7 @@ body {
 .range__value {
 	min-width: 56px;
 	text-align: right;
-	font-size: var(--text-sm);
+	font-size: var(--text-md);
 	font-variant-numeric: tabular-nums;
 	color: var(--fg-muted);
 }
@@ -417,8 +457,8 @@ body {
 }
 
 .row-item__desc {
-	font-size: var(--text-sm);
-	line-height: 1.45;
+	font-size: var(--text-md);
+	line-height: 1.5;
 	color: var(--fg-muted);
 }
 
@@ -437,7 +477,7 @@ body {
 	align-items: center;
 	gap: var(--space-5);
 	margin-top: var(--space-2);
-	font-size: var(--text-sm);
+	font-size: var(--text-md);
 	color: var(--fg-muted);
 }
 
@@ -494,7 +534,7 @@ body {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
-	font-size: var(--text-sm);
+	font-size: var(--text-md);
 	color: var(--fg-muted);
 }
 

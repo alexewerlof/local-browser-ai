@@ -7,7 +7,7 @@ export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 export const PROMPT_API_MODEL_ID = 'text'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 4
+export const SETTINGS_VERSION = 5
 
 const modelRefSchema = z.object({
 	providerId: z.string(),
@@ -80,7 +80,7 @@ export const settingsSchema = z.object({
 	skills: z.array(skillSchema),
 	ui: z.object({
 		theme: z.enum(['system', 'light', 'dark']),
-		sendKey: z.enum(['enter', 'mod+enter']),
+		submitKey: z.enum(['enter', 'mod+enter']),
 	}),
 	systemPrompt: z.string(),
 })
@@ -187,7 +187,7 @@ export const defaultSettings = (): AppSettings => ({
 	skills: builtInSkills,
 	ui: {
 		theme: 'system',
-		sendKey: 'enter',
+		submitKey: 'enter',
 	},
 	systemPrompt: defaultSystemPrompt,
 })
@@ -207,9 +207,18 @@ const TOOLS_ADDED_IN = [
 function migrateSettings(input: unknown): unknown {
 	if (!input || typeof input !== 'object') return input
 
-	const stored = input as Record<string, unknown>
+	let stored = input as Record<string, unknown>
 	const version = typeof stored.version === 'number' ? stored.version : 1
 	if (version >= SETTINGS_VERSION) return stored
+
+	// v5 renamed `ui.sendKey` to `ui.submitKey`; carry the choice over so the shortcut survives.
+	if (version < 5) {
+		const ui = stored.ui
+		if (ui && typeof ui === 'object' && 'sendKey' in ui) {
+			const { sendKey, ...rest } = ui as Record<string, unknown>
+			stored = { ...stored, ui: { ...rest, submitKey: rest.submitKey ?? sendKey } }
+		}
+	}
 
 	const tools = stored.tools
 	if (!tools || typeof tools !== 'object') {
@@ -284,6 +293,10 @@ export function normalizeSettings(input: unknown): AppSettings {
 						...((stored as { context?: Record<string, unknown> }).context ?? {}),
 					},
 					tools: sanitizeTools((stored as { tools?: unknown }).tools, defaults.tools),
+					ui: {
+						...defaults.ui,
+						...((stored as { ui?: Record<string, unknown> }).ui ?? {}),
+					},
 					systemPrompt:
 						typeof (stored as { systemPrompt?: unknown }).systemPrompt === 'string'
 							? (stored as { systemPrompt: string }).systemPrompt

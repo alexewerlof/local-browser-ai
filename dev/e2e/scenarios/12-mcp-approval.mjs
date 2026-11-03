@@ -43,7 +43,7 @@ export async function run(ctx) {
 
 		// First turn: allow.
 		await page.locator('.composer__input').fill('Call the tool.')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 		await page.waitForSelector('.tool__approval')
 		await page.locator('.tool__approval button', { hasText: 'Allow' }).click()
 		await page.waitForFunction(() => document.body.innerText.includes('Done.'))
@@ -51,7 +51,7 @@ export async function run(ctx) {
 
 		// Second turn: deny. The server must not see the call.
 		await page.locator('.composer__input').fill('Call it again.')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 		await page.waitForSelector('.tool__approval')
 		await page.locator('.tool__approval button', { hasText: 'Deny' }).click()
 		await page.waitForFunction(() => !document.querySelector('.tool__approval'))

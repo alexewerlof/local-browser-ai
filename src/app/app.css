@@ -668,6 +668,11 @@
 	min-height: 18px;
 }
 
+/* Square, never squeezed by a wrapped toolbar. */
+.composer__submit {
+	flex: none;
+}
+
 .composer__count {
 	font-size: var(--text-xs);
 	margin-left: auto;

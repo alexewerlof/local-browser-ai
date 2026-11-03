@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings, Skill } from '../../core/types'
-import { ChevronDown, Sparkles, Wrench } from 'lucide-react'
+import { ChevronDown, GraduationCap, Wrench } from 'lucide-react'
 import { TOOL_DEFINITIONS } from '../../browser/tools'
 import { mcpServerKey } from '../../core/mcp'
 import { mcpCatalogStore, refreshMcpServers } from '../../state/mcp'
@@ -20,7 +20,7 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 			align="start"
 			trigger={
 				<button type="button" className="chip" onClick={() => setOpen((value) => !value)} title="Skills">
-					<Sparkles size={12} />
+					<GraduationCap size={12} />
 					<span className="chip__text">Skills</span>
 					<ChevronDown size={12} />
 				</button>

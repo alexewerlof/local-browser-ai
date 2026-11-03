@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
+import { ChevronDown, ChevronRight, PocketKnife, Wrench } from 'lucide-react'
 import type { ToolCallPart } from '../../core/types'
 import { resolveApproval } from '../../state/browser'
 import { useStore } from '../useStore'
@@ -27,11 +27,13 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	const approvals = useStore(approvalsStore)
 	const approval = approvals.find((entry) => entry.id === part.toolCallId)
 	const label = part.label ?? TOOL_LABELS[part.toolName] ?? part.toolName
+	// MCP tools come from a remote server, so they carry the MCP mark instead of the wrench.
+	const Icon = part.server ? PocketKnife : Wrench
 
 	return (
 		<div className={`tool tool--${part.state}`}>
 			<button type="button" className="tool__head" onClick={() => setOpen((value) => !value)}>
-				<Wrench size={13} />
+				<Icon size={13} />
 				<span className="tool__name">{label}</span>
 				{part.server && <span className="badge">MCP · {part.server}</span>}
 				<span className="tool__arg">{summarizeInput(part)}</span>

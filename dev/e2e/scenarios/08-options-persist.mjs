@@ -11,6 +11,11 @@ export async function run(ctx) {
 	await page.locator('.options__nav-item:has-text("General")').click()
 	await page.waitForSelector('.options__content >> text=Appearance')
 
+	// General leads the rail and is the default section; it hosts the tool-step cap.
+	assert.equal(await page.locator('.options__nav-item').first().textContent(), 'General')
+	assert.equal(await page.locator('.options__nav-item--active').textContent(), 'General')
+	assert.equal(await page.locator('.options__content >> text=Maximum tool steps per answer').count(), 1)
+
 	// Change the theme and verify both the DOM and the persisted settings.
 	await page.locator('select').first().selectOption('dark')
 	await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark')
@@ -25,6 +30,11 @@ export async function run(ctx) {
 	await page.reload()
 	await page.waitForSelector('.options')
 	assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark')
+
+	await page.locator('.options__nav-item:has-text("Context")').click()
+	await page.waitForSelector('.options__content >> text=Compaction')
+	// The tool-step cap now lives in General, not Context.
+	assert.equal(await page.locator('.options__content >> text=Maximum tool steps per answer').count(), 0)
 
 	await page.locator('.options__nav-item:has-text("Providers")').click()
 	await page.waitForSelector('.provider')

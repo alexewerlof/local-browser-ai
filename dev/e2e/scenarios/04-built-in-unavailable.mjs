@@ -14,7 +14,7 @@ export async function run(ctx) {
 	assert.match(banner, /built-in model is (not available|unavailable)/i)
 	assert.equal(await page.locator('button:has-text("Set up a model")').isVisible(), true)
 
-	// Chat is still usable to compose; the send button stays available once there is text.
+	// Chat is still usable to compose; the submit button stays available once there is text.
 	await page.locator('.composer__input').fill('Hello')
-	assert.equal(await page.locator('button[aria-label="Send"]').isEnabled(), true)
+	assert.equal(await page.locator('button[aria-label="Submit"]').isEnabled(), true)
 }

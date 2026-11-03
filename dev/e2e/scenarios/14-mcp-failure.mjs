@@ -33,7 +33,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await page.locator('.composer__input').fill('Are you there?')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 
 		// The turn still completes with the built-in tools.
 		await page.waitForFunction(() => document.body.innerText.includes('Answer without remote tools.'))

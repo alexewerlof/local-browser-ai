@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, Copy, RefreshCw, Sparkles, TriangleAlert } from 'lucide-react'
+import { Check, Copy, GraduationCap, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { ChatMessage } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
@@ -50,7 +50,7 @@ export function MessageItem({
 				<div className="message__bubble">
 					{skill && (
 						<div className="message__skill">
-							<Sparkles size={12} />
+							<GraduationCap size={12} />
 							{skill.name}
 						</div>
 					)}

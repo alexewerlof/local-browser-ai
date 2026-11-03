@@ -247,11 +247,12 @@ export interface McpServerSettings {
 
 export interface UiSettings {
 	theme: 'system' | 'light' | 'dark'
-	sendKey: 'enter' | 'mod+enter'
+	/** Which key combination submits the composer. */
+	submitKey: 'enter' | 'mod+enter'
 }
 
 export interface AppSettings {
-	version: 4
+	version: 5
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults

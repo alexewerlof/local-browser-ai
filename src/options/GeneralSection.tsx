@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings } from '../core/types'
+import { defaultSystemPrompt } from '../core/settings'
 import { formatBytes } from '../core/util'
 import { clearConversations, storageEstimate } from '../state/database'
 import { updateSettings } from '../state/settings'
 import { getManifest } from '../platform/chrome'
-import { SelectField } from './fields'
+import { RangeField, SelectField, TextAreaField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
 export function GeneralSection({ settings }: { settings: AppSettings }) {
@@ -33,17 +34,52 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 						}
 					/>
 					<SelectField
-						label="Send with"
-						value={settings.ui.sendKey}
+						label="Submit with"
+						value={settings.ui.submitKey}
 						options={[
 							{ value: 'enter', label: 'Enter (Shift+Enter for a new line)' },
 							{ value: 'mod+enter', label: 'Ctrl/Cmd+Enter' },
 						]}
-						onChange={(sendKey) =>
-							updateSettings((current) => ({ ...current, ui: { ...current.ui, sendKey } }))
+						onChange={(submitKey) =>
+							updateSettings((current) => ({ ...current, ui: { ...current.ui, submitKey } }))
 						}
 					/>
 				</div>
+			</SettingsCard>
+
+			<SettingsCard title="System prompt">
+				<TextAreaField
+					label="Instructions"
+					value={settings.systemPrompt}
+					rows={8}
+					onChange={(systemPrompt) => updateSettings((current) => ({ ...current, systemPrompt }))}
+					hint="Sent at the top of every request. Page content is added separately, with a note that it is untrusted data."
+				/>
+				<div className="row">
+					<button
+						type="button"
+						className="button button--sm"
+						disabled={settings.systemPrompt === defaultSystemPrompt}
+						onClick={() => updateSettings((current) => ({ ...current, systemPrompt: defaultSystemPrompt }))}
+					>
+						Reset to default
+					</button>
+				</div>
+			</SettingsCard>
+
+			<SettingsCard title="Tool Calls">
+				<RangeField
+					label="Maximum tool steps per answer"
+					min={1}
+					max={12}
+					step={1}
+					value={settings.context.maxToolSteps}
+					format={(value) => String(value)}
+					onChange={(maxToolSteps) =>
+						updateSettings((current) => ({ ...current, context: { ...current.context, maxToolSteps } }))
+					}
+					hint="Each step is one model call plus the tool calls it requested."
+				/>
 			</SettingsCard>
 
 			<SettingsCard title="Data">

@@ -17,7 +17,7 @@ export async function run(ctx) {
 		assert.match(await page.locator('.attachment__meta').textContent(), /example\.com/)
 
 		await page.locator('.composer__input').fill('How much is the starter plan?')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('Starter is 10 EUR.'))
 
 		// The attached page reached the model as system context.

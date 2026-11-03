@@ -16,6 +16,8 @@
 	--text-xs: 11px;
 	--text-sm: 12px;
 	--text-md: 13px;
+	/* Chrome's section headings and card titles are 108% of the 13px base. */
+	--text-title: 14px;
 	--text-lg: 15px;
 	--text-xl: 18px;
 
@@ -64,7 +66,7 @@
 	--fg-faint: #747775;
 	--border: rgb(0 0 0 / 0.14);
 	--border-strong: rgb(0 0 0 / 0.24);
-	--separator: rgb(0 0 0 / 0.08);
+	--separator: rgb(0 0 0 / 0.06);
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
 	--shadow-md: rgb(0 0 0 / 0.3) 0 1px 2px 0, rgb(0 0 0 / 0.15) 0 2px 6px 2px;
 	--code-bg: #f1f3f4;

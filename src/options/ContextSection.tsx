@@ -104,21 +104,6 @@ export function ContextSection({ settings }: { settings: AppSettings }) {
 					hint="The largest share of the usable window the attached page may occupy."
 				/>
 			</SettingsCard>
-
-			<SettingsCard title="Tools">
-				<RangeField
-					label="Maximum tool steps per answer"
-					min={1}
-					max={12}
-					step={1}
-					value={context.maxToolSteps}
-					format={(value) => String(value)}
-					onChange={(maxToolSteps) =>
-						updateSettings((current) => ({ ...current, context: { ...current.context, maxToolSteps } }))
-					}
-					hint="Each step is one model call plus the tool calls it requested."
-				/>
-			</SettingsCard>
 		</div>
 	)
 }

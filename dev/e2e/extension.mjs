@@ -205,6 +205,13 @@ async function main() {
 		await options.goto(`chrome-extension://${extensionId}/options.html`)
 		await options.waitForSelector('.options', { timeout: 20000 })
 		assert.equal(await options.locator('.options__nav-item').count(), 7)
+		// The brand is the extension icon plus its manifest name, and General leads the rail.
+		assert.equal(await options.locator('.options__nav-item').first().textContent(), 'General')
+		assert.equal(
+			await options.locator('.options__brand-icon').getAttribute('src'),
+			`chrome-extension://${extensionId}/images/icon-32.png`,
+		)
+		assert.match(await options.locator('.options__brand-label').textContent(), /Local Browser AI/)
 		await options.close()
 
 		// 5b. An MCP server that rejects browser origins still works, but only when the
@@ -271,7 +278,7 @@ async function main() {
 							stripOrigin: true,
 						},
 					]
-					await chrome.storage.local.set({ [key]: { ...stored, version: 4, tools } })
+					await chrome.storage.local.set({ [key]: { ...stored, version: 5, tools } })
 				}, mcp.url)
 
 				await mcpPage.reload()

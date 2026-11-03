@@ -187,7 +187,7 @@ function publishContext(
 		settings,
 		budget,
 		query,
-		// Must match the send path: a model that supports tools but has none enabled
+		// Must match the submit path: a model that supports tools but has none enabled
 		// cannot act on a page index either.
 		toolsEnabled: toolsEnabledOverride ?? (Boolean(resolved?.info.capabilities.tools) && hasEnabledTools(settings)),
 		mcpServers: enabledMcpServers(settings.tools.mcp).map((server) => server.label),
@@ -637,7 +637,7 @@ function withTitle(conversation: Conversation): Conversation {
 
 /* ------------------------------------------------------------------- prompts */
 
-export async function sendMessage(text: string, skillId?: string): Promise<void> {
+export async function submitPrompt(text: string, skillId?: string): Promise<void> {
 	const content = text.trim()
 	if (!content) return
 	if (runStore.get().status !== 'idle') return

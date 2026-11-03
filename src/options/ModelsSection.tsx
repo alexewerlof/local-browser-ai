@@ -1,7 +1,7 @@
 import type { AppSettings } from '../core/types'
 import { getModelInfo, normalizeThinking, thinkingOptions } from '../providers/catalog'
 import { updateSettings } from '../state/settings'
-import { Field, RangeField, SelectField, TextAreaField } from './fields'
+import { Field, RangeField, SelectField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
 export function ModelsSection({ settings }: { settings: AppSettings }) {
@@ -110,16 +110,6 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 							? 'Anthropic maps these to thinking budgets; OpenAI-style models map them to reasoning effort.'
 							: 'This model does not expose a reasoning control.'
 					}
-				/>
-			</SettingsCard>
-
-			<SettingsCard title="System prompt">
-				<TextAreaField
-					label="Instructions"
-					value={settings.systemPrompt}
-					rows={8}
-					onChange={(systemPrompt) => updateSettings((current) => ({ ...current, systemPrompt }))}
-					hint="Sent at the top of every request. Page content is added separately, with a note that it is untrusted data."
 				/>
 			</SettingsCard>
 		</div>

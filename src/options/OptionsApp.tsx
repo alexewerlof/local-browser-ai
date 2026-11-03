@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Brain, Globe, Server, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
+import { Brain, CpuAi, GraduationCap, PocketKnife, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
+import { extensionUrl, getManifest } from '../platform/chrome'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
@@ -13,19 +14,20 @@ import { GeneralSection } from './GeneralSection'
 type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'mcp' | 'context' | 'general'
 
 const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon }> = [
-	{ id: 'providers', label: 'Providers', icon: Globe },
-	{ id: 'models', label: 'Models', icon: Sparkles },
-	{ id: 'skills', label: 'Skills', icon: Sparkles },
-	{ id: 'tools', label: 'Built-in Tools', icon: Wrench },
-	{ id: 'mcp', label: 'MCP', icon: Server },
-	{ id: 'context', label: 'Context', icon: Brain },
 	{ id: 'general', label: 'General', icon: Settings },
+	{ id: 'providers', label: 'Providers', icon: CpuAi },
+	{ id: 'models', label: 'Models', icon: Sparkles },
+	{ id: 'skills', label: 'Skills', icon: GraduationCap },
+	{ id: 'tools', label: 'Built-in Tools', icon: Wrench },
+	{ id: 'mcp', label: 'MCP', icon: PocketKnife },
+	{ id: 'context', label: 'Context', icon: Brain },
 ]
 
 export function OptionsApp() {
 	const status = useStore(settingsStatusStore)
 	const settings = useStore(settingsStore)
-	const [section, setSection] = useState<SectionId>('providers')
+	const [section, setSection] = useState<SectionId>('general')
+	const manifest = getManifest()
 
 	if (status !== 'ready') return <div className="boot">Loading settings…</div>
 
@@ -33,8 +35,14 @@ export function OptionsApp() {
 		<div className="options">
 			<nav className="options__nav" aria-label="Settings sections">
 				<div className="options__brand">
-					<Settings size={20} />
-					<span className="options__brand-label">Settings</span>
+					<img
+						className="options__brand-icon"
+						src={extensionUrl('images/icon-32.png')}
+						alt=""
+						width={24}
+						height={24}
+					/>
+					<span className="options__brand-label">{manifest.name}</span>
 				</div>
 				{SECTIONS.map((entry) => (
 					<button
@@ -53,13 +61,13 @@ export function OptionsApp() {
 
 			<main className="options__content">
 				<div className="options__column">
+					{section === 'general' && <GeneralSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
 					{section === 'models' && <ModelsSection settings={settings} />}
 					{section === 'skills' && <SkillsSection settings={settings} />}
 					{section === 'tools' && <BuiltInToolsSection settings={settings} />}
 					{section === 'mcp' && <McpSection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}
-					{section === 'general' && <GeneralSection settings={settings} />}
 				</div>
 			</main>
 		</div>

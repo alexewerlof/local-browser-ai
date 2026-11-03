@@ -8,8 +8,8 @@ import {
 	regenerate,
 	removeConversation,
 	runStore,
-	sendMessage,
 	setModel,
+	submitPrompt,
 	stopGeneration,
 	newChat,
 	openConversation,
@@ -133,7 +133,7 @@ export function App() {
 				context={context}
 				attachBusy={attachBusy}
 				attachError={attachError}
-				onSend={(text, skillId) => void sendMessage(text, skillId)}
+				onSubmit={(text, skillId) => void submitPrompt(text, skillId)}
 				onStop={stopGeneration}
 				onAttach={() => void attachClickedTab()}
 				onRefreshAttachment={() => void refreshAttachment()}

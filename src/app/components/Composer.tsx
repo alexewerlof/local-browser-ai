@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { FileText, RefreshCw, Send, Sparkles, Square, TriangleAlert } from 'lucide-react'
+import { ArrowUp, FileText, GraduationCap, RefreshCw, Square, TriangleAlert } from 'lucide-react'
 import type { AppSettings, Conversation, ModelRef, ThinkingSelection } from '../../core/types'
 import type { ContextSnapshot, RunState } from '../../state/chat'
 import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
@@ -21,7 +21,7 @@ export function Composer({
 	context,
 	attachBusy,
 	attachError,
-	onSend,
+	onSubmit,
 	onStop,
 	onAttach,
 	onRefreshAttachment,
@@ -35,7 +35,7 @@ export function Composer({
 	context: ContextSnapshot
 	attachBusy: boolean
 	attachError: string | null
-	onSend: (text: string, skillId?: string) => void
+	onSubmit: (text: string, skillId?: string) => void
 	onStop: () => void
 	onAttach: () => void
 	onRefreshAttachment: () => void
@@ -74,7 +74,7 @@ export function Composer({
 	const submit = () => {
 		const text = draftStore.get().trim()
 		if (!text || busy) return
-		onSend(text, activeSkill ?? undefined)
+		onSubmit(text, activeSkill ?? undefined)
 		clearComposer()
 		setSlashOpen(false)
 	}
@@ -85,8 +85,8 @@ export function Composer({
 			return
 		}
 		if (event.key !== 'Enter') return
-		const wantsSend = settings.ui.sendKey === 'mod+enter' ? event.metaKey || event.ctrlKey : !event.shiftKey
-		if (!wantsSend) return
+		const wantsSubmit = settings.ui.submitKey === 'mod+enter' ? event.metaKey || event.ctrlKey : !event.shiftKey
+		if (!wantsSubmit) return
 		event.preventDefault()
 		submit()
 	}
@@ -136,7 +136,7 @@ export function Composer({
 								onMouseDown={(event) => event.preventDefault()}
 								onClick={() => applySkill(skill.id)}
 							>
-								<Sparkles size={12} />
+								<GraduationCap size={12} />
 								<span>{skill.name}</span>
 								{skill.description && <span className="faint">{skill.description}</span>}
 							</button>
@@ -228,13 +228,13 @@ export function Composer({
 					) : (
 						<button
 							type="button"
-							className="button button--primary button--icon"
+							className="button button--primary button--icon composer__submit"
 							onClick={submit}
 							disabled={!draft.trim() || busy}
-							title="Send"
-							aria-label="Send"
+							title="Submit"
+							aria-label="Submit"
 						>
-							<Send size={14} />
+							<ArrowUp size={14} />
 						</button>
 					)}
 				</div>
@@ -245,7 +245,7 @@ export function Composer({
 				<span className="composer__count faint">
 					{draft
 						? `${formatTokens(draftTokens)} tok`
-						: `${settings.ui.sendKey === 'enter' ? 'Enter' : '⌘↵'} to send`}
+						: `${settings.ui.submitKey === 'enter' ? 'Enter' : '⌘↵'} to submit`}
 				</span>
 			</div>
 		</div>

@@ -11,7 +11,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await page.locator('.composer__input').fill('What does it cost?')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('ok'))
 
 		assert.equal(server.requests.length, 1)

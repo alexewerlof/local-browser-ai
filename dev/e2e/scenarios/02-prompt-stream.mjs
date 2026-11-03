@@ -12,7 +12,7 @@ export async function run(ctx) {
 
 		await page.waitForSelector('.composer__input')
 		await page.locator('.composer__input').fill('Summarize the page in one line.')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 
 		await page.waitForFunction(() => document.body.innerText.includes('Hello from the fake server.'))
 

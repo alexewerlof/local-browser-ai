@@ -14,7 +14,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await page.locator('.composer__input').fill('Count slowly.')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 
 		// Wait until the stream has produced something, then stop it.
 		await page.waitForFunction(() => document.body.innerText.includes('one two'))
@@ -28,7 +28,7 @@ export async function run(ctx) {
 
 		// The partial answer is no longer streaming and the composer recovered.
 		assert.equal(await page.locator('.composer__input').isEnabled(), true)
-		await page.waitForSelector('button[aria-label="Send"]')
+		await page.waitForSelector('button[aria-label="Submit"]')
 	} finally {
 		await server.close()
 	}

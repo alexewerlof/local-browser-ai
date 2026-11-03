@@ -43,7 +43,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await page.locator('.composer__input').fill('Say hello through the mock server.')
-		await page.locator('button[aria-label="Send"]').click()
+		await page.locator('button[aria-label="Submit"]').click()
 
 		// The call card shows the tool's title and which server it belongs to.
 		await page.waitForSelector('.tool')

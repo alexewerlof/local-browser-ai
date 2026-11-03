@@ -14,7 +14,7 @@ export const ALL_TOOLS = [
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 4,
+		version: 5,
 		providers: [
 			{
 				id: 'local',
@@ -39,7 +39,7 @@ export function localSettings(endpoint, overrides = {}) {
 		},
 		tools: { enabled: ALL_TOOLS, autoApprove: ALL_TOOLS.filter((id) => id !== 'open_url'), mcp: [] },
 		skills: [],
-		ui: { theme: 'light', sendKey: 'enter' },
+		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant. Answer from the attached page.',
 		...overrides,
 	}
@@ -47,7 +47,7 @@ export function localSettings(endpoint, overrides = {}) {
 
 export function promptApiOnlySettings() {
 	return {
-		version: 4,
+		version: 5,
 		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
 		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
 		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
@@ -62,7 +62,7 @@ export function promptApiOnlySettings() {
 		},
 		tools: { enabled: [], autoApprove: [], mcp: [] },
 		skills: [],
-		ui: { theme: 'light', sendKey: 'enter' },
+		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant.',
 	}
 }
