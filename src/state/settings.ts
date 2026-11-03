@@ -2,6 +2,7 @@ import { debounce } from '../core/util'
 import { defaultSettings, normalizeSettings } from '../core/settings'
 import { Store } from '../core/store'
 import type { AppSettings } from '../core/types'
+import { syncOriginStripping } from '../platform/net-rules'
 import { createStore, STORAGE_KEYS } from '../platform/storage'
 
 const storage = createStore()
@@ -20,11 +21,20 @@ function applyTheme(settings: AppSettings): void {
 	else root.setAttribute('data-theme', settings.ui.theme)
 }
 
+/**
+ * MCP servers may ask for requests without an `Origin` header. The rules live in the
+ * browser, not in settings, so they must be rebuilt whenever settings land.
+ */
+function applyNetworkRules(settings: AppSettings): void {
+	void syncOriginStripping(settings.tools.mcp)
+}
+
 export async function loadSettings(): Promise<AppSettings> {
 	const stored = await storage.get<unknown>(STORAGE_KEYS.settings, null)
 	const settings = normalizeSettings(stored)
 	settingsStore.set(settings)
 	applyTheme(settings)
+	applyNetworkRules(settings)
 	settingsStatusStore.set('ready')
 	return settings
 }
@@ -40,6 +50,7 @@ export async function initSettings(): Promise<void> {
 		const settings = normalizeSettings(value)
 		settingsStore.set(settings)
 		applyTheme(settings)
+		applyNetworkRules(settings)
 	})
 }
 
@@ -47,6 +58,7 @@ export function updateSettings(update: (settings: AppSettings) => AppSettings): 
 	const next = update(settingsStore.get())
 	settingsStore.set(next)
 	applyTheme(next)
+	applyNetworkRules(next)
 	persist(next)
 }
 

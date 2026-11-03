@@ -22,6 +22,7 @@ export function startFakeModelServer(options = {}) {
 
 	const requests = []
 	let callIndex = 0
+	let toolCallSeq = 0
 
 	const cors = {
 		'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,7 @@ export function startFakeModelServer(options = {}) {
 		response.write(`data: ${JSON.stringify(payload)}\n\n`)
 	}
 
-	function toolCallChunk() {
+	function toolCallChunk(call, callId) {
 		return {
 			id: 'chatcmpl-1',
 			object: 'chat.completion.chunk',
@@ -48,7 +49,7 @@ export function startFakeModelServer(options = {}) {
 					index: 0,
 					delta: {
 						role: 'assistant',
-						tool_calls: [{ index: 0, id: 'call_1', type: 'function', function: toolCall }],
+						tool_calls: [{ index: 0, id: callId, type: 'function', function: call }],
 					},
 					finish_reason: null,
 				},
@@ -93,9 +94,13 @@ export function startFakeModelServer(options = {}) {
 				requests.push(body)
 				const index = callIndex++
 				const wantsTool = toolScript ? toolScript(body, index) === 'tool-call' : false
+				// `toolCall` may be a function, so a scenario can pick a discovered MCP tool.
+				const call = wantsTool ? (typeof toolCall === 'function' ? toolCall(body, index) : toolCall) : null
+				// Unique per call: the transcript keeps old cards, and an approval is keyed by id.
+				const callId = `call_${++toolCallSeq}`
 
 				if (!body.stream) {
-					if (wantsTool) {
+					if (call) {
 						sendJson(response, 200, {
 							id: 'chatcmpl-1',
 							object: 'chat.completion',
@@ -106,7 +111,7 @@ export function startFakeModelServer(options = {}) {
 									message: {
 										role: 'assistant',
 										content: null,
-										tool_calls: [{ id: 'call_1', type: 'function', function: toolCall }],
+										tool_calls: [{ id: callId, type: 'function', function: call }],
 									},
 									finish_reason: 'tool_calls',
 								},
@@ -143,9 +148,9 @@ export function startFakeModelServer(options = {}) {
 					await pause()
 				}
 
-				if (wantsTool) {
+				if (call) {
 					sse(response, textChunk(''))
-					await write(toolCallChunk())
+					await write(toolCallChunk(call, callId))
 					sse(response, {
 						id: 'chatcmpl-1',
 						object: 'chat.completion.chunk',

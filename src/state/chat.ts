@@ -13,7 +13,7 @@ import type {
 } from '../core/types'
 import { Store } from '../core/store'
 import { createId, now } from '../core/util'
-import { getProvider, normalizeSettings } from '../core/settings'
+import { getProvider, hasEnabledTools, normalizeSettings } from '../core/settings'
 import { buildContext, messageText, type ContextPart, type PageContextMode } from '../core/context/assembly'
 import { buildSummaryPrompt, microCompact, planCompaction, usageRatio } from '../core/context/compaction'
 import { createBudget, estimateTokens, type TokenBudget } from '../core/context/tokens'
@@ -24,6 +24,7 @@ import { buildProviderOptions, createLanguageModel } from '../providers/registry
 import { getPromptApiStatus } from '../providers/prompt-status'
 import { settingsStore } from './settings'
 import { attachmentStore, requestApproval, tabIdStore } from './browser'
+import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, saveConversation } from './database'
 
 /* --------------------------------------------------------------------- state */
@@ -168,6 +169,8 @@ function publishContext(
 	conversation: Conversation,
 	settings = settingsStore.get(),
 	selection?: Selection,
+	/** Simpler override for the case where every selected tool source failed to load. */
+	toolsEnabledOverride?: boolean,
 ): { messages: ModelMessage[]; system: string; budget: TokenBudget; totalTokens: number } {
 	const resolved = selection ?? resolveSelectionQuietly(settings, conversation)
 	const window = resolved ? contextWindowCache.get(`${resolved.provider.id}:${resolved.ref.modelId}`) : undefined
@@ -186,7 +189,8 @@ function publishContext(
 		query,
 		// Must match the send path: a model that supports tools but has none enabled
 		// cannot act on a page index either.
-		toolsEnabled: Boolean(resolved?.info.capabilities.tools) && settings.tools.enabled.length > 0,
+		toolsEnabled: toolsEnabledOverride ?? (Boolean(resolved?.info.capabilities.tools) && hasEnabledTools(settings)),
+		mcpServers: enabledMcpServers(settings.tools.mcp).map((server) => server.label),
 	})
 
 	contextStore.set({
@@ -336,6 +340,8 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 	}
 	/** Set when this run hands control to a retried run, which owns the run state. */
 	let delegated = false
+	/** Declared here so `finally` closes the clients even when the run throws early. */
+	let mcpBundle: McpToolBundle | null = null
 
 	try {
 		const selection = resolveSelection(settings, working)
@@ -358,14 +364,28 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			info: selection.info,
 		})
 
-		const toolsEnabled = selection.info.capabilities.tools && settings.tools.enabled.length > 0
-		const tools = toolsEnabled ? buildTools(toolContext, settings.tools.enabled) : undefined
+		const toolsEnabled = selection.info.capabilities.tools && hasEnabledTools(settings)
+		const builtInTools = selection.info.capabilities.tools ? buildTools(toolContext, settings.tools.enabled) : {}
+
+		// MCP servers connect per turn: a server edited in Settings must never keep
+		// serving yesterday's tools. Failures become warnings, never exceptions.
+		mcpWarningsStore.set([])
+		mcpBundle = selection.info.capabilities.tools
+			? await buildMcpTools(toolContext, settings.tools.mcp, controller.signal)
+			: null
+		mcpWarningsStore.set(mcpBundle?.warnings ?? [])
+
+		const tools: ToolSet = { ...builtInTools, ...(mcpBundle?.tools ?? {}) }
+		if (Object.keys(tools).length === 0 && toolsEnabled) {
+			// Nothing could be loaded, so the page index in the prompt cannot be acted on.
+			context = publishContext(working, settings, selection, false)
+		}
 
 		const result = streamText({
 			model,
 			system: context.system,
 			messages: context.messages,
-			tools: tools as ToolSet | undefined,
+			tools: Object.keys(tools).length > 0 ? tools : undefined,
 			stopWhen: stepCountIs(settings.context.maxToolSteps),
 			temperature: settings.modelDefaults.temperature,
 			maxOutputTokens:
@@ -448,12 +468,15 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 					break
 				}
 				case 'tool-call': {
+					const info = mcpBundle?.info.get(event.toolName)
 					parts.push({
 						type: 'tool-call',
 						toolCallId: event.toolCallId,
 						toolName: event.toolName,
 						input: event.input,
 						state: 'running',
+						label: info?.label,
+						server: info?.server,
 					})
 					flushNow()
 					break
@@ -599,6 +622,8 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 	} finally {
 		if (activeController === controller) activeController = null
 		if (!delegated && runStore.get().status === 'streaming') runStore.set({ status: 'idle' })
+		// Session ids die with a turn; the next turn reconnects and re-lists tools.
+		await mcpBundle?.close()
 	}
 }
 

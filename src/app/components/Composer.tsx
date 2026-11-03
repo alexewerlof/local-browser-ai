@@ -186,6 +186,17 @@ export function Composer({
 								tools: { ...current.tools, enabled },
 							}))
 						}
+						onToggleMcp={(serverId, enabled) =>
+							updateSettings((current) => ({
+								...current,
+								tools: {
+									...current.tools,
+									mcp: current.tools.mcp.map((server) =>
+										server.id === serverId ? { ...server, enabled } : server,
+									),
+								},
+							}))
+						}
 						disabledReason={
 							info && !info.capabilities.tools ? 'This model does not support tool calling.' : undefined
 						}

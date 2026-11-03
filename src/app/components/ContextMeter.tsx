@@ -11,6 +11,7 @@ const PART_COLORS: Record<string, string> = {
 	page: 'var(--success)',
 	summary: 'var(--warning)',
 	history: 'var(--secondary, oklch(0.62 0.13 250))',
+	mcp: 'var(--accent-strong)',
 }
 
 export function ContextMeter({

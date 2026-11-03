@@ -2,6 +2,7 @@ import type { AppSettings } from '../core/types'
 import { TOOL_DEFINITIONS } from '../browser/tools'
 import { updateSettings } from '../state/settings'
 import { Switch } from './fields'
+import { McpServersCard } from './McpServersCard'
 import { SettingsCard } from './SettingsCard'
 
 export function ToolsSection({ settings }: { settings: AppSettings }) {
@@ -21,7 +22,8 @@ export function ToolsSection({ settings }: { settings: AppSettings }) {
 			<p className="section__intro">
 				Tools let the model read the attached page, search it, search the web with your default search engine,
 				check the current date and time, and open links. Read-only tools and web search run automatically;
-				actions such as opening a link from the answer ask for approval on the message itself.
+				actions such as opening a link from the answer ask for approval on the message itself. MCP servers add
+				tools that run outside the browser; their output is treated as untrusted data.
 			</p>
 
 			<SettingsCard title="Tools">
@@ -59,6 +61,8 @@ export function ToolsSection({ settings }: { settings: AppSettings }) {
 					})}
 				</div>
 			</SettingsCard>
+
+			<McpServersCard settings={settings} />
 
 			<div className="notice">
 				The built-in browser model cannot call tools. When it is selected, page content is placed in the prompt

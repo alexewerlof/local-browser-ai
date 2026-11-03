@@ -5,6 +5,7 @@ import { describeClock } from '../core/clock'
 import { openUrl, getTabSelection, searchWeb } from './client'
 import type { SearchDisposition } from './protocol'
 import { findInAttachment, readSection } from './extract/sections'
+import { clipToolText, MAX_TOOL_CHARS } from '../core/tool-text'
 
 export interface ToolContext {
 	getAttachment(): PageAttachment | null
@@ -74,15 +75,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	},
 ]
 
-/** Default ceiling for one tool result. Smaller than the prompt it replaced, because
- * a tool result is paid for once and the model can always ask for more. */
-const MAX_TOOL_CHARS = 4_000
-
-function clip(text: string, limit = MAX_TOOL_CHARS): { text: string; truncated: boolean } {
-	if (text.length <= limit) return { text, truncated: false }
-	return { text: `${text.slice(0, limit)}\n\n… (truncated)`, truncated: true }
-}
-
 function requireAttachment(context: ToolContext): PageAttachment {
 	const attachment = context.getAttachment()
 	if (!attachment) {
@@ -109,7 +101,7 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 				const body = section
 					? (readSection(attachment, section)?.text ?? `No section matching "${section}" was found.`)
 					: attachment.markdown
-				const limited = clip(body, maxChars ?? MAX_TOOL_CHARS)
+				const limited = clipToolText(body, maxChars ?? MAX_TOOL_CHARS)
 				return {
 					url: attachment.url,
 					title: attachment.title,
@@ -191,7 +183,7 @@ export function buildTools(context: ToolContext, enabledIds: string[]): ToolSet 
 					}
 				}
 
-				const limited = clip(
+				const limited = clipToolText(
 					found.map((section) => `## ${section.heading}\n${section.text}`).join('\n\n'),
 					limit,
 				)

@@ -56,6 +56,12 @@
 	margin-bottom: var(--space-2);
 }
 
+.banner--warn {
+	border-color: color-mix(in oklab, var(--warning) 40%, var(--border));
+	color: var(--warning-fg, var(--fg));
+	margin-bottom: var(--space-2);
+}
+
 .banner em {
 	font-style: normal;
 	opacity: 0.8;

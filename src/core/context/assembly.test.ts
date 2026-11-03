@@ -193,6 +193,31 @@ describe('buildContext', () => {
 		})
 		expect(context.system).toContain('"de-DE"')
 	})
+
+	it('warns that MCP tool output is untrusted, and only when tools are available', () => {
+		const withMcp = buildContext({
+			conversation: conversation(),
+			settings: settings(),
+			budget,
+			query: '',
+			toolsEnabled: true,
+			mcpServers: ['Local tools'],
+		})
+		expect(withMcp.system).toContain('Local tools')
+		expect(withMcp.system).toContain('untrusted data')
+		expect(withMcp.parts.find((part) => part.id === 'mcp')?.tokens).toBeGreaterThan(0)
+
+		const withoutTools = buildContext({
+			conversation: conversation(),
+			settings: settings(),
+			budget,
+			query: '',
+			toolsEnabled: false,
+			mcpServers: ['Local tools'],
+		})
+		expect(withoutTools.system).not.toContain('Remote tools')
+		expect(withoutTools.parts.some((part) => part.id === 'mcp')).toBe(false)
+	})
 })
 
 describe('truncateToTokens', () => {

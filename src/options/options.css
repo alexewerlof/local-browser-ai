@@ -441,6 +441,22 @@ body {
 	color: var(--fg-muted);
 }
 
+/* Tools discovered on one MCP server, indented under its row. */
+.mcp-tools {
+	padding: 0 20px 12px 32px;
+}
+
+.mcp-tool {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+	padding: 8px 0;
+}
+
+.mcp-tool + .mcp-tool {
+	border-top: 1px solid var(--separator);
+}
+
 .inline-code {
 	padding: 1px var(--space-2);
 	border-radius: var(--radius-sm);

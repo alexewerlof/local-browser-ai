@@ -15,6 +15,7 @@ import {
 	openConversation,
 } from '../state/chat'
 import { attachBusyStore, attachErrorStore } from '../state/composer'
+import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
 import { promptStatusStore } from '../state/prompt'
 import { settingsStatusStore, settingsStore, updateSettings } from '../state/settings'
 import { openOptionsPage } from '../platform/chrome'
@@ -33,6 +34,7 @@ export function App() {
 	const context = useStore(contextStore)
 	const attachBusy = useStore(attachBusyStore)
 	const attachError = useStore(attachErrorStore)
+	const mcpWarnings = useStore(mcpWarningsStore)
 	const promptStatus = useStore(promptStatusStore)
 	const [historyOpen, setHistoryOpen] = useState(false)
 
@@ -107,6 +109,22 @@ export function App() {
 					</button>
 				</div>
 			)}
+
+			{mcpWarnings.map((warning) => (
+				<div key={warning.id} className="banner banner--warn">
+					<TriangleAlert size={14} />
+					<span>{warning.message}</span>
+					<span className="spacer" />
+					<button
+						type="button"
+						className="button button--ghost button--icon button--sm"
+						onClick={() => dismissMcpWarning(warning.id)}
+						title="Dismiss"
+					>
+						<X size={13} />
+					</button>
+				</div>
+			))}
 
 			<Composer
 				settings={settings}

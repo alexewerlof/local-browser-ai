@@ -1,12 +1,13 @@
 import { z } from 'zod'
-import type { AppSettings, ProviderSettings, Skill } from './types'
+import type { AppSettings, ProviderSettings, Skill, ToolSettings } from './types'
+import { isHttpUrl } from './mcp'
 
 export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 /** The Prompt API exposes a single model; `@browser-ai/core` names it "text". */
 export const PROMPT_API_MODEL_ID = 'text'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 3
+export const SETTINGS_VERSION = 4
 
 const modelRefSchema = z.object({
 	providerId: z.string(),
@@ -38,6 +39,21 @@ const skillSchema = z.object({
 	builtIn: z.boolean().optional(),
 })
 
+/**
+ * Defaults are permissive on purpose: a server stored by an older build is filled in
+ * rather than rejected, so a partial record cannot reset the whole settings document.
+ */
+const mcpServerSchema = z.object({
+	id: z.string().min(1),
+	label: z.string().trim().min(1).max(80),
+	url: z.string().trim().max(2048).refine(isHttpUrl, 'Enter an http:// or https:// URL.'),
+	headers: z.record(z.string(), z.string()).default({}),
+	enabled: z.boolean().default(false),
+	autoApprove: z.boolean().default(false),
+	disabledTools: z.array(z.string()).default([]),
+	stripOrigin: z.boolean().default(false),
+})
+
 export const settingsSchema = z.object({
 	version: z.literal(SETTINGS_VERSION),
 	providers: z.array(providerSchema),
@@ -59,6 +75,7 @@ export const settingsSchema = z.object({
 	tools: z.object({
 		enabled: z.array(z.string()),
 		autoApprove: z.array(z.string()),
+		mcp: z.array(mcpServerSchema).default([]),
 	}),
 	skills: z.array(skillSchema),
 	ui: z.object({
@@ -165,6 +182,7 @@ export const defaultSettings = (): AppSettings => ({
 	tools: {
 		enabled: [...READ_ONLY_TOOL_IDS, ...ACTION_TOOL_IDS],
 		autoApprove: [...READ_ONLY_TOOL_IDS],
+		mcp: [],
 	},
 	skills: builtInSkills,
 	ui: {
@@ -217,6 +235,35 @@ function migrateSettings(input: unknown): unknown {
 }
 
 /**
+ * Keep the tool arrays and only the MCP entries that parse. One corrupt server would
+ * otherwise fail the whole document and reset the user's providers and API keys.
+ */
+function sanitizeTools(value: unknown, fallback: ToolSettings): ToolSettings {
+	if (!value || typeof value !== 'object') return fallback
+
+	const record = value as { enabled?: unknown; autoApprove?: unknown; mcp?: unknown }
+	const ids = (input: unknown) =>
+		Array.isArray(input) ? input.filter((id): id is string => typeof id === 'string') : undefined
+
+	const servers: ToolSettings['mcp'] = []
+	const seen = new Set<string>()
+	if (Array.isArray(record.mcp)) {
+		for (const entry of record.mcp) {
+			const parsed = mcpServerSchema.safeParse(entry)
+			if (!parsed.success || seen.has(parsed.data.id)) continue
+			seen.add(parsed.data.id)
+			servers.push(parsed.data)
+		}
+	}
+
+	return {
+		enabled: ids(record.enabled) ?? fallback.enabled,
+		autoApprove: ids(record.autoApprove) ?? fallback.autoApprove,
+		mcp: servers,
+	}
+}
+
+/**
  * Turn whatever was stored into a valid settings object.
  *
  * Built-in skills are always present (user copies are kept alongside them), and the
@@ -236,6 +283,7 @@ export function normalizeSettings(input: unknown): AppSettings {
 						...defaults.context,
 						...((stored as { context?: Record<string, unknown> }).context ?? {}),
 					},
+					tools: sanitizeTools((stored as { tools?: unknown }).tools, defaults.tools),
 					systemPrompt:
 						typeof (stored as { systemPrompt?: unknown }).systemPrompt === 'string'
 							? (stored as { systemPrompt: string }).systemPrompt
@@ -271,6 +319,11 @@ export function normalizeSettings(input: unknown): AppSettings {
 	settings.tools.autoApprove = settings.tools.autoApprove.filter((id) => knownTools.has(id))
 
 	return settings
+}
+
+/** True when at least one tool could be offered to the model. */
+export function hasEnabledTools(settings: AppSettings): boolean {
+	return settings.tools.enabled.length > 0 || settings.tools.mcp.some((server) => server.enabled)
 }
 
 export function getProvider(settings: AppSettings, providerId: string): ProviderSettings | undefined {

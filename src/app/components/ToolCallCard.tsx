@@ -26,13 +26,14 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	const [open, setOpen] = useState(false)
 	const approvals = useStore(approvalsStore)
 	const approval = approvals.find((entry) => entry.id === part.toolCallId)
-	const label = TOOL_LABELS[part.toolName] ?? part.toolName
+	const label = part.label ?? TOOL_LABELS[part.toolName] ?? part.toolName
 
 	return (
 		<div className={`tool tool--${part.state}`}>
 			<button type="button" className="tool__head" onClick={() => setOpen((value) => !value)}>
 				<Wrench size={13} />
 				<span className="tool__name">{label}</span>
+				{part.server && <span className="badge">MCP · {part.server}</span>}
 				<span className="tool__arg">{summarizeInput(part)}</span>
 				<span className="spacer" />
 				<span className={`badge${part.state === 'error' ? ' badge--danger' : ''}`}>
@@ -93,7 +94,16 @@ function summarizeInput(part: ToolCallPart): string {
 	const record = part.input as Record<string, unknown>
 	for (const key of ['heading', 'query', 'section', 'url']) {
 		const value = record[key]
-		if (typeof value === 'string' && value) return value.length > 60 ? `${value.slice(0, 60)}…` : value
+		if (typeof value === 'string' && value) return trim(value)
+	}
+	// MCP tools have arbitrary argument names, so fall back to the first scalar.
+	for (const value of Object.values(record)) {
+		if (typeof value === 'string' && value) return trim(value)
+		if (typeof value === 'number' || typeof value === 'boolean') return String(value)
 	}
 	return ''
+}
+
+function trim(value: string): string {
+	return value.length > 60 ? `${value.slice(0, 60)}…` : value
 }

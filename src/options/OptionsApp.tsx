@@ -1,21 +1,23 @@
 import { useState } from 'react'
-import { Brain, Globe, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
+import { Brain, Globe, Server, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
 import { ModelsSection } from './ModelsSection'
 import { SkillsSection } from './SkillsSection'
-import { ToolsSection } from './ToolsSection'
+import { BuiltInToolsSection } from './BuiltInToolsSection'
+import { McpSection } from './McpSection'
 import { ContextSection } from './ContextSection'
 import { GeneralSection } from './GeneralSection'
 
-type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'context' | 'general'
+type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'mcp' | 'context' | 'general'
 
 const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon }> = [
 	{ id: 'providers', label: 'Providers', icon: Globe },
 	{ id: 'models', label: 'Models', icon: Sparkles },
 	{ id: 'skills', label: 'Skills', icon: Sparkles },
-	{ id: 'tools', label: 'Tools', icon: Wrench },
+	{ id: 'tools', label: 'Built-in Tools', icon: Wrench },
+	{ id: 'mcp', label: 'MCP', icon: Server },
 	{ id: 'context', label: 'Context', icon: Brain },
 	{ id: 'general', label: 'General', icon: Settings },
 ]
@@ -54,7 +56,8 @@ export function OptionsApp() {
 					{section === 'providers' && <ProvidersSection settings={settings} />}
 					{section === 'models' && <ModelsSection settings={settings} />}
 					{section === 'skills' && <SkillsSection settings={settings} />}
-					{section === 'tools' && <ToolsSection settings={settings} />}
+					{section === 'tools' && <BuiltInToolsSection settings={settings} />}
+					{section === 'mcp' && <McpSection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}
 					{section === 'general' && <GeneralSection settings={settings} />}
 				</div>

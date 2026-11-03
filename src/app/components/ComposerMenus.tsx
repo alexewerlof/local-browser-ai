@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppSettings, Skill } from '../../core/types'
 import { ChevronDown, Sparkles, Wrench } from 'lucide-react'
 import { TOOL_DEFINITIONS } from '../../browser/tools'
+import { mcpServerKey } from '../../core/mcp'
+import { mcpCatalogStore, refreshMcpServers } from '../../state/mcp'
+import { useStore } from '../useStore'
 import { Popover } from './Popover'
 
 export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
@@ -50,14 +53,26 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 export function ToolsMenu({
 	settings,
 	onChange,
+	onToggleMcp,
 	disabledReason,
 }: {
 	settings: AppSettings
 	onChange: (enabled: string[]) => void
+	onToggleMcp: (serverId: string, enabled: boolean) => void
 	disabledReason?: string
 }) {
 	const [open, setOpen] = useState(false)
+	const catalog = useStore(mcpCatalogStore)
 	const enabled = new Set(settings.tools.enabled)
+	const servers = settings.tools.mcp
+	const enabledCount = enabled.size + servers.filter((server) => server.enabled).length
+
+	// Opening the menu is a good moment to check which servers are up.
+	useEffect(() => {
+		if (!open || servers.length === 0) return
+		void refreshMcpServers(servers)
+		// Refresh when the menu opens, not on every settings change.
+	}, [open])
 
 	const toggle = (id: string) => {
 		const next = new Set(enabled)
@@ -81,32 +96,71 @@ export function ToolsMenu({
 				>
 					<Wrench size={12} />
 					<span className="chip__text">Tools</span>
-					<span className="badge">{settings.tools.enabled.length}</span>
+					<span className="badge">{enabledCount}</span>
 				</button>
 			}
 		>
 			{disabledReason ? (
 				<p className="popover__empty">{disabledReason}</p>
 			) : (
-				<div className="popover__group">
-					<div className="popover__group-label">Tools</div>
-					{TOOL_DEFINITIONS.map((definition) => {
-						const checked = enabled.has(definition.id)
-						return (
-							<label key={definition.id} className="popover__check">
-								<input type="checkbox" checked={checked} onChange={() => toggle(definition.id)} />
-								<span>
-									<span className="popover__item-main">{definition.label}</span>
-									<span className="popover__item-sub">{definition.description}</span>
-								</span>
-							</label>
-						)
-					})}
-				</div>
+				<>
+					<div className="popover__group">
+						<div className="popover__group-label">Built-in tools</div>
+						{TOOL_DEFINITIONS.map((definition) => {
+							const checked = enabled.has(definition.id)
+							return (
+								<label key={definition.id} className="popover__check">
+									<input type="checkbox" checked={checked} onChange={() => toggle(definition.id)} />
+									<span>
+										<span className="popover__item-main">{definition.label}</span>
+										<span className="popover__item-sub">{definition.description}</span>
+									</span>
+								</label>
+							)
+						})}
+					</div>
+
+					{servers.length > 0 && (
+						<div className="popover__group">
+							<div className="popover__group-label">MCP servers</div>
+							{servers.map((server) => (
+								<label key={server.id} className="popover__check">
+									<input
+										type="checkbox"
+										checked={server.enabled}
+										onChange={(event) => onToggleMcp(server.id, event.target.checked)}
+									/>
+									<span>
+										<span className="popover__item-main">{server.label}</span>
+										<span className="popover__item-sub">
+											{mcpStatus(server, catalog[mcpServerKey(server)])}
+										</span>
+									</span>
+								</label>
+							))}
+						</div>
+					)}
+				</>
 			)}
 			<div className="popover__footer">
-				<span className="hint">Requires a model that supports tool calling.</span>
+				<span className="hint">
+					{servers.length > 0
+						? 'MCP servers are managed in Settings → Tools.'
+						: 'Requires a model that supports tool calling. Add MCP servers in Settings.'}
+				</span>
 			</div>
 		</Popover>
 	)
+}
+
+/** One line under a server name: how many of its tools are on, or why they are not. */
+function mcpStatus(
+	server: AppSettings['tools']['mcp'][number],
+	entry: { status: 'idle' | 'loading' | 'ready' | 'error'; tools: Array<{ name: string }> } | undefined,
+): string {
+	if (!entry || entry.status === 'idle') return 'Not checked'
+	if (entry.status === 'loading') return 'Checking…'
+	if (entry.status === 'error') return 'Unreachable'
+	const available = entry.tools.filter((tool) => !server.disabledTools.includes(tool.name)).length
+	return `${available} of ${entry.tools.length} tools enabled`
 }

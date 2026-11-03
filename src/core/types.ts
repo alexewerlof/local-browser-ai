@@ -51,6 +51,10 @@ export interface ToolCallPart {
 	state: ToolCallState
 	output?: unknown
 	error?: string
+	/** Friendly name for the call card; falls back to a label map keyed by `toolName`. */
+	label?: string
+	/** MCP server label when the call went to a remote MCP server. */
+	server?: string
 }
 
 export interface ErrorPart {
@@ -211,6 +215,34 @@ export interface ToolSettings {
 	enabled: string[]
 	/** Tool ids that may run without asking the user. */
 	autoApprove: string[]
+	/** Remote MCP servers whose tools may be offered to the model. */
+	mcp: McpServerSettings[]
+}
+
+/**
+ * One MCP server. Transport is Streamable HTTP only: the extension has no process to
+ * spawn, so stdio servers cannot be supported.
+ */
+export interface McpServerSettings {
+	id: string
+	label: string
+	/** Streamable HTTP endpoint, for example `http://127.0.0.1:9000/mcp`. */
+	url: string
+	/** Extra request headers, typically an Authorization token. */
+	headers: Record<string, string>
+	/** Whether the server's tools are offered to the model at all. */
+	enabled: boolean
+	/** Run this server's tools without asking for approval. */
+	autoApprove: boolean
+	/** Tool names the user turned off inside an otherwise enabled server. */
+	disabledTools: string[]
+	/**
+	 * Send requests without an `Origin` header. Many MCP servers reject browser
+	 * requests by origin (DNS-rebinding protection) and only accept clients that look
+	 * like a local agent; a browser cannot drop the header by itself, so the extension
+	 * removes it with a network rule for this endpoint.
+	 */
+	stripOrigin: boolean
 }
 
 export interface UiSettings {
@@ -219,7 +251,7 @@ export interface UiSettings {
 }
 
 export interface AppSettings {
-	version: 3
+	version: 4
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults

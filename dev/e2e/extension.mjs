@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { chromium } from 'playwright-core'
 import { chromiumExecutablePath } from './browser.mjs'
+import { startMockMcpServer } from './mock-mcp-server.mjs'
 
 /**
  * Loads the real unpacked extension into Chromium and checks the pieces the plain-page
@@ -203,9 +204,90 @@ async function main() {
 		options.on('pageerror', (error) => pageErrors.push(error.message))
 		await options.goto(`chrome-extension://${extensionId}/options.html`)
 		await options.waitForSelector('.options', { timeout: 20000 })
-		assert.equal(await options.locator('.options__nav-item').count(), 6)
+		assert.equal(await options.locator('.options__nav-item').count(), 7)
 		await options.close()
 
+		// 5b. An MCP server that rejects browser origins still works, but only when the
+		//     manifest grants `declarativeNetRequestWithHostAccess`, the one MV3 mechanism
+		//     that can drop a forbidden header. Skipped rather than failed when it is absent.
+		const failuresBeforeMcp = failures.length
+		const mcp = await startMockMcpServer({ rejectOrigins: true })
+		try {
+			const mcpPage = await context.newPage()
+			mcpPage.on('pageerror', (error) => pageErrors.push(error.message))
+			await mcpPage.goto(`chrome-extension://${extensionId}/side-panel.html`)
+			await mcpPage.waitForSelector('.app', { timeout: 20000 })
+
+			const canModifyHeaders = await mcpPage.evaluate(
+				() => typeof chrome.declarativeNetRequest?.updateSessionRules === 'function',
+			)
+
+			const post = (url) =>
+				mcpPage.evaluate(
+					(u) =>
+						fetch(u, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								Accept: 'application/json, text/event-stream',
+							},
+							body: JSON.stringify({
+								jsonrpc: '2.0',
+								id: 1,
+								method: 'initialize',
+								params: {
+									protocolVersion: '2025-06-18',
+									capabilities: {},
+									clientInfo: { name: 'harness', version: '1' },
+								},
+							}),
+						}).then((response) => response.status),
+					url,
+				)
+
+			// Without the rule the server refuses the request, so the check is not vacuous.
+			assert.equal(await post(mcp.url), 403)
+			assert.equal(mcp.seenOrigins.length, 1)
+			assert.match(mcp.seenOrigins[0], /^chrome-extension:\/\//)
+
+			if (!canModifyHeaders) {
+				console.log('skipping the Origin rule check: the manifest does not grant declarativeNetRequest')
+				await mcpPage.close()
+			} else {
+				// Turning the option on is just a setting; loading it rebuilds the browser rules.
+				await mcpPage.evaluate(async (url) => {
+					const key = 'settings.v1'
+					const stored = (await chrome.storage.local.get(key))[key] ?? {}
+					const tools = { ...(stored.tools ?? {}), enabled: [], autoApprove: [], mcp: [] }
+					tools.mcp = [
+						{
+							id: 'mcp_origin_test',
+							label: 'Origin-checking server',
+							url,
+							headers: {},
+							enabled: true,
+							autoApprove: false,
+							disabledTools: [],
+							stripOrigin: true,
+						},
+					]
+					await chrome.storage.local.set({ [key]: { ...stored, version: 4, tools } })
+				}, mcp.url)
+
+				await mcpPage.reload()
+				await mcpPage.waitForSelector('.app', { timeout: 20000 })
+				// The header is gone, so the server answers instead of refusing.
+				assert.equal(await post(mcp.url), 200)
+				assert.equal(mcp.seenOrigins.length, 1, 'the second request must not send an Origin')
+				await mcpPage.close()
+			}
+		} finally {
+			await mcp.close()
+		}
+
+		// The 403 above is the point of the check, so drop it from the failure list.
+		const allowed = failures.splice(failuresBeforeMcp).filter((entry) => !/403/.test(entry))
+		failures.push(...allowed)
 		assert.deepEqual(pageErrors, [])
 		assert.deepEqual(failures, [])
 		await context.close()
