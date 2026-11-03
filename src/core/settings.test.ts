@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultSettings, hasEnabledTools, normalizeSettings } from './settings'
+import { defaultSettings, enabledBuiltInTools, hasEnabledTools, normalizeSettings } from './settings'
 
 const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 	id: 'mcp_1',
@@ -16,7 +16,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(5)
+		expect(settings.version).toBe(6)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -70,9 +70,15 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(5)
-		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
-		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
+		expect(settings.version).toBe(6)
+		expect(settings.tools.enabled).toEqual([
+			'find_in_page',
+			'get_current_datetime',
+			'search_web',
+			'remember',
+			'recall',
+		])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall'])
 	})
 
 	it('adds only the tools newer than the stored version', () => {
@@ -82,9 +88,15 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(5)
-		expect(settings.tools.enabled).toEqual(['find_in_page', 'get_current_datetime', 'search_web'])
-		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web'])
+		expect(settings.version).toBe(6)
+		expect(settings.tools.enabled).toEqual([
+			'find_in_page',
+			'get_current_datetime',
+			'search_web',
+			'remember',
+			'recall',
+		])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall'])
 	})
 
 	it('respects disabling a migrated tool once the store is current', () => {
@@ -121,7 +133,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(5)
+		expect(settings.version).toBe(6)
 		expect(settings.tools.mcp).toEqual([])
 	})
 
@@ -133,7 +145,7 @@ describe('normalizeSettings', () => {
 			ui: { ...legacyUi, sendKey: 'mod+enter' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(5)
+		expect(settings.version).toBe(6)
 		expect(settings.ui.submitKey).toBe('mod+enter')
 	})
 
@@ -194,6 +206,48 @@ describe('normalizeSettings', () => {
 	})
 })
 
+describe('memory settings', () => {
+	it('enables memory by default with a bounded budget', () => {
+		const settings = defaultSettings()
+		expect(settings.memory).toEqual({ enabled: true, injectShare: 0.15, autoLimit: 3 })
+		expect(settings.tools.enabled).toContain('remember')
+		expect(settings.tools.enabled).toContain('recall')
+		// Creating is auto-approved by the tool; updating an existing memory asks.
+		expect(settings.tools.autoApprove).not.toContain('remember')
+		expect(settings.tools.autoApprove).toContain('recall')
+	})
+
+	it('adds memory to a store written before memory existed', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 5,
+			tools: { enabled: ['find_in_page'], autoApprove: [] },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.version).toBe(6)
+		expect(settings.memory.enabled).toBe(true)
+		expect(settings.tools.enabled).toEqual(['find_in_page', 'remember', 'recall'])
+		expect(settings.tools.autoApprove).toEqual(['recall'])
+	})
+
+	it('keeps providers when the stored memory policy is malformed', () => {
+		const stored = {
+			...defaultSettings(),
+			memory: { enabled: 'yes', injectShare: 9, autoLimit: -3 },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.providers[0]?.kind).toBe('prompt-api')
+		expect(settings.memory).toEqual(defaultSettings().memory)
+	})
+
+	it('salvages the valid fields of a partially broken memory policy', () => {
+		const stored = { ...defaultSettings(), memory: { enabled: false, injectShare: 9 } }
+		const settings = normalizeSettings(stored)
+		expect(settings.memory.enabled).toBe(false)
+		expect(settings.memory.injectShare).toBe(0.15)
+	})
+})
+
 describe('hasEnabledTools', () => {
 	it('counts built-in tools and enabled MCP servers', () => {
 		expect(hasEnabledTools(defaultSettings())).toBe(true)
@@ -215,5 +269,21 @@ describe('hasEnabledTools', () => {
 			tools: { ...withoutBuiltIns.tools, mcp: [mcpServer({ enabled: false })] },
 		}
 		expect(hasEnabledTools(mcpDisabled)).toBe(false)
+	})
+
+	it('ignores the memory tools when memory is turned off', () => {
+		const memoryOnly = {
+			...defaultSettings(),
+			memory: { ...defaultSettings().memory, enabled: false },
+			tools: { enabled: ['remember', 'recall'], autoApprove: [], mcp: [] },
+		}
+		expect(hasEnabledTools(memoryOnly)).toBe(false)
+		expect(enabledBuiltInTools(memoryOnly)).toEqual([])
+
+		const withPageTools = {
+			...memoryOnly,
+			tools: { ...memoryOnly.tools, enabled: ['remember', 'recall', 'find_in_page'] },
+		}
+		expect(enabledBuiltInTools(withPageTools)).toEqual(['find_in_page'])
 	})
 })

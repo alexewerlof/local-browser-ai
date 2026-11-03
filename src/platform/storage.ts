@@ -92,4 +92,10 @@ export const STORAGE_KEYS = {
 	settings: 'settings.v1',
 	onboarding: 'onboarding.v1',
 	uiState: 'ui-state.v1',
+	/**
+	 * Memory lives beside settings, not inside them: settings are rewritten on a 250 ms
+	 * debounce on every keystroke, and memory must stay out of that document so it can
+	 * be synced and exported on its own.
+	 */
+	memory: 'memory.v1',
 } as const

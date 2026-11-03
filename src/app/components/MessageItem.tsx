@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Check, Copy, GraduationCap, RefreshCw, TriangleAlert } from 'lucide-react'
+import { Check, Copy, GraduationCap, MemoryStick, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { ChatMessage } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
 import { formatDuration, formatTokens } from '../../core/util'
+import { MEMORY_MAX_TEXT } from '../../core/memory'
+import { saveMemory } from '../../state/memory'
 import { Markdown } from './Markdown'
 import { ReasoningBlock } from './ReasoningBlock'
 import { ToolCallCard } from './ToolCallCard'
@@ -11,12 +13,14 @@ import { ToolCallCard } from './ToolCallCard'
 export function MessageItem({
 	message,
 	settings,
+	conversationId,
 	isLast,
 	canRegenerate,
 	onRegenerate,
 }: {
 	message: ChatMessage
 	settings: AppSettings
+	conversationId: string
 	isLast: boolean
 	canRegenerate: boolean
 	onRegenerate: () => void
@@ -56,6 +60,11 @@ export function MessageItem({
 					)}
 					<div className="message__text">{plainText}</div>
 				</div>
+				{settings.memory.enabled && plainText && (
+					<div className="message__actions">
+						<SaveMemoryButton text={plainText} conversationId={conversationId} messageId={message.id} />
+					</div>
+				)}
 			</article>
 		)
 	}
@@ -115,6 +124,9 @@ export function MessageItem({
 						</span>
 					)}
 					<span className="spacer" />
+					{plainText && settings.memory.enabled && !streaming && (
+						<SaveMemoryButton text={plainText} conversationId={conversationId} messageId={message.id} />
+					)}
 					{plainText && (
 						<button
 							type="button"
@@ -140,6 +152,77 @@ export function MessageItem({
 				</footer>
 			)}
 		</article>
+	)
+}
+
+/**
+ * Save a message to memory in one click. It saves as `auto`, never `always`: promoting a
+ * memory to always-on is the user's decision, made in Settings.
+ */
+function SaveMemoryButton({
+	text,
+	conversationId,
+	messageId,
+}: {
+	text: string
+	conversationId: string
+	messageId: string
+}) {
+	const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'duplicate' | 'error'>('idle')
+
+	const save = async () => {
+		if (state !== 'idle' && state !== 'error') return
+		setState('saving')
+		const result = await saveMemory({
+			text,
+			mode: 'auto',
+			source: { conversationId, messageId },
+		})
+		if (!result.ok) {
+			setState('error')
+			return
+		}
+		setState(result.action === 'unchanged' ? 'duplicate' : 'saved')
+	}
+
+	const done = state === 'saved' || state === 'duplicate'
+	const label =
+		state === 'saving'
+			? 'Saving to memory…'
+			: state === 'saved'
+				? 'Saved to memory'
+				: state === 'duplicate'
+					? 'Already in memory'
+					: state === 'error'
+						? 'Could not save to memory'
+						: 'Save to memory'
+
+	// Silently truncating a long message would save something the user did not write.
+	if (text.length > MEMORY_MAX_TEXT) {
+		return (
+			<button
+				type="button"
+				className="button button--ghost button--icon button--sm message__memory"
+				disabled
+				title={`Too long to save as one memory (${MEMORY_MAX_TEXT} characters max)`}
+				aria-label="Too long to save as one memory"
+			>
+				<MemoryStick size={13} />
+			</button>
+		)
+	}
+
+	return (
+		<button
+			type="button"
+			className="button button--ghost button--icon button--sm message__memory"
+			onClick={() => void save()}
+			disabled={state === 'saving' || done}
+			title={label}
+			aria-label={label}
+		>
+			{done ? <Check size={13} /> : <MemoryStick size={13} />}
+		</button>
 	)
 }
 

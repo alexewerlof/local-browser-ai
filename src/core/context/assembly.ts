@@ -1,14 +1,15 @@
 import type { ModelMessage } from 'ai'
-import type { AppSettings, ChatMessage, Conversation, PageAttachment } from '../types'
+import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageAttachment } from '../types'
 import { bm25Rank } from './lexical'
 import { renderPageIndex } from './page-index'
 import { estimateMessagesTokens, estimateTokens, type TokenBudget } from './tokens'
 import { describeEnvironment } from './environment'
+import { describeMemoryInjection, memoryInjectionLimit, selectMemoryInjection } from '../memory'
 
 export type PageContextMode = 'none' | 'full' | 'index' | 'outline' | 'excerpts'
 
 export interface ContextPart {
-	id: 'system' | 'environment' | 'page' | 'summary' | 'history' | 'mcp'
+	id: 'system' | 'environment' | 'memory' | 'page' | 'summary' | 'history' | 'mcp'
 	label: string
 	tokens: number
 	/** Extra explanation shown in the context panel. */
@@ -33,6 +34,10 @@ export interface BuildContextOptions {
 	toolsEnabled: boolean
 	/** Labels of the MCP servers whose tools are offered this turn. */
 	mcpServers?: string[]
+	/** Live memory items; the selector decides which of them reach the prompt. */
+	memories?: MemoryItem[]
+	/** True when the model actually receives `recall` this turn, which changes the memory footer. */
+	memoryToolsEnabled?: boolean
 }
 
 const MCP_NOTE_HEADER = '## Remote tools'
@@ -228,6 +233,28 @@ export function buildContext(options: BuildContextOptions): AssembledContext {
 			tokens: estimateTokens(environment),
 			detail: 'Language preferences reported by the browser, and the language of the page.',
 		})
+	}
+
+	// Memory is always the user's, never the page's, so it goes before the MCP note and the
+	// page. It gets its own budget: compaction cannot shrink it, so an unbounded block would
+	// leave the conversation permanently over the threshold.
+	if (settings.memory.enabled && options.memories && options.memories.length > 0) {
+		const injection = selectMemoryInjection(
+			options.memories,
+			query,
+			settings.memory,
+			memoryInjectionLimit(budget, settings.memory.injectShare),
+			options.memoryToolsEnabled ?? false,
+		)
+		if (injection.block) {
+			systemParts.push(injection.block)
+			parts.push({
+				id: 'memory',
+				label: 'Memory',
+				tokens: injection.tokens,
+				detail: describeMemoryInjection(injection),
+			})
+		}
 	}
 
 	if (options.toolsEnabled && options.mcpServers && options.mcpServers.length > 0) {

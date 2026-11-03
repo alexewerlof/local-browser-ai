@@ -55,6 +55,8 @@
 	--danger-fg: #b3261e;
 	--success: #1e8e3e;
 	--warning: #b06000;
+	/* Memory is neither an accent nor a status, so it gets its own hue. */
+	--memory: #9334e6;
 
 	--bg: #f8f9fa;
 	--bg-raised: #ffffff;
@@ -96,6 +98,7 @@
 		--danger-fg: #f2b8b5;
 		--success: #81c995;
 		--warning: #fdd663;
+		--memory: #d7aefb;
 
 		--bg: #1f1f1f;
 		--bg-raised: #292a2d;

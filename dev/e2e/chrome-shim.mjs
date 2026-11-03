@@ -334,5 +334,12 @@ export function chromeShim(config = {}) {
 		currentSettings() {
 			return storage.get('settings.v1')
 		},
+		async readMemory() {
+			return storage.get('memory.v1')
+		},
+		/** Synchronous accessor for `waitForFunction` polling. */
+		currentMemory() {
+			return storage.get('memory.v1')
+		},
 	}
 }

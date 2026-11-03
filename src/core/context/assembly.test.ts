@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildContext, messagesAfterSummary, toModelMessages, truncateToTokens } from './assembly'
 import { createBudget } from './tokens'
-import type { AppSettings, ChatMessage, Conversation, PageAttachment } from '../types'
+import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageAttachment } from '../types'
 import { defaultSettings } from '../settings'
 
 const budget = createBudget(20_000, 0.2, 0.75)
@@ -293,5 +293,103 @@ describe('toModelMessages', () => {
 			{ id: 'm2', role: 'user', parts: [{ type: 'text', text: 'hi' }], createdAt: 2, status: 'complete' },
 		]
 		expect(toModelMessages(conversation({ messages }))).toEqual([{ role: 'user', content: 'hi' }])
+	})
+})
+
+describe('buildContext memory', () => {
+	const memory = (overrides: Partial<MemoryItem> = {}): MemoryItem => ({
+		id: 'memory_1',
+		title: 'Editor',
+		text: 'Prefers tabs and no semicolons.',
+		mode: 'always',
+		scope: 'global',
+		createdAt: 1,
+		updatedAt: 1,
+		...overrides,
+	})
+
+	it('adds memory as its own part after the language note', () => {
+		const context = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			query: 'format my code',
+			toolsEnabled: true,
+			memories: [memory()],
+			memoryToolsEnabled: true,
+		})
+
+		const ids = context.parts.map((part) => part.id)
+		expect(ids.indexOf('memory')).toBeGreaterThan(ids.indexOf('environment'))
+		expect(context.system).toContain('## Memory')
+		expect(context.system).toContain('Prefers tabs and no semicolons.')
+		// The user's system prompt still leads, so memory is additive.
+		expect(context.system.startsWith(defaultSettings().systemPrompt)).toBe(true)
+
+		const part = context.parts.find((entry) => entry.id === 'memory')
+		expect(part?.label).toBe('Memory')
+		expect(part?.tokens).toBeGreaterThan(0)
+		expect(part?.detail).toContain('1 always')
+	})
+
+	it('is absent when memory is disabled', () => {
+		const base = defaultSettings()
+		const context = buildContext({
+			conversation: conversation(),
+			settings: { ...base, memory: { ...base.memory, enabled: false } },
+			budget,
+			query: '',
+			toolsEnabled: true,
+			memories: [memory()],
+		})
+		expect(context.parts.some((part) => part.id === 'memory')).toBe(false)
+		expect(context.system).not.toContain('Prefers tabs and no semicolons.')
+	})
+
+	it('is absent when nothing is stored', () => {
+		const context = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			query: '',
+			toolsEnabled: true,
+			memories: [],
+		})
+		expect(context.parts.some((part) => part.id === 'memory')).toBe(false)
+	})
+
+	it('still injects always-on memory for a model without tools', () => {
+		const context = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			query: '',
+			toolsEnabled: false,
+			memories: [memory()],
+			memoryToolsEnabled: false,
+		})
+		expect(context.system).toContain('Prefers tabs and no semicolons.')
+		// Without tools there is nothing to call, so the block must not promise one.
+		expect(context.system).not.toContain('searches the rest of the saved memory')
+	})
+
+	it('counts the memory part in the total', () => {
+		const without = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			query: '',
+			toolsEnabled: true,
+			memories: [],
+		})
+		const withMemory = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			query: '',
+			toolsEnabled: true,
+			memories: [memory()],
+		})
+		expect(withMemory.totalTokens).toBeGreaterThan(without.totalTokens)
 	})
 })

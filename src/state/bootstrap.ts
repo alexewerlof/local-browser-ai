@@ -9,6 +9,7 @@ import {
 import { attachBusyStore, attachErrorStore, quoteSelection } from './composer'
 import { claimClickedTab, extractFromTab, initBrowserEvents, clearTab, tabIdStore } from './browser'
 import { initSettings, settingsStore } from './settings'
+import { initMemory, memoryStore } from './memory'
 import { refreshPromptStatus } from './prompt'
 import { toAppError } from '../providers/errors'
 
@@ -64,6 +65,7 @@ export function detachAttachment(): void {
 
 export async function bootstrap(): Promise<void> {
 	await initSettings()
+	await initMemory()
 
 	const settings = settingsStore.get()
 	const conversation = conversationStore.get()
@@ -85,6 +87,10 @@ export async function bootstrap(): Promise<void> {
 		}
 		refreshContext()
 	})
+
+	// Editing a memory in Settings changes what the next request carries, so the meter
+	// and the outgoing prompt must be recomputed.
+	memoryStore.subscribe(() => refreshContext())
 
 	refreshContext()
 

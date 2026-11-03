@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { Brain, CpuAi, GraduationCap, PocketKnife, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
+import {
+	Brain,
+	CpuAi,
+	GraduationCap,
+	MemoryStick,
+	PocketKnife,
+	Settings,
+	Sparkles,
+	Wrench,
+	type LucideIcon,
+} from 'lucide-react'
 import { extensionUrl, getManifest } from '../platform/chrome'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
@@ -8,10 +18,11 @@ import { ModelsSection } from './ModelsSection'
 import { SkillsSection } from './SkillsSection'
 import { BuiltInToolsSection } from './BuiltInToolsSection'
 import { McpSection } from './McpSection'
+import { MemorySection } from './MemorySection'
 import { ContextSection } from './ContextSection'
 import { GeneralSection } from './GeneralSection'
 
-type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'mcp' | 'context' | 'general'
+type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'mcp' | 'memory' | 'context' | 'general'
 
 const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon }> = [
 	{ id: 'general', label: 'General', icon: Settings },
@@ -20,6 +31,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon }> = [
 	{ id: 'skills', label: 'Skills', icon: GraduationCap },
 	{ id: 'tools', label: 'Built-in Tools', icon: Wrench },
 	{ id: 'mcp', label: 'MCP', icon: PocketKnife },
+	{ id: 'memory', label: 'Memory', icon: MemoryStick },
 	{ id: 'context', label: 'Context', icon: Brain },
 ]
 
@@ -67,6 +79,7 @@ export function OptionsApp() {
 					{section === 'skills' && <SkillsSection settings={settings} />}
 					{section === 'tools' && <BuiltInToolsSection settings={settings} />}
 					{section === 'mcp' && <McpSection settings={settings} />}
+					{section === 'memory' && <MemorySection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}
 				</div>
 			</main>

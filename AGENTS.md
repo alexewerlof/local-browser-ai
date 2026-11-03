@@ -10,12 +10,12 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | Layer       | Location           | Responsibility                                                                           |
 | ----------- | ------------------ | ---------------------------------------------------------------------------------------- |
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.  |
-| Settings UI | `src/options/`     | Full-page providers, models, skills, built-in tools, MCP, context and general settings.  |
-| Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, compaction, stores.   |
+| Settings UI | `src/options/`     | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.   |
+| Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, memory, compaction.   |
 | Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping. |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped remote tools.             |
 | Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, browser tools.          |
-| State       | `src/state/`       | Settings, conversation, run state, IndexedDB persistence, attachment plumbing.           |
+| State       | `src/state/`       | Settings, conversation, run state, memory, IndexedDB persistence, attachment plumbing.   |
 | Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                          |
 
 Entry points: `side-panel.html` + `src/app/main.tsx`, `options.html` + `src/options/main.tsx`, and the service worker
@@ -33,6 +33,30 @@ The prompt does **not** get the page by default. `core/context/page-index.ts` re
 `read_page_section` / `find_in_page`. `choosePageMode` in `core/context/assembly.ts` owns that decision: whole page only
 when it is under ~400 tokens, when the strategy says so, or when the model has no page tools (then outline + excerpts).
 `npm run bench` prints the tokens each representation costs on four page shapes — run it before changing extraction.
+
+## Memory
+
+Flat, global notes that survive across chats. `src/core/memory.ts` is the pure domain (schemas, normalization,
+selection, recall, export/import); `src/state/memory.ts` owns `memory.v1` in `chrome.storage.local` and serializes every
+write through one chain so two tool calls in a turn cannot clobber each other. It is deliberately **not** a settings
+subtree: settings are rewritten on a 250 ms debounce per keystroke.
+
+Three modes decide injection. `always` goes in every turn, `auto` only when the last user message matches it (BM25 via
+`core/context/lexical.ts`, capped by `memory.autoLimit`), and `tool` is passive until the model calls `recall`. The
+block is a `ContextPart` with id `memory`, appended after the language note, and clipped to `memory.injectShare` of the
+usable window (128–1500 tokens, never more than 30%). Compaction cannot shrink it, so an unbounded block would leave the
+chat permanently over the threshold.
+
+Two tools, both panel-side: `remember` (create, or update by `id`) and `recall` (query optional = newest first). Creates
+are auto-approved; **updates call `requestApproval`** unless `remember` is in `tools.autoApprove`. Deletion is user-only
+in Settings, as a tombstone with an 8-second undo. The model may only save `auto` or `tool` — promoting to `always` is
+the user's decision, so untrusted page or tool content can never persist an always-on block. Memory text is data, never
+instructions; the rendered block says so.
+
+Settings live in `settings.memory` (`enabled`, `injectShare`, `autoLimit`), version 6. Turning memory off removes both
+tools through `enabledBuiltInTools` and skips injection, but keeps the items. Sync is deferred: records carry
+`updatedAt`, `deletedAt` and `scope`, and export/import (newest `updatedAt` wins, a tombstone wins a tie) is the v1
+bridge, so a `chrome.storage.sync` backend can be added without migrating data.
 
 ## Non-negotiables
 
@@ -52,6 +76,9 @@ when it is under ~400 tokens, when the strategy says so, or when the model has n
   helpers) because `chrome.scripting.executeScript({ func })` serializes it.
 - **Page content is untrusted input.** It is wrapped with an explicit instruction to ignore embedded instructions, and
   model output is never executed as code. Markdown is rendered with `html: false`.
+- **Memory is data, not instructions.** Saved memories are rendered under `## Memory` with an explicit note saying so,
+  and the tools forbid saving page or tool output as a memory. Only the user can make a memory always-on; the tools
+  accept `auto` and `tool` only.
 - **MCP servers are HTTP-only and live in the panel.** `@ai-sdk/mcp` is imported only by `src/state/mcp.ts`; the service
   worker must stay free of it (no process to spawn, so stdio servers cannot be supported). MCP has its own settings
   section (`src/options/McpSection.tsx`), separate from Built-in Tools. Each turn connects fresh, lists tools, and
@@ -105,5 +132,10 @@ migration.
 - Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in provider and skills so a
   corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove` for built-ins and `mcp` for remote
   servers; a malformed MCP entry is dropped on its own instead of resetting the document.
+- Adding a default-on tool means three edits in `src/core/settings.ts`: the id list (`READ_ONLY_TOOL_IDS` /
+  `ACTION_TOOL_IDS`), a `TOOLS_ADDED_IN` entry with the version it shipped in (add an `autoApprove` list when only some
+  of those ids should run without asking), and a `SETTINGS_VERSION` bump. Existing stores only receive the id when their
+  version is below that entry, which is what keeps a later user toggle from being undone on every load.
+- Icons: `MemoryStick` is memory everywhere (options nav, memory tool cards, the panel's save action).
 - Errors are `AppError` with a machine-readable kind (`src/providers/errors.ts`); never surface raw provider text only.
 - Keep modules small and co-located; a file that mixes UI and domain logic is a smell.

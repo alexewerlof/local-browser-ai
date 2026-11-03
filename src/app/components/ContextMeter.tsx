@@ -8,6 +8,7 @@ import { Popover } from './Popover'
 const PART_COLORS: Record<string, string> = {
 	system: 'var(--accent)',
 	environment: 'var(--fg-faint)',
+	memory: 'var(--memory)',
 	page: 'var(--success)',
 	summary: 'var(--warning)',
 	history: 'var(--secondary, oklch(0.62 0.13 250))',
@@ -68,7 +69,7 @@ export function ContextMeter({
 			<div className="popover__group">
 				<div className="popover__group-label">Context window</div>
 				{snapshot.parts.map((part) => (
-					<div key={part.id} className="context-row">
+					<div key={part.id} className="context-row" title={part.detail}>
 						<span className="context-row__swatch" style={{ background: PART_COLORS[part.id] }} />
 						<span className="context-row__label">{part.label}</span>
 						<span className="badge">{formatTokens(part.tokens)}</span>

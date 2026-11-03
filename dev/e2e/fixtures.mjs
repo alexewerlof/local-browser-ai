@@ -9,12 +9,17 @@ export const ALL_TOOLS = [
 	'get_current_datetime',
 	'search_web',
 	'open_url',
+	'remember',
+	'recall',
 ]
+
+/** Tools that never ask before running; `open_url` and memory updates do. */
+export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'open_url' && id !== 'remember')
 
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 5,
+		version: 6,
 		providers: [
 			{
 				id: 'local',
@@ -37,8 +42,9 @@ export function localSettings(endpoint, overrides = {}) {
 			strategy: 'tiered',
 			pageShare: 0.35,
 		},
-		tools: { enabled: ALL_TOOLS, autoApprove: ALL_TOOLS.filter((id) => id !== 'open_url'), mcp: [] },
+		tools: { enabled: ALL_TOOLS, autoApprove: AUTO_APPROVED_TOOLS, mcp: [] },
 		skills: [],
+		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
 		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant. Answer from the attached page.',
 		...overrides,
@@ -47,7 +53,7 @@ export function localSettings(endpoint, overrides = {}) {
 
 export function promptApiOnlySettings() {
 	return {
-		version: 5,
+		version: 6,
 		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
 		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
 		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
@@ -62,6 +68,7 @@ export function promptApiOnlySettings() {
 		},
 		tools: { enabled: [], autoApprove: [], mcp: [] },
 		skills: [],
+		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
 		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant.',
 	}

@@ -230,6 +230,29 @@
 	opacity: 1;
 }
 
+/* User messages have no footer, so saving to memory gets its own hover row. */
+.message__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-top: var(--space-1);
+	opacity: 0;
+	transition: opacity var(--duration-fast);
+}
+
+.message:hover .message__actions,
+.message__actions:focus-within {
+	opacity: 1;
+}
+
+.message__memory svg {
+	color: var(--memory);
+}
+
+.message__memory:disabled svg {
+	color: var(--success);
+}
+
 .message__error {
 	display: flex;
 	gap: var(--space-3);

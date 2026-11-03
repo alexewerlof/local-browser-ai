@@ -20,9 +20,9 @@ export function BuiltInToolsSection({ settings }: { settings: AppSettings }) {
 		<div className="section">
 			<p className="section__intro">
 				Tools that run inside the browser: they read the attached page, search it, search the web with your
-				default search engine, check the current date and time, and open links. Read-only tools and web search
-				run automatically; actions such as opening a link from the answer ask for approval on the message
-				itself.
+				default search engine, check the current date and time, save and search memories, and open links.
+				Read-only tools and web search run automatically; actions such as opening a link from the answer ask for
+				approval on the message itself.
 			</p>
 
 			<SettingsCard title="Built-in tools">
@@ -40,6 +40,9 @@ export function BuiltInToolsSection({ settings }: { settings: AppSettings }) {
 										</span>
 									</span>
 									<span className="row-item__desc">{definition.description}</span>
+									{definition.autoApproveHint && (
+										<span className="row-item__desc">{definition.autoApproveHint}</span>
+									)}
 									<div className="tool-option">
 										<Switch
 											label={`Run ${definition.label} without asking`}
@@ -63,7 +66,7 @@ export function BuiltInToolsSection({ settings }: { settings: AppSettings }) {
 
 			<div className="notice">
 				The built-in browser model cannot call tools. When it is selected, page content is placed in the prompt
-				instead.
+				instead, and memories are still injected.
 			</div>
 		</div>
 	)

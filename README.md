@@ -16,6 +16,10 @@ machine, or a hosted API.
   current date and time, search the web with your default search engine, and open links in a new tab (with your
   approval). A web search opens the results in a new tab; the model cannot read them, so it asks you to attach that tab
   when it needs the content.
+- **Memory.** A flat list of notes that survives across chats. An always-on memory is injected into every request, an
+  auto memory only when your message matches it, and a tool-only memory stays in storage until the model searches for it
+  with `recall`. The model saves new memories with `remember` without asking, but changing one it already saved asks
+  first. Edit, pin, delete and export them in **Settings → Memory**.
 - **Context budgeting and compaction.** A meter below the composer shows what the system prompt, page, summary and
   history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps going.
 - **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.
@@ -73,6 +77,10 @@ You can change the strategy in **Settings → Context**.
 Page content is only read when you attach a tab, and only sent to the provider you selected. API keys never leave the
 extension's local storage except in requests to that provider. There is no telemetry. See
 [privacy.txt](public/privacy.txt).
+
+Memories are stored in `chrome.storage.local` in this browser profile and are sent to the provider you selected, as part
+of the prompt. They are not synced and not sent anywhere else. **Settings → Memory → Export memories** writes them to a
+JSON file if you want them on another machine; import merges by id and keeps the newest version of each memory.
 
 ## Development
 

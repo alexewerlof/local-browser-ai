@@ -542,3 +542,60 @@ body {
 	flex: 1;
 	accent-color: var(--accent);
 }
+
+/* ------------------------------------------------------------------ memory */
+
+.badge--memory {
+	border-color: color-mix(in srgb, var(--memory) 45%, transparent);
+	color: var(--memory);
+}
+
+.memory-filter {
+	padding: 12px 20px;
+	border-bottom: 1px solid var(--separator);
+}
+
+.memory-filter .input {
+	width: 100%;
+}
+
+/* Two lines of preview, then an ellipsis: a memory can be a paragraph. */
+.memory-preview {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.memory-row__actions {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.memory-row__mode {
+	width: auto;
+	max-width: 220px;
+}
+
+.memory-empty {
+	display: flex;
+	align-items: center;
+	gap: var(--space-5);
+	padding: 20px;
+	color: var(--fg-muted);
+	font-size: var(--text-md);
+	line-height: 1.5;
+}
+
+.memory-empty svg {
+	flex: none;
+	color: var(--memory);
+}
+
+.notice--undo {
+	display: flex;
+	align-items: center;
+	gap: var(--space-4);
+}

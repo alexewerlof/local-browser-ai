@@ -13,7 +13,7 @@ import type {
 } from '../core/types'
 import { Store } from '../core/store'
 import { createId, now } from '../core/util'
-import { getProvider, hasEnabledTools, normalizeSettings } from '../core/settings'
+import { enabledBuiltInTools, getProvider, hasEnabledTools, normalizeSettings } from '../core/settings'
 import { buildContext, messageText, type ContextPart, type PageContextMode } from '../core/context/assembly'
 import { buildSummaryPrompt, microCompact, planCompaction, usageRatio } from '../core/context/compaction'
 import { createBudget, estimateTokens, type TokenBudget } from '../core/context/tokens'
@@ -24,6 +24,7 @@ import { buildProviderOptions, createLanguageModel } from '../providers/registry
 import { getPromptApiStatus } from '../providers/prompt-status'
 import { settingsStore } from './settings'
 import { attachmentStore, requestApproval, tabIdStore } from './browser'
+import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, saveConversation } from './database'
 
@@ -191,6 +192,8 @@ function publishContext(
 		// cannot act on a page index either.
 		toolsEnabled: toolsEnabledOverride ?? (Boolean(resolved?.info.capabilities.tools) && hasEnabledTools(settings)),
 		mcpServers: enabledMcpServers(settings.tools.mcp).map((server) => server.label),
+		memories: memoryStore.get().items,
+		memoryToolsEnabled: settings.memory.enabled && settings.tools.enabled.includes('recall'),
 	})
 
 	contextStore.set({
@@ -304,6 +307,8 @@ export function stopGeneration(): void {
 const toolContext: ToolContext = {
 	getAttachment: () => conversationStore.get().attachments[0] ?? null,
 	getTabId: () => tabIdStore.get(),
+	getConversationId: () => conversationStore.get().id,
+	memory: memoryAccess,
 	requestApproval,
 }
 
@@ -365,7 +370,9 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		})
 
 		const toolsEnabled = selection.info.capabilities.tools && hasEnabledTools(settings)
-		const builtInTools = selection.info.capabilities.tools ? buildTools(toolContext, settings.tools.enabled) : {}
+		const builtInTools = selection.info.capabilities.tools
+			? buildTools(toolContext, enabledBuiltInTools(settings), settings.tools.autoApprove)
+			: {}
 
 		// MCP servers connect per turn: a server edited in Settings must never keep
 		// serving yesterday's tools. Failures become warnings, never exceptions.

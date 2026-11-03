@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, PocketKnife, Wrench } from 'lucide-react'
+import { ChevronDown, ChevronRight, MemoryStick, PocketKnife, Wrench } from 'lucide-react'
 import type { ToolCallPart } from '../../core/types'
+import { isMemoryToolId } from '../../core/memory'
 import { resolveApproval } from '../../state/browser'
 import { useStore } from '../useStore'
 import { approvalsStore } from '../../state/browser'
@@ -14,6 +15,8 @@ const TOOL_LABELS: Record<string, string> = {
 	get_current_datetime: 'Checking the clock',
 	search_web: 'Searching the web',
 	open_url: 'Opening link',
+	remember: 'Saving to memory',
+	recall: 'Searching memory',
 }
 
 function preview(value: unknown, limit = 700): string {
@@ -28,7 +31,7 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	const approval = approvals.find((entry) => entry.id === part.toolCallId)
 	const label = part.label ?? TOOL_LABELS[part.toolName] ?? part.toolName
 	// MCP tools come from a remote server, so they carry the MCP mark instead of the wrench.
-	const Icon = part.server ? PocketKnife : Wrench
+	const Icon = part.server ? PocketKnife : isMemoryToolId(part.toolName) ? MemoryStick : Wrench
 
 	return (
 		<div className={`tool tool--${part.state}`}>
@@ -94,7 +97,7 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 function summarizeInput(part: ToolCallPart): string {
 	if (typeof part.input !== 'object' || part.input === null) return ''
 	const record = part.input as Record<string, unknown>
-	for (const key of ['heading', 'query', 'section', 'url']) {
+	for (const key of ['heading', 'query', 'section', 'url', 'text', 'title']) {
 		const value = record[key]
 		if (typeof value === 'string' && value) return trim(value)
 	}

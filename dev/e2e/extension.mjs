@@ -204,7 +204,7 @@ async function main() {
 		options.on('pageerror', (error) => pageErrors.push(error.message))
 		await options.goto(`chrome-extension://${extensionId}/options.html`)
 		await options.waitForSelector('.options', { timeout: 20000 })
-		assert.equal(await options.locator('.options__nav-item').count(), 7)
+		assert.equal(await options.locator('.options__nav-item').count(), 8)
 		// The brand is the extension icon plus its manifest name, and General leads the rail.
 		assert.equal(await options.locator('.options__nav-item').first().textContent(), 'General')
 		assert.equal(
@@ -278,7 +278,7 @@ async function main() {
 							stripOrigin: true,
 						},
 					]
-					await chrome.storage.local.set({ [key]: { ...stored, version: 5, tools } })
+					await chrome.storage.local.set({ [key]: { ...stored, version: 6, tools } })
 				}, mcp.url)
 
 				await mcpPage.reload()

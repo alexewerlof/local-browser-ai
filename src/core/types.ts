@@ -163,6 +163,67 @@ export interface Skill {
 	builtIn?: boolean
 }
 
+/* -------------------------------------------------------------------- memory */
+
+/**
+ * How a memory reaches the context.
+ *
+ * `always` is injected on every turn, `auto` only when the prompt matches it, and
+ * `tool` is passive: it sits in storage until the model asks for it with `recall`.
+ */
+export type MemoryMode = 'always' | 'auto' | 'tool'
+
+/**
+ * `global` is the only scope in v1. A future per-site scope only needs a new value
+ * here plus a filter in the selector; the record shape does not change.
+ */
+export type MemoryScope = 'global'
+
+export interface MemorySource {
+	conversationId: string
+	messageId?: string
+}
+
+export interface MemoryItem {
+	id: string
+	/** Short label shown in Settings. May be empty; the text is then used as the preview. */
+	title: string
+	text: string
+	mode: MemoryMode
+	scope: MemoryScope
+	createdAt: number
+	updatedAt: number
+	/**
+	 * Set when the user deletes the item. The record is kept for a while so a sync
+	 * backend can propagate the deletion instead of resurrecting the item.
+	 */
+	deletedAt?: number
+	/** Which chat the item came from, when the user saved it from a message. */
+	source?: MemorySource
+}
+
+export interface MemoryDocument {
+	version: number
+	items: MemoryItem[]
+}
+
+/** Versioned envelope used by export and import, so a file says what it contains. */
+export interface MemoryExport {
+	kind: 'local-browser-ai.memory'
+	version: number
+	exportedAt: number
+	items: MemoryItem[]
+}
+
+export interface MemorySettings {
+	/** Master switch for injection and for the memory tools. */
+	enabled: boolean
+	/** Largest share of the usable window the injected memory block may occupy (0.05 - 0.4). */
+	injectShare: number
+	/** Maximum number of matching `auto` memories injected in one turn. */
+	autoLimit: number
+}
+
 /* ------------------------------------------------------------------- settings */
 
 export interface ThinkingSelection {
@@ -252,13 +313,14 @@ export interface UiSettings {
 }
 
 export interface AppSettings {
-	version: 5
+	version: 6
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults
 	context: ContextSettings
 	tools: ToolSettings
 	skills: Skill[]
+	memory: MemorySettings
 	ui: UiSettings
 	systemPrompt: string
 }

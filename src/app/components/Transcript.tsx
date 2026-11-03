@@ -47,6 +47,7 @@ export function Transcript({
 						key={message.id}
 						message={message}
 						settings={settings}
+						conversationId={conversation.id}
 						isLast={index === conversation.messages.length - 1}
 						canRegenerate={
 							index === lastAssistantIndex &&
