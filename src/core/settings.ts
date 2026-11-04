@@ -1,5 +1,14 @@
 import { z } from 'zod'
-import type { AppSettings, MemorySettings, ProviderSettings, RenderingSettings, Skill, ToolSettings } from './types'
+import type {
+	AppSettings,
+	FontSize,
+	MemorySettings,
+	ProviderSettings,
+	RenderingSettings,
+	Skill,
+	ToolSettings,
+	UiSettings,
+} from './types'
 import { isHttpUrl } from './mcp'
 import { isMemoryToolId } from './memory'
 
@@ -8,7 +17,27 @@ export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 export const PROMPT_API_MODEL_ID = 'text'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 7
+export const SETTINGS_VERSION = 8
+
+/**
+ * Text sizes offered for the panel, mirroring Chrome's own font-size setting. `medium`
+ * leaves every `--text-*` token at its designed pixel value.
+ */
+export const FONT_SIZES = ['very-small', 'small', 'medium', 'large', 'very-large'] as const
+export const DEFAULT_FONT_SIZE: FontSize = 'medium'
+
+/**
+ * Multiplier applied to the type scale in `tokens.css`. Chrome's own ladder runs from 9px to
+ * 24px on a 16px base, which is far too aggressive around a 13px panel, so the steps are
+ * gentler while keeping `medium` exactly as designed.
+ */
+export const FONT_SIZE_SCALES: Record<FontSize, number> = {
+	'very-small': 0.75,
+	small: 0.85,
+	medium: 1,
+	large: 1.25,
+	'very-large': 1.5,
+}
 
 const modelRefSchema = z.object({
 	providerId: z.string(),
@@ -66,6 +95,14 @@ const renderingSettingsSchema = z.object({
 	codeHighlighting: z.boolean(),
 })
 
+const fontSizeSchema = z.enum(FONT_SIZES)
+
+const uiSettingsSchema = z.object({
+	theme: z.enum(['system', 'light', 'dark']),
+	submitKey: z.enum(['enter', 'mod+enter']),
+	fontSize: fontSizeSchema,
+})
+
 export const settingsSchema = z.object({
 	version: z.literal(SETTINGS_VERSION),
 	providers: z.array(providerSchema),
@@ -97,10 +134,7 @@ export const settingsSchema = z.object({
 	}),
 	// Added in v7; a store written before it existed gets the defaults.
 	rendering: renderingSettingsSchema.default({ math: true, codeHighlighting: false }),
-	ui: z.object({
-		theme: z.enum(['system', 'light', 'dark']),
-		submitKey: z.enum(['enter', 'mod+enter']),
-	}),
+	ui: uiSettingsSchema,
 	systemPrompt: z.string(),
 })
 
@@ -221,6 +255,7 @@ export const defaultSettings = (): AppSettings => ({
 	ui: {
 		theme: 'system',
 		submitKey: 'enter',
+		fontSize: DEFAULT_FONT_SIZE,
 	},
 	systemPrompt: defaultSystemPrompt,
 })
@@ -351,6 +386,25 @@ function sanitizeRenderingSettings(value: unknown, fallback: RenderingSettings):
 }
 
 /**
+ * One bad UI field must not reset the others, and must never reset the rest of the document
+ * (that would drop providers and API keys).
+ */
+function sanitizeUiSettings(value: unknown, fallback: UiSettings): UiSettings {
+	if (!value || typeof value !== 'object') return fallback
+	const record = value as Record<string, unknown>
+	const parsed = uiSettingsSchema.safeParse(record)
+	if (parsed.success) return parsed.data
+
+	const theme = record.theme
+	const submitKey = record.submitKey
+	return {
+		theme: theme === 'system' || theme === 'light' || theme === 'dark' ? theme : fallback.theme,
+		submitKey: submitKey === 'enter' || submitKey === 'mod+enter' ? submitKey : fallback.submitKey,
+		fontSize: fontSizeSchema.safeParse(record.fontSize).data ?? fallback.fontSize,
+	}
+}
+
+/**
  * Turn whatever was stored into a valid settings object.
  *
  * Built-in skills are always present (user copies are kept alongside them), and the
@@ -376,10 +430,7 @@ export function normalizeSettings(input: unknown): AppSettings {
 						(stored as { rendering?: unknown }).rendering,
 						defaults.rendering,
 					),
-					ui: {
-						...defaults.ui,
-						...((stored as { ui?: Record<string, unknown> }).ui ?? {}),
-					},
+					ui: sanitizeUiSettings((stored as { ui?: unknown }).ui, defaults.ui),
 					systemPrompt:
 						typeof (stored as { systemPrompt?: unknown }).systemPrompt === 'string'
 							? (stored as { systemPrompt: string }).systemPrompt

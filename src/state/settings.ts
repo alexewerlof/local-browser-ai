@@ -1,5 +1,5 @@
 import { debounce } from '../core/util'
-import { defaultSettings, normalizeSettings } from '../core/settings'
+import { defaultSettings, FONT_SIZE_SCALES, normalizeSettings } from '../core/settings'
 import { Store } from '../core/store'
 import type { AppSettings } from '../core/types'
 import { syncOriginStripping } from '../platform/net-rules'
@@ -14,11 +14,17 @@ const persist = debounce((settings: AppSettings) => {
 	void storage.set(STORAGE_KEYS.settings, settings)
 }, 250)
 
-function applyTheme(settings: AppSettings): void {
+/**
+ * Appearance is a document-level concern, so it is applied to `<html>` whenever settings land
+ * rather than from a component effect: the panel and the options page both read the same
+ * `data-theme` attribute and `--text-scale` token.
+ */
+function applyAppearance(settings: AppSettings): void {
 	if (typeof document === 'undefined') return
 	const root = document.documentElement
 	if (settings.ui.theme === 'system') root.removeAttribute('data-theme')
 	else root.setAttribute('data-theme', settings.ui.theme)
+	root.style.setProperty('--text-scale', String(FONT_SIZE_SCALES[settings.ui.fontSize]))
 }
 
 /**
@@ -33,7 +39,7 @@ export async function loadSettings(): Promise<AppSettings> {
 	const stored = await storage.get<unknown>(STORAGE_KEYS.settings, null)
 	const settings = normalizeSettings(stored)
 	settingsStore.set(settings)
-	applyTheme(settings)
+	applyAppearance(settings)
 	applyNetworkRules(settings)
 	settingsStatusStore.set('ready')
 	return settings
@@ -49,7 +55,7 @@ export async function initSettings(): Promise<void> {
 	storage.watch(STORAGE_KEYS.settings, (value) => {
 		const settings = normalizeSettings(value)
 		settingsStore.set(settings)
-		applyTheme(settings)
+		applyAppearance(settings)
 		applyNetworkRules(settings)
 	})
 }
@@ -57,7 +63,7 @@ export async function initSettings(): Promise<void> {
 export function updateSettings(update: (settings: AppSettings) => AppSettings): void {
 	const next = update(settingsStore.get())
 	settingsStore.set(next)
-	applyTheme(next)
+	applyAppearance(next)
 	applyNetworkRules(next)
 	persist(next)
 }

@@ -187,6 +187,11 @@ migration.
   Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
+- Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
+  the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
+  `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`
+  scale in `tokens.css`. `medium` renders exactly the designed pixels, and nothing but type scales — controls use
+  `min-height`, so they only grow when the text needs it.
 - Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in provider and skills so a
   corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove` for built-ins and `mcp` for remote
   servers; a malformed MCP entry is dropped on its own instead of resetting the document.

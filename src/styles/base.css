@@ -129,14 +129,16 @@ a:hover {
 	border: 0;
 }
 
-/* Chrome's cr-button: a pill with a tonal outline and primary-coloured label. */
+/* Chrome's cr-button: a pill with a tonal outline and primary-coloured label. Text-only
+   scaling means the label can outgrow the designed height, so it is a floor rather than a
+   fixed height. */
 .button {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: var(--space-4);
-	height: var(--button-height);
-	padding: 0 var(--space-5);
+	min-height: var(--button-height);
+	padding: var(--space-1) var(--space-5);
 	border-radius: var(--radius-pill);
 	border: 1px solid var(--accent-border);
 	background: transparent;
@@ -190,8 +192,8 @@ a:hover {
 }
 
 .button--sm {
-	height: calc(var(--button-height) - 4px);
-	padding: 0 var(--space-4);
+	min-height: calc(var(--button-height) - 4px);
+	padding: var(--space-1) var(--space-4);
 	font-size: var(--text-sm);
 }
 
@@ -230,7 +232,7 @@ a:hover {
 
 .input,
 .select {
-	height: var(--control-height);
+	min-height: var(--control-height);
 }
 
 .input:hover:not(:disabled),
@@ -282,7 +284,7 @@ a:hover {
 .badge {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--space-1);
+	min-gap: var(--space-1);
 	height: 20px;
 	padding: 0 var(--space-4);
 	border-radius: var(--radius-pill);

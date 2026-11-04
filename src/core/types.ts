@@ -320,10 +320,15 @@ export interface McpServerSettings {
 	stripOrigin: boolean
 }
 
+/** Chrome's own font-size ladder; `medium` is the panel's designed size. */
+export type FontSize = 'very-small' | 'small' | 'medium' | 'large' | 'very-large'
+
 export interface UiSettings {
 	theme: 'system' | 'light' | 'dark'
 	/** Which key combination submits the composer. */
 	submitKey: 'enter' | 'mod+enter'
+	/** Text size of the panel and the options page. */
+	fontSize: FontSize
 }
 
 /**
@@ -338,7 +343,7 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 7
+	version: 8
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults

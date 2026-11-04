@@ -16,7 +16,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -70,7 +70,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -88,7 +88,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -133,7 +133,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.tools.mcp).toEqual([])
 	})
 
@@ -145,20 +145,20 @@ describe('normalizeSettings', () => {
 			ui: { ...legacyUi, sendKey: 'mod+enter' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.ui.submitKey).toBe('mod+enter')
 	})
 
 	it('fills in a missing submit key with the default', () => {
 		const stored = { ...defaultSettings(), ui: { theme: 'dark' } }
 		const settings = normalizeSettings(stored)
-		expect(settings.ui).toEqual({ theme: 'dark', submitKey: 'enter' })
+		expect(settings.ui).toEqual({ theme: 'dark', submitKey: 'enter', fontSize: 'medium' })
 	})
 
 	it('adds the rendering flags to a store written before they existed', () => {
 		const stored = { ...defaultSettings(), version: 6 }
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.rendering).toEqual({ math: true, codeHighlighting: false })
 	})
 
@@ -170,6 +170,38 @@ describe('normalizeSettings', () => {
 	it('falls back per rendering flag when a value is malformed', () => {
 		const stored = { ...defaultSettings(), rendering: { math: 'yes', codeHighlighting: true } }
 		expect(normalizeSettings(stored).rendering).toEqual({ math: true, codeHighlighting: true })
+	})
+
+	it('defaults the font size to medium', () => {
+		expect(defaultSettings().ui.fontSize).toBe('medium')
+	})
+
+	it('adds the font size to a store written before it existed, keeping the rest of the UI', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 7,
+			ui: { theme: 'dark', submitKey: 'mod+enter' },
+		}
+		expect(normalizeSettings(stored).ui).toEqual({
+			theme: 'dark',
+			submitKey: 'mod+enter',
+			fontSize: 'medium',
+		})
+	})
+
+	it('keeps the font size the user chose', () => {
+		const stored = { ...defaultSettings(), ui: { ...defaultSettings().ui, fontSize: 'large' } }
+		expect(normalizeSettings(stored).ui.fontSize).toBe('large')
+	})
+
+	it('falls back to medium for an unknown font size without resetting the document', () => {
+		const stored = {
+			...defaultSettings(),
+			ui: { ...defaultSettings().ui, fontSize: 'gigantic' },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.ui.fontSize).toBe('medium')
+		expect(settings.providers[0]?.kind).toBe('prompt-api')
 	})
 
 	it('keeps MCP servers across normalization, including a disabled one', () => {
@@ -241,7 +273,7 @@ describe('memory settings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(7)
+		expect(settings.version).toBe(8)
 		expect(settings.memory.enabled).toBe(true)
 		expect(settings.tools.enabled).toEqual(['find_in_page', 'remember', 'recall'])
 		expect(settings.tools.autoApprove).toEqual(['recall'])

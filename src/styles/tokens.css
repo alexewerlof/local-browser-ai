@@ -13,13 +13,17 @@
 	--font-ui: Roboto, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 	--font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
 
-	--text-xs: 11px;
-	--text-sm: 12px;
-	--text-md: 13px;
+	/* Text size preference, written to the root element from `applyAppearance`. Multiplying
+	   the tokens keeps every consumer on one scale without touching spacing or control sizes;
+	   `1` reproduces the designed pixels exactly. */
+	--text-scale: 1;
+	--text-xs: calc(11px * var(--text-scale));
+	--text-sm: calc(12px * var(--text-scale));
+	--text-md: calc(13px * var(--text-scale));
 	/* Chrome's section headings and card titles are 108% of the 13px base. */
-	--text-title: 14px;
-	--text-lg: 15px;
-	--text-xl: 18px;
+	--text-title: calc(14px * var(--text-scale));
+	--text-lg: calc(15px * var(--text-scale));
+	--text-xl: calc(18px * var(--text-scale));
 
 	--space-1: 2px;
 	--space-2: 4px;

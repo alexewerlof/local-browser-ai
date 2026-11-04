@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppSettings } from '../core/types'
+import type { AppSettings, FontSize } from '../core/types'
 import { defaultSystemPrompt } from '../core/settings'
 import { formatBytes } from '../core/util'
 import { clearConversations, storageEstimate } from '../state/database'
@@ -7,6 +7,15 @@ import { updateSettings } from '../state/settings'
 import { getManifest } from '../platform/chrome'
 import { RangeField, SelectField, Switch, TextAreaField } from './fields'
 import { SettingsCard } from './SettingsCard'
+
+/** Chrome's own wording, with the designed size marked as recommended. */
+const FONT_SIZE_OPTIONS: Array<{ value: FontSize; label: string }> = [
+	{ value: 'very-small', label: 'Very small' },
+	{ value: 'small', label: 'Small' },
+	{ value: 'medium', label: 'Medium (Recommended)' },
+	{ value: 'large', label: 'Large' },
+	{ value: 'very-large', label: 'Very large' },
+]
 
 /**
  * A row with a switch on the right. `Field` is a `<label>`, which must not contain another
@@ -71,6 +80,15 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 						}
 					/>
 				</div>
+				<SelectField
+					label="Font size"
+					value={settings.ui.fontSize}
+					options={FONT_SIZE_OPTIONS}
+					onChange={(fontSize) =>
+						updateSettings((current) => ({ ...current, ui: { ...current.ui, fontSize } }))
+					}
+					hint="Applies to the side panel and to this page. Medium is the size the panel was designed around."
+				/>
 			</SettingsCard>
 
 			<SettingsCard title="Rendering">
