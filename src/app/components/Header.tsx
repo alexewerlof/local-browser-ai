@@ -1,4 +1,4 @@
-import { MessagesSquare, Plus, Settings } from 'lucide-react'
+import { MessageSquarePlus, MessagesSquare, Settings } from 'lucide-react'
 import type { Conversation } from '../../core/types'
 import { openOptionsPage } from '../../platform/chrome'
 
@@ -23,7 +23,7 @@ export function Header({
 				title="New chat"
 				aria-label="New chat"
 			>
-				<Plus size={15} />
+				<MessageSquarePlus size={15} />
 			</button>
 			<button
 				type="button"

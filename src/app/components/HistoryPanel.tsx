@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MessagesSquare, Plus, Trash2, X } from 'lucide-react'
+import { MessageSquarePlus, MessagesSquare, Trash2, X } from 'lucide-react'
 import { listConversations, type ConversationMeta } from '../../state/database'
 import { relativeTime } from '../../core/util'
 
@@ -57,7 +57,7 @@ export function HistoryPanel({
 						}}
 						title="New chat"
 					>
-						<Plus size={14} />
+						<MessageSquarePlus size={14} />
 					</button>
 					<button
 						type="button"
