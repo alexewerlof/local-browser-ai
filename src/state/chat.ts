@@ -27,6 +27,15 @@ import { attachmentStore, requestApproval, tabIdStore } from './browser'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, saveConversation } from './database'
+import {
+	bindQueue,
+	enqueuePrompt,
+	flushQueuePersistence,
+	loadQueueFor,
+	queueStore,
+	restorePromptFront,
+	takeNextQueuedPrompt,
+} from './queue'
 
 /* --------------------------------------------------------------------- state */
 
@@ -70,6 +79,8 @@ export function createConversation(model: ModelRef | null): Conversation {
 }
 
 export const conversationStore = new Store<Conversation>(createConversation(null))
+// The panel opens on a fresh chat, so its queue starts empty.
+bindQueue(conversationStore.get().id)
 export const runStore = new Store<RunState>({ status: 'idle' })
 export const contextStore = new Store<ContextSnapshot>({
 	parts: [],
@@ -83,6 +94,15 @@ export const contextStore = new Store<ContextSnapshot>({
 })
 
 let activeController: AbortController | null = null
+/** True while `drainQueue` owns the run loop, so a nested turn does not drain twice. */
+let draining = false
+/** True while the panel is swapping conversations; no run may start in that window. */
+let switchingConversation = false
+/**
+ * Set when the user stops the loop with prompts still queued. The next prompt only
+ * starts when they press Continue, so Stop is not a "run everything" button.
+ */
+export const queuePausedStore = new Store(false)
 
 /* --------------------------------------------------------------- persistence */
 
@@ -106,7 +126,7 @@ export async function flushPersistence(): Promise<void> {
 		saveTimer = null
 	}
 	savePending = false
-	await saveConversation(conversationStore.get())
+	await Promise.all([saveConversation(conversationStore.get()), flushQueuePersistence()])
 }
 
 /** Set the store and keep the tool mirror in sync. */
@@ -243,6 +263,9 @@ export function newChat(): void {
 	// The page you are reading is the context of the sidebar, not of one transcript.
 	conversation.attachments = previous.attachments
 	commit(conversation)
+	// The outgoing chat keeps its own persisted queue; the new one starts empty.
+	bindQueue(conversation.id)
+	queuePausedStore.set(false)
 	runStore.set({ status: 'idle' })
 	refreshContext()
 }
@@ -254,18 +277,30 @@ export function newChat(): void {
  */
 export async function openConversation(id: string): Promise<void> {
 	if (conversationStore.get().id === id) return
-	stopGeneration()
-	// Persist the outgoing transcript before swapping the store, otherwise the pending
-	// debounced save would fire against the conversation we are about to load.
-	await flushPersistence()
-	const stored = await loadConversation(id)
-	if (!stored) return
-	commit(stored)
-	runStore.set({ status: 'idle' })
-	// The live tab may belong to a different conversation; page tools still work from
-	// the attachment, but `get_selection` must not read an unrelated page.
-	tabIdStore.set(null)
-	refreshContext()
+	// Stop first, then swap. The aborted run's `finally` must not drain the old queue
+	// into a conversation the panel is about to replace.
+	switchingConversation = true
+	try {
+		stopGeneration()
+		// Persist the outgoing transcript and queue before swapping the store, otherwise
+		// the pending debounced save would fire against the conversation we are about to load.
+		await flushPersistence()
+		const stored = await loadConversation(id)
+		if (!stored) return
+		commit(stored)
+		await loadQueueFor(id)
+		// A pause belongs to the run the user stopped, not to a chat they open later.
+		queuePausedStore.set(false)
+		runStore.set({ status: 'idle' })
+		// The live tab may belong to a different conversation; page tools still work from
+		// the attachment, but `get_selection` must not read an unrelated page.
+		tabIdStore.set(null)
+		refreshContext()
+	} finally {
+		switchingConversation = false
+	}
+	// Pending prompts of the chat we just opened pick up where they left off.
+	void drainQueue()
 }
 
 export async function removeConversation(id: string): Promise<void> {
@@ -300,6 +335,16 @@ export function markAttachmentStale(): void {
 
 export function stopGeneration(): void {
 	activeController?.abort()
+	// Stopping means "stop the loop", not "skip this answer": keep the queue parked
+	// until the user explicitly continues it. With nothing queued there is nothing to
+	// pause, so the flag stays out of the way.
+	if (queueStore.get().length > 0) queuePausedStore.set(true)
+}
+
+/** Resume the queue after a Stop (the Continue button). */
+export function resumeQueue(): void {
+	queuePausedStore.set(false)
+	void drainQueue()
 }
 
 /* --------------------------------------------------------------- the model run */
@@ -631,6 +676,9 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		if (!delegated && runStore.get().status === 'streaming') runStore.set({ status: 'idle' })
 		// Session ids die with a turn; the next turn reconnects and re-lists tools.
 		await mcpBundle?.close()
+		// A retried run owns the run state and drains itself; a run for a conversation
+		// that is no longer on screen leaves its queue for when that chat is reopened.
+		if (!delegated && isCurrentConversation() && !queuePausedStore.get()) void drainQueue()
 	}
 }
 
@@ -644,11 +692,8 @@ function withTitle(conversation: Conversation): Conversation {
 
 /* ------------------------------------------------------------------- prompts */
 
-export async function submitPrompt(text: string, skillId?: string): Promise<void> {
-	const content = text.trim()
-	if (!content) return
-	if (runStore.get().status !== 'idle') return
-
+/** Append a user turn plus its empty assistant answer and run it. Assumes idle. */
+async function startTurn(content: string, skillId?: string): Promise<void> {
 	const conversation = conversationStore.get()
 	const userMessage: ChatMessage = {
 		id: createId('msg'),
@@ -672,12 +717,71 @@ export async function submitPrompt(text: string, skillId?: string): Promise<void
 		updatedAt: now(),
 	}
 	commit(updated)
+	// Write the turn now rather than on the 400 ms debounce: if the panel is reloaded or
+	// closed while the answer streams, the chat (and its queued prompts) must be there.
+	await saveConversation(updated)
 	await runTurn(assistantMessage.id)
+}
+
+/**
+ * Send a prompt, or queue it when the agent is busy. The queue is drained by the run
+ * loop once it goes idle, so the panel can accept the next message while a local model
+ * is still thinking.
+ */
+export async function submitPrompt(text: string, skillId?: string): Promise<void> {
+	const content = text.trim()
+	if (!content) return
+	// Typing and sending is an explicit intent to keep the loop moving.
+	queuePausedStore.set(false)
+
+	if (draining || runStore.get().status !== 'idle') {
+		await enqueuePrompt(conversationStore.get().id, content, skillId)
+		// The run may have gone idle while the queue write was in flight, and its own
+		// drain has already passed. Ask for another pass; a live drain ignores this.
+		void drainQueue()
+		return
+	}
+
+	await startTurn(content, skillId)
+}
+
+/**
+ * Start queued prompts one after another. Each prompt leaves the queue before its turn
+ * begins, so a failing answer cannot replay the same entry forever.
+ */
+async function drainQueue(): Promise<void> {
+	if (draining || switchingConversation || queuePausedStore.get()) return
+	draining = true
+	const conversationId = conversationStore.get().id
+	try {
+		while (
+			!switchingConversation &&
+			!queuePausedStore.get() &&
+			conversationStore.get().id === conversationId &&
+			runStore.get().status === 'idle'
+		) {
+			const next = await takeNextQueuedPrompt(conversationId)
+			if (!next) break
+			// The panel may have moved on while the write was in flight; the prompt still
+			// belongs to its own conversation, so hand it back instead of starting it here.
+			if (
+				switchingConversation ||
+				conversationStore.get().id !== conversationId ||
+				runStore.get().status !== 'idle'
+			) {
+				await restorePromptFront(conversationId, next)
+				break
+			}
+			await startTurn(next.text, next.skillId)
+		}
+	} finally {
+		draining = false
+	}
 }
 
 /** Remove the last assistant answer and generate it again from the same user turn. */
 export async function regenerate(): Promise<void> {
-	if (runStore.get().status !== 'idle') return
+	if (draining || runStore.get().status !== 'idle') return
 	const conversation = conversationStore.get()
 	const messages = [...conversation.messages]
 
@@ -748,7 +852,7 @@ async function maybeAutoCompact(
 
 /** Compact on demand from the context panel. */
 export async function compactNow(): Promise<void> {
-	if (runStore.get().status !== 'idle') return
+	if (draining || runStore.get().status !== 'idle') return
 	const settings = settingsStore.get()
 	const conversation = conversationStore.get()
 	runStore.set({ status: 'compacting' })
@@ -766,6 +870,7 @@ export async function compactNow(): Promise<void> {
 	}
 	runStore.set({ status: 'idle' })
 	refreshContext()
+	void drainQueue()
 }
 
 /* ------------------------------------------------------------------ helpers */

@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp, FileText, GraduationCap, RefreshCw, Square, TriangleAlert } from 'lucide-react'
-import type { AppSettings, Conversation, ModelRef, ThinkingSelection } from '../../core/types'
+import {
+	ArrowUp,
+	FileText,
+	GraduationCap,
+	ListOrdered,
+	Play,
+	RefreshCw,
+	Square,
+	Trash2,
+	TriangleAlert,
+} from 'lucide-react'
+import type { AppSettings, Conversation, ModelRef, QueuedPrompt, ThinkingSelection } from '../../core/types'
 import type { ContextSnapshot, RunState } from '../../state/chat'
 import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
+import { queueStore, removeQueuedPrompt } from '../../state/queue'
 import { updateSettings } from '../../state/settings'
 import { estimateTokens } from '../../core/context/tokens'
 import { formatTokens } from '../../core/util'
@@ -21,8 +32,10 @@ export function Composer({
 	context,
 	attachBusy,
 	attachError,
+	queuePaused,
 	onSubmit,
 	onStop,
+	onContinue,
 	onAttach,
 	onRefreshAttachment,
 	onRemoveAttachment,
@@ -35,8 +48,11 @@ export function Composer({
 	context: ContextSnapshot
 	attachBusy: boolean
 	attachError: string | null
+	/** True when the user stopped the loop with prompts still queued. */
+	queuePaused: boolean
 	onSubmit: (text: string, skillId?: string) => void
 	onStop: () => void
+	onContinue: () => void
 	onAttach: () => void
 	onRefreshAttachment: () => void
 	onRemoveAttachment: () => void
@@ -45,6 +61,7 @@ export function Composer({
 }) {
 	const draft = useStore(draftStore)
 	const activeSkill = useStore(skillStore)
+	const queue = useStore(queueStore)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const [slashOpen, setSlashOpen] = useState(false)
 
@@ -73,10 +90,30 @@ export function Composer({
 
 	const submit = () => {
 		const text = draftStore.get().trim()
-		if (!text || busy) return
+		if (!text) return
 		onSubmit(text, activeSkill ?? undefined)
 		clearComposer()
 		setSlashOpen(false)
+	}
+
+	/**
+	 * Pull a queued prompt back into the composer instead of deleting it: the user typed
+	 * it already, so it replaces the draft and stays editable.
+	 */
+	const editQueued = async (item: QueuedPrompt) => {
+		const removed = await removeQueuedPrompt(conversation.id, item.id)
+		if (!removed) return
+		setDraft(removed.text)
+		skillStore.set(removed.skillId ?? null)
+		setSlashOpen(false)
+		// After React has written the new value, focus and put the caret at the end.
+		requestAnimationFrame(() => {
+			const textarea = textareaRef.current
+			if (!textarea) return
+			textarea.focus()
+			const end = textarea.value.length
+			textarea.setSelectionRange(end, end)
+		})
 	}
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -125,6 +162,35 @@ export function Composer({
 				</div>
 			)}
 
+			{queue.length > 0 && (
+				<div className="composer__queue" role="region" aria-label="Queued prompts">
+					<div className="composer__queue-label">
+						<ListOrdered size={12} />
+						<span>Queued · {queue.length}</span>
+					</div>
+					{queue.map((item) => {
+						const skill = item.skillId
+							? settings.skills.find((entry) => entry.id === item.skillId)
+							: undefined
+						return (
+							<div key={item.id} className="composer__queue-item">
+								<button
+									type="button"
+									className="button button--ghost button--icon composer__queue-remove"
+									onClick={() => editQueued(item)}
+									title="Remove from queue and edit"
+									aria-label={`Remove queued prompt and edit: ${item.text.slice(0, 60)}`}
+								>
+									<Trash2 size={12} />
+								</button>
+								{skill && <GraduationCap size={12} className="composer__queue-skill" />}
+								<span className="composer__queue-text">{item.text}</span>
+							</div>
+						)
+					})}
+				</div>
+			)}
+
 			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
 				{slashOpen && (
 					<div className="slash">
@@ -147,7 +213,13 @@ export function Composer({
 				<textarea
 					ref={textareaRef}
 					className="composer__input"
-					placeholder={attachment ? 'Ask about this page…' : 'Ask anything, or type / for a skill'}
+					placeholder={
+						busy
+							? 'Queue another message…'
+							: attachment
+								? 'Ask about this page…'
+								: 'Ask anything, or type / for a skill'
+					}
 					value={draft}
 					rows={1}
 					onChange={(event) => {
@@ -215,7 +287,7 @@ export function Composer({
 
 					<span className="spacer" />
 
-					{streaming ? (
+					{streaming && (
 						<button
 							type="button"
 							className="button button--icon"
@@ -225,18 +297,32 @@ export function Composer({
 						>
 							<Square size={13} />
 						</button>
-					) : (
+					)}
+
+					{/* Stop parks the queue; this is how the user restarts it. */}
+					{queuePaused && queue.length > 0 && !busy && (
 						<button
 							type="button"
-							className="button button--primary button--icon composer__submit"
-							onClick={submit}
-							disabled={!draft.trim() || busy}
-							title="Submit"
-							aria-label="Submit"
+							className="button button--icon"
+							onClick={onContinue}
+							title="Continue queued prompts"
+							aria-label="Continue"
 						>
-							<ArrowUp size={14} />
+							<Play size={13} />
 						</button>
 					)}
+
+					{/* Always available: it sends when idle and queues while the agent works. */}
+					<button
+						type="button"
+						className="button button--primary button--icon composer__submit"
+						onClick={submit}
+						disabled={!draft.trim()}
+						title={busy ? 'Queue prompt' : 'Submit'}
+						aria-label="Submit"
+					>
+						<ArrowUp size={14} />
+					</button>
 				</div>
 			</div>
 

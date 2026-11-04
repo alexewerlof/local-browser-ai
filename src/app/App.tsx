@@ -5,8 +5,10 @@ import {
 	compactNow,
 	conversationStore,
 	contextStore,
+	queuePausedStore,
 	regenerate,
 	removeConversation,
+	resumeQueue,
 	runStore,
 	setModel,
 	submitPrompt,
@@ -32,6 +34,7 @@ export function App() {
 	const conversation = useStore(conversationStore)
 	const run = useStore(runStore)
 	const context = useStore(contextStore)
+	const queuePaused = useStore(queuePausedStore)
 	const attachBusy = useStore(attachBusyStore)
 	const attachError = useStore(attachErrorStore)
 	const mcpWarnings = useStore(mcpWarningsStore)
@@ -133,8 +136,10 @@ export function App() {
 				context={context}
 				attachBusy={attachBusy}
 				attachError={attachError}
+				queuePaused={queuePaused}
 				onSubmit={(text, skillId) => void submitPrompt(text, skillId)}
 				onStop={stopGeneration}
+				onContinue={resumeQueue}
 				onAttach={() => void attachClickedTab()}
 				onRefreshAttachment={() => void refreshAttachment()}
 				onRemoveAttachment={detachAttachment}

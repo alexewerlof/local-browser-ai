@@ -153,6 +153,20 @@ export interface Conversation {
 	contextTokens: number
 }
 
+/**
+ * A prompt the user submitted while the agent was busy. Queues are per conversation
+ * and live in their own IndexedDB store, not on `Conversation`: `runTurn` commits a
+ * working copy of the conversation for every token, which would otherwise overwrite a
+ * removal made while the run is still streaming.
+ */
+export interface QueuedPrompt {
+	id: string
+	text: string
+	/** The skill that was active when the prompt was queued, so draining keeps it. */
+	skillId?: string
+	createdAt: number
+}
+
 /* -------------------------------------------------------------------- skills */
 
 export interface Skill {

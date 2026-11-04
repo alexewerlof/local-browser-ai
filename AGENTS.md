@@ -7,16 +7,16 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 
 ## Architecture
 
-| Layer       | Location           | Responsibility                                                                           |
-| ----------- | ------------------ | ---------------------------------------------------------------------------------------- |
-| UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.  |
-| Settings UI | `src/options/`     | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.   |
-| Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, memory, compaction.   |
-| Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping. |
-| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped remote tools.             |
-| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, browser tools.          |
-| State       | `src/state/`       | Settings, conversation, run state, memory, IndexedDB persistence, attachment plumbing.   |
-| Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                          |
+| Layer       | Location           | Responsibility                                                                               |
+| ----------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.      |
+| Settings UI | `src/options/`     | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.       |
+| Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, memory, compaction.       |
+| Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.     |
+| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped remote tools.                 |
+| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, browser tools.              |
+| State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, IndexedDB persistence, attachments. |
+| Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                              |
 
 Entry points: `side-panel.html` + `src/app/main.tsx`, `options.html` + `src/options/main.tsx`, and the service worker
 `src/browser/background.ts` (built separately to keep React and the AI SDK out of it).
@@ -57,6 +57,34 @@ Settings live in `settings.memory` (`enabled`, `injectShare`, `autoLimit`), vers
 tools through `enabledBuiltInTools` and skips injection, but keeps the items. Sync is deferred: records carry
 `updatedAt`, `deletedAt` and `scope`, and export/import (newest `updatedAt` wins, a tombstone wins a tie) is the v1
 bridge, so a `chrome.storage.sync` backend can be added without migrating data.
+
+## Prompt queue
+
+The composer stays usable while a run streams: submitting during a run appends to a per-conversation FIFO queue shown
+above the input, and the run loop starts the next prompt when it goes idle (completion or error). Both buttons are
+visible while streaming — Stop aborts the current answer, Submit queues the next prompt.
+
+**Stop parks the queue.** The user pressed Stop to get out of the loop, not to skip this answer and run everything else,
+so `stopGeneration` sets `queuePausedStore` (only when something is queued) and `runTurn`'s `finally` skips the drain. A
+Continue button (Lucide `Play`, `aria-label="Continue"`) appears next to Submit while the queue is paused;
+`resumeQueue()` clears the flag and drains. Any explicit submit, `newChat` and `openConversation` also clear it, so a
+new prompt or a freshly opened chat never inherits an old pause. The pause is in-memory only: a reloaded panel resumes
+the queue (that is what `21-queue-persist` asserts).
+
+`src/state/queue.ts` owns `queueStore` (only ever the queue of the conversation on screen) and `src/state/database.ts`
+holds it in the `queues` object store keyed by conversation id (DB v2). The queue is **not** a field on `Conversation`:
+`runTurn` commits a working copy for every token, so a removal made mid-run would be overwritten. Writes are serialized
+through one chain and persisted **before** they are published, so a visible row is already durable and a reload cannot
+lose it. `startTurn` also saves the conversation immediately instead of on the 400 ms debounce, so a reload mid-stream
+keeps the chat (and its queue) rather than orphaning the queue; `loadConversation` marks a leftover `streaming` message
+`aborted` so a reopened chat has no permanent typing indicator.
+
+`chat.ts` owns draining. `submitPrompt` enqueues when `runStore` is not idle, `runTurn`'s `finally` and `compactNow`
+call `drainQueue`, and three flags keep it single-owner: `draining` (a nested turn must not drain again),
+`switchingConversation` (set across `openConversation`, so an aborted run cannot drain one chat's queue into another; a
+prompt taken in that window is handed back with `restorePromptFront`) and `queuePausedStore`. A prompt leaves the queue
+before its turn starts, so a failing answer cannot replay the same entry forever. Removing a queued prompt **replaces**
+the draft and restores its skill, so the text stays editable instead of being thrown away.
 
 ## Rendering
 
@@ -168,4 +196,7 @@ migration.
   version is below that entry, which is what keeps a later user toggle from being undone on every load.
 - Icons: `MemoryStick` is memory everywhere (options nav, memory tool cards, the panel's save action).
 - Errors are `AppError` with a machine-readable kind (`src/providers/errors.ts`); never surface raw provider text only.
+- Persist before you publish: the prompt queue writes to IndexedDB first and only then updates `queueStore`, so a row on
+  screen is always durable. `startTurn` writes the conversation immediately for the same reason — a reload mid-stream
+  must not lose the chat the queue belongs to.
 - Keep modules small and co-located; a file that mixes UI and domain logic is a smell.

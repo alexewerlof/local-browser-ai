@@ -26,9 +26,11 @@ export async function run(ctx) {
 		assert.ok(text.length > 0, 'partial answer should be kept')
 		assert.doesNotMatch(text, /eight/)
 
-		// The partial answer is no longer streaming and the composer recovered.
+		// The partial answer is no longer streaming and the composer recovered: the Stop
+		// button goes away while Submit stays available.
 		assert.equal(await page.locator('.composer__input').isEnabled(), true)
-		await page.waitForSelector('button[aria-label="Submit"]')
+		await page.waitForSelector('button[aria-label="Stop generating"]', { state: 'detached' })
+		assert.equal(await page.locator('button[aria-label="Submit"]').isVisible(), true)
 	} finally {
 		await server.close()
 	}

@@ -685,6 +685,70 @@
 	padding: var(--space-2) var(--space-3);
 }
 
+/* Prompts accepted while the agent is busy, shown above the input. */
+.composer__queue {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	max-height: 132px;
+	overflow-y: auto;
+	padding: var(--space-2) var(--space-3);
+	border: 1px dashed var(--border);
+	border-radius: var(--radius-md);
+	background: var(--bg-sunken);
+}
+
+.composer__queue-label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	color: var(--fg-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.composer__queue-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-3);
+	font-size: var(--text-sm);
+	color: var(--fg-muted);
+}
+
+.composer__queue-skill {
+	flex: none;
+	margin-top: 2px;
+	color: var(--accent-strong);
+}
+
+.composer__queue-text {
+	flex: 1;
+	min-width: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	line-height: 1.4;
+}
+
+/* Sits at the start of the row, optically aligned with the first line of text. */
+.composer__queue-remove {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin-top: -2px;
+	color: var(--fg-faint);
+}
+
+.composer__queue-remove:hover:not(:disabled) {
+	color: var(--danger-fg);
+	background: var(--danger-soft);
+}
+
 .chip {
 	display: inline-flex;
 	align-items: center;
