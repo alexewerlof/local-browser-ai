@@ -200,6 +200,11 @@ migration.
   of those ids should run without asking), and a `SETTINGS_VERSION` bump. Existing stores only receive the id when their
   version is below that entry, which is what keeps a later user toggle from being undone on every load.
 - Icons: `MemoryStick` is memory everywhere (options nav, memory tool cards, the panel's save action).
+- The composer has a top bar inside the box border (`.composer__topbar`), empty for now and reserved for per-prompt
+  context. Its right side holds the Expand/Shrink toggle (`PanelBottomOpen`/`PanelBottomClose`): `.composer--expanded`
+  sizes the whole composer to 75% of the panel so a sliver of transcript stays visible, and the textarea then scrolls
+  internally instead of growing. Expanded is in-memory only — never a settings field — and normal mode keeps the
+  40–240px auto-grow.
 - Errors are `AppError` with a machine-readable kind (`src/providers/errors.ts`); never surface raw provider text only.
 - Persist before you publish: the prompt queue writes to IndexedDB first and only then updates `queueStore`, so a row on
   screen is always durable. `startTurn` writes the conversation immediately for the same reason — a reload mid-stream

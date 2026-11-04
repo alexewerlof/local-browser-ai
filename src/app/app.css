@@ -566,6 +566,7 @@
 
 .attachment {
 	display: flex;
+	flex: none;
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-2) var(--space-3);
@@ -617,11 +618,42 @@
 
 .composer__box {
 	position: relative;
+	display: flex;
+	flex-direction: column;
 	border: 1px solid var(--border-strong);
 	border-radius: var(--radius-lg);
 	background: var(--bg-raised);
-	padding: var(--space-2) var(--space-2) 0;
+	padding: var(--space-1) var(--space-2) 0;
 	transition: border-color var(--duration-fast);
+}
+
+/* Lives inside the box border so it reads as part of the prompt editor. Empty for now;
+   the left side is where per-prompt context (attachments) will go. */
+.composer__topbar {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 24px;
+	padding-inline: var(--space-1);
+}
+
+/* Expanded: the composer takes most of the panel, leaving a sliver of transcript as a
+   reminder of the session behind it. */
+.composer--expanded {
+	flex: 0 0 75%;
+	min-height: 0;
+}
+
+.composer--expanded .composer__box {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.composer--expanded .composer__input {
+	flex: 1 1 auto;
+	max-height: none;
+	overflow-y: auto;
 }
 
 .composer__box:focus-within {
@@ -651,6 +683,7 @@
 
 .composer__toolbar {
 	display: flex;
+	flex: none;
 	align-items: center;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-1);
@@ -659,6 +692,7 @@
 
 .composer__meta {
 	display: flex;
+	flex: none;
 	align-items: center;
 	gap: var(--space-4);
 	min-height: 18px;
@@ -676,6 +710,7 @@
 
 .composer__error {
 	display: flex;
+	flex: none;
 	gap: var(--space-3);
 	align-items: flex-start;
 	font-size: var(--text-xs);
@@ -688,6 +723,7 @@
 /* Prompts accepted while the agent is busy, shown above the input. */
 .composer__queue {
 	display: flex;
+	flex: none;
 	flex-direction: column;
 	gap: var(--space-2);
 	max-height: 132px;

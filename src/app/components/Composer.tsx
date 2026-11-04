@@ -4,6 +4,8 @@ import {
 	FileText,
 	GraduationCap,
 	ListOrdered,
+	PanelBottomClose,
+	PanelBottomOpen,
 	Play,
 	RefreshCw,
 	Square,
@@ -64,6 +66,12 @@ export function Composer({
 	const queue = useStore(queueStore)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const [slashOpen, setSlashOpen] = useState(false)
+	/**
+	 * The prompt gets more vertical space by growing the whole composer to most of the
+	 * panel, so a sliver of the transcript stays visible. In-memory only: a reopened
+	 * panel starts at the normal size.
+	 */
+	const [expanded, setExpanded] = useState(false)
 
 	const attachment = conversation.attachments[0]
 	const streaming = run.status === 'streaming'
@@ -80,9 +88,15 @@ export function Composer({
 	useEffect(() => {
 		const textarea = textareaRef.current
 		if (!textarea) return
+		if (expanded) {
+			// The box flex-fills the expanded composer, so the textarea scrolls inside it
+			// instead of growing past the available height.
+			textarea.style.height = ''
+			return
+		}
 		textarea.style.height = '0px'
 		textarea.style.height = `${Math.min(240, Math.max(40, textarea.scrollHeight))}px`
-	}, [draft])
+	}, [draft, expanded])
 
 	useEffect(() => {
 		setSlashOpen(slashQuery !== null && slashMatches.length > 0)
@@ -145,7 +159,7 @@ export function Composer({
 	}
 
 	return (
-		<div className="composer">
+		<div className={`composer${expanded ? ' composer--expanded' : ''}`}>
 			{attachment && (
 				<AttachmentCard
 					attachment={attachment}
@@ -192,6 +206,22 @@ export function Composer({
 			)}
 
 			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
+				<div className="composer__topbar">
+					{/* Reserved for attachments and other per-prompt context. */}
+					<span className="spacer" />
+					<button
+						type="button"
+						className="button button--ghost button--icon button--sm"
+						onClick={() => setExpanded((current) => !current)}
+						title={expanded ? 'Shrink' : 'Expand'}
+						aria-label={expanded ? 'Shrink' : 'Expand'}
+						aria-expanded={expanded}
+						aria-controls="composer-input"
+					>
+						{expanded ? <PanelBottomClose size={14} /> : <PanelBottomOpen size={14} />}
+					</button>
+				</div>
+
 				{slashOpen && (
 					<div className="slash">
 						{slashMatches.map((skill) => (
@@ -212,6 +242,7 @@ export function Composer({
 
 				<textarea
 					ref={textareaRef}
+					id="composer-input"
 					className="composer__input"
 					placeholder={
 						busy
