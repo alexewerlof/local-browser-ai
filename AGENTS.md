@@ -58,6 +58,33 @@ tools through `enabledBuiltInTools` and skips injection, but keeps the items. Sy
 `updatedAt`, `deletedAt` and `scope`, and export/import (newest `updatedAt` wins, a tombstone wins a tie) is the v1
 bridge, so a `chrome.storage.sync` backend can be added without migrating data.
 
+## Rendering
+
+Assistant output is rendered by **Streamdown** (`src/app/components/Markdown.tsx`), not by a hand-rolled markdown-it
+pipeline. It handles unterminated markdown while streaming, GFM, and the copy buttons; a wrapper component with
+`dangerouslySetInnerHTML` used to do that job and is gone. `markdown-it` remains only in
+`src/browser/extract/sections.ts`, which splits page markdown into sections — do not remove that dependency.
+
+Streamdown ships **no compiled CSS**: it emits Tailwind utility classes and expects the app to provide them.
+`src/app/tailwind.css` imports only Tailwind's theme and utilities layers (no Preflight — `base.css` already normalises
+the panel), `@source`-scans `streamdown/dist` and the plugin dists so the classes are actually generated, maps the
+shadcn-style `--color-*` tokens onto `tokens.css`, and defines a `dark` variant that follows both `prefers-color-scheme`
+and the explicit `data-theme` override. It must be imported before `tokens.css`: Tailwind's theme layer defines the same
+`--radius-*`/`--text-*` properties, and the unlayered app tokens winning the cascade is what keeps
+`rounded-md`/`text-sm` on the panel's 8px/12px scale. `vite.sw.config.ts` has no Tailwind and must stay that way.
+
+Two parts are opt-in because each is a large chunk (`settings.rendering`, added in v7): `math` renders `$$…$$` with
+KaTeX and defaults **on**, `codeHighlighting` uses Shiki and defaults **off**. `useMarkdownPlugins.ts` imports both
+lazily and caches the plugin objects in module scope; a failed fetch is forgotten so a later message retries, and the
+text falls back to literal markup meanwhile. Streamdown's default is `$$`-only — single-`$` inline math is off on
+purpose, because it fights currency amounts.
+
+Security stays as before: `rehypePlugins` is passed explicitly as `[sanitize, harden]` **without `rehype-raw`**, which
+makes Streamdown emit raw HTML from the model as text (it installs a visitor that turns leftover raw nodes into text
+nodes). Do not add `rehype-raw`. Passing `rehypePlugins` replaces the whole default array, so build on
+`defaultRehypePlugins` instead of re-listing the plugins. `linkSafety` is disabled (the panel has no room for the
+confirmation modal) and `controls` keeps only the code copy button.
+
 ## Non-negotiables
 
 - **The side panel is the only place that talks to a model.** The service worker only extracts pages, opens tabs and
@@ -75,7 +102,8 @@ bridge, so a `chrome.storage.sync` backend can be added without migrating data.
   **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no imports, no module
   helpers) because `chrome.scripting.executeScript({ func })` serializes it.
 - **Page content is untrusted input.** It is wrapped with an explicit instruction to ignore embedded instructions, and
-  model output is never executed as code. Markdown is rendered with `html: false`.
+  model output is never executed as code. Markdown renders through Streamdown with `rehype-raw` deliberately omitted, so
+  tags in an answer stay inert text.
 - **Memory is data, not instructions.** Saved memories are rendered under `## Memory` with an explicit note saying so,
   and the tools forbid saving page or tool output as a memory. Only the user can make a memory always-on; the tools
   accept `auto` and `tool` only.
@@ -128,6 +156,8 @@ migration.
   No icon registry or wrapper — Lucide is tree-shaken, defaults to stroke width 2 and adds `aria-hidden` unless the
   element carries `aria-*`/`title`/`role`.
 - CSS is plain and token-based (`src/styles/tokens.css`), compact and panel-first. Components use BEM-ish classes.
+  Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
+  over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
 - Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in provider and skills so a
   corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove` for built-ins and `mcp` for remote

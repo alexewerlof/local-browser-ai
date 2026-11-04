@@ -5,8 +5,34 @@ import { formatBytes } from '../core/util'
 import { clearConversations, storageEstimate } from '../state/database'
 import { updateSettings } from '../state/settings'
 import { getManifest } from '../platform/chrome'
-import { RangeField, SelectField, TextAreaField } from './fields'
+import { RangeField, SelectField, Switch, TextAreaField } from './fields'
 import { SettingsCard } from './SettingsCard'
+
+/**
+ * A row with a switch on the right. `Field` is a `<label>`, which must not contain another
+ * interactive element, so these rows use the same class with a plain div.
+ */
+function ToggleRow({
+	label,
+	hint,
+	checked,
+	onChange,
+}: {
+	label: string
+	hint: string
+	checked: boolean
+	onChange: (checked: boolean) => void
+}) {
+	return (
+		<div className="field">
+			<span className="field__text">
+				<span className="field__label">{label}</span>
+				<span className="field__hint">{hint}</span>
+			</span>
+			<Switch label={label} checked={checked} onChange={onChange} />
+		</div>
+	)
+}
 
 export function GeneralSection({ settings }: { settings: AppSettings }) {
 	const [estimate, setEstimate] = useState<{ usage: number; quota: number } | null>(null)
@@ -45,6 +71,28 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 						}
 					/>
 				</div>
+			</SettingsCard>
+
+			<SettingsCard title="Rendering">
+				<ToggleRow
+					label="Math"
+					hint="Typeset $$…$$ LaTeX in answers with KaTeX. Adds a small download the first time it is needed."
+					checked={settings.rendering.math}
+					onChange={(math) =>
+						updateSettings((current) => ({ ...current, rendering: { ...current.rendering, math } }))
+					}
+				/>
+				<ToggleRow
+					label="Code highlighting"
+					hint="Colour fenced code blocks with Shiki. Off by default: the highlighter and its grammars are the heaviest part of rendering."
+					checked={settings.rendering.codeHighlighting}
+					onChange={(codeHighlighting) =>
+						updateSettings((current) => ({
+							...current,
+							rendering: { ...current.rendering, codeHighlighting },
+						}))
+					}
+				/>
 			</SettingsCard>
 
 			<SettingsCard title="System prompt">

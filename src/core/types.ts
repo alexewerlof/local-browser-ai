@@ -312,8 +312,19 @@ export interface UiSettings {
 	submitKey: 'enter' | 'mod+enter'
 }
 
+/**
+ * Expensive parts of rendering the transcript. Both are opt-out/in because they pull in a
+ * large chunk at runtime; the cheap parts of markdown always render.
+ */
+export interface RenderingSettings {
+	/** Typeset `$$…$$` LaTeX with KaTeX. */
+	math: boolean
+	/** Highlight fenced code blocks with Shiki. */
+	codeHighlighting: boolean
+}
+
 export interface AppSettings {
-	version: 6
+	version: 7
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults
@@ -321,6 +332,7 @@ export interface AppSettings {
 	tools: ToolSettings
 	skills: Skill[]
 	memory: MemorySettings
+	rendering: RenderingSettings
 	ui: UiSettings
 	systemPrompt: string
 }

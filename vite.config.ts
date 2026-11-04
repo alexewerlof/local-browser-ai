@@ -1,13 +1,16 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
 	root,
 	base: './',
-	plugins: [react()],
+	// Tailwind only exists to style Streamdown's markup (see src/app/tailwind.css). The
+	// service worker is built from vite.sw.config.ts and must stay free of it.
+	plugins: [react(), tailwindcss()],
 	build: {
 		outDir: 'dist',
 		// The dist directory is a document-portal grant for Flatpak browsers: never

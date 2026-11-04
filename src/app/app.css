@@ -299,13 +299,20 @@
 
 /* -------------------------------------------------------------------- markdown */
 
+/*
+ * Streamdown renders the elements; Tailwind utilities supply its defaults. The rules here
+ * are unlayered, so they override Tailwind's utilities layer and keep the panel's own
+ * compact scale from tokens.css.
+ */
 .markdown {
 	font-size: var(--text-md);
 	line-height: 1.6;
 	overflow-wrap: anywhere;
 }
 
-.markdown > * + * {
+/* Streamdown may wrap a block in a <section>, so spacing has to work at both levels. */
+.markdown > * + *,
+.markdown > section > * + * {
 	margin-top: var(--space-4);
 }
 
@@ -332,6 +339,11 @@
 .markdown ul,
 .markdown ol {
 	padding-left: 1.35em;
+	list-style-position: outside;
+}
+
+.markdown li {
+	padding-block: 0;
 }
 
 .markdown li + li {
@@ -341,6 +353,7 @@
 .markdown li > ul,
 .markdown li > ol {
 	margin-top: 2px;
+	padding-left: 1.35em;
 }
 
 .markdown a {
@@ -354,9 +367,11 @@
 	border-left: 2px solid var(--border-strong);
 	padding-left: var(--space-4);
 	color: var(--fg-muted);
+	font-style: normal;
 }
 
-.markdown code {
+/* Inline code. */
+.markdown [data-streamdown='inline-code'] {
 	font-family: var(--font-mono);
 	font-size: 0.92em;
 	background: var(--code-bg);
@@ -364,49 +379,39 @@
 	border-radius: 4px;
 }
 
-.markdown pre {
-	position: relative;
-	background: var(--code-bg);
-	border: 1px solid var(--border);
+/* Fenced code: Streamdown nests a body inside a rounded frame. */
+.markdown [data-streamdown='code-block'] {
 	border-radius: var(--radius-md);
+	padding: var(--space-2);
+	margin: 0;
+	font-size: var(--text-sm);
+}
+
+.markdown [data-streamdown='code-block-header'] {
+	height: auto;
+	padding: 0 var(--space-3);
+	color: var(--fg-faint);
+}
+
+.markdown [data-streamdown='code-block-body'] {
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: var(--code-bg);
 	padding: var(--space-4);
-	overflow-x: auto;
+}
+
+.markdown [data-streamdown='code-block-body'] pre {
+	margin: 0;
+	background: none;
+	font-family: var(--font-mono);
 	font-size: var(--text-sm);
 	line-height: 1.5;
-}
-
-.markdown pre code {
-	background: none;
-	padding: 0;
-	font-size: inherit;
-	white-space: pre;
-}
-
-.code-copy {
-	position: absolute;
-	top: var(--space-2);
-	right: var(--space-2);
-	padding: 2px var(--space-3);
-	border-radius: var(--radius-sm);
-	border: 1px solid var(--border);
-	background: var(--bg-raised);
-	color: var(--fg-muted);
-	font-size: var(--text-xs);
-	opacity: 0;
-	transition: opacity var(--duration-fast);
-}
-
-.markdown pre:hover .code-copy,
-.code-copy:focus-visible {
-	opacity: 1;
 }
 
 .markdown table {
 	width: 100%;
 	border-collapse: collapse;
 	font-size: var(--text-sm);
-	display: block;
-	overflow-x: auto;
 }
 
 .markdown th,
@@ -436,47 +441,15 @@
 	margin-right: var(--space-2);
 }
 
-/* highlight.js, mapped to the design tokens */
-.hljs-comment,
-.hljs-quote {
-	color: var(--fg-faint);
-	font-style: italic;
+/* Display math is wider than the panel; scroll it instead of clipping the equation. */
+.markdown .katex-display {
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: var(--space-1) 0;
 }
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-literal,
-.hljs-section,
-.hljs-link {
-	color: oklch(0.7 0.16 300);
-}
-.hljs-string,
-.hljs-attr,
-.hljs-symbol,
-.hljs-bullet,
-.hljs-addition {
-	color: oklch(0.68 0.14 145);
-}
-.hljs-number,
-.hljs-meta,
-.hljs-built_in,
-.hljs-builtin-name,
-.hljs-attribute,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-type {
-	color: oklch(0.75 0.13 70);
-}
-.hljs-title,
-.hljs-name,
-.hljs-selector-id,
-.hljs-selector-class {
-	color: oklch(0.72 0.13 240);
-}
-.hljs-emphasis {
-	font-style: italic;
-}
-.hljs-strong {
-	font-weight: 700;
+
+.markdown .katex {
+	font-size: 1.05em;
 }
 
 /* ------------------------------------------------------------------- reasoning */

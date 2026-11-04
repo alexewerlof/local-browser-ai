@@ -1,47 +1,62 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { renderMarkdown } from '../markdown'
+import { Streamdown, defaultRehypePlugins } from 'streamdown'
+import type { StreamdownProps } from 'streamdown'
+import { useMarkdownPlugins } from './useMarkdownPlugins'
 
-/** Render assistant markdown, with a copy button on every code block. */
-export function Markdown({ text, streaming = false }: { text: string; streaming?: boolean }) {
-	const html = useMemo(() => renderMarkdown(text, streaming), [text, streaming])
-	const containerRef = useRef<HTMLDivElement>(null)
+/**
+ * Raw HTML in model output stays inert text. `rehype-raw` is left out on purpose, which
+ * keeps the guarantee the previous markdown-it renderer had (`html: false`); Streamdown
+ * turns leftover raw nodes into text. Passing `rehypePlugins` replaces its default list,
+ * so sanitising and URL hardening have to be re-added by hand.
+ */
+const rehypePlugins: StreamdownProps['rehypePlugins'] = [
+	defaultRehypePlugins.sanitize,
+	defaultRehypePlugins.harden,
+].filter((plugin) => plugin !== undefined)
 
-	useEffect(() => {
-		const container = containerRef.current
-		if (!container) return
-		for (const pre of container.querySelectorAll('pre')) {
-			if (pre.querySelector('.code-copy')) continue
-			const button = document.createElement('button')
-			button.type = 'button'
-			button.className = 'code-copy'
-			button.textContent = 'Copy'
-			pre.appendChild(button)
-		}
-	}, [html])
+/**
+ * Only the copy button survives from the built-in controls: downloading a snippet or a
+ * table from the side panel is noise, and the fullscreen overlays do not fit in it.
+ */
+const controls: StreamdownProps['controls'] = {
+	code: { copy: true, download: false },
+	table: false,
+	image: false,
+}
 
-	const handleClick = async (event: React.MouseEvent<HTMLDivElement>) => {
-		const target = event.target as HTMLElement
-		const button = target.closest<HTMLButtonElement>('.code-copy')
-		if (!button) return
-		const code = button.closest('pre')?.querySelector('code')?.textContent ?? ''
-		try {
-			await navigator.clipboard.writeText(code)
-			button.textContent = 'Copied'
-			setTimeout(() => {
-				button.textContent = 'Copy'
-			}, 1200)
-		} catch {
-			button.textContent = 'Failed'
-		}
-	}
+/** The panel has no room for a confirmation modal; links open in a new tab as before. */
+const linkSafety: StreamdownProps['linkSafety'] = { enabled: false }
+
+/**
+ * Render assistant markdown.
+ *
+ * `math` and `codeHighlighting` gate the two heavy plugins, which are loaded on demand
+ * (see `useMarkdownPlugins`). Streaming, unterminated blocks and the copy buttons are
+ * Streamdown's job.
+ */
+export function Markdown({
+	text,
+	streaming = false,
+	math = true,
+	codeHighlighting = false,
+}: {
+	text: string
+	streaming?: boolean
+	math?: boolean
+	codeHighlighting?: boolean
+}) {
+	const plugins = useMarkdownPlugins({ math, codeHighlighting })
 
 	return (
-		<div
-			ref={containerRef}
+		<Streamdown
 			className="markdown"
-			onClick={handleClick}
-			// markdown-it runs with `html: false`, so raw HTML in model output is escaped.
-			dangerouslySetInnerHTML={{ __html: html }}
-		/>
+			controls={controls}
+			isAnimating={streaming}
+			lineNumbers={false}
+			linkSafety={linkSafety}
+			plugins={plugins}
+			rehypePlugins={rehypePlugins}
+		>
+			{text}
+		</Streamdown>
 	)
 }

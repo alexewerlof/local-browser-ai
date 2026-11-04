@@ -1,0 +1,54 @@
+/*
+ * Tailwind exists here for one consumer: Streamdown renders unstyled markup and expects
+ * Tailwind utilities, but ships no compiled CSS of its own.
+ *
+ * Preflight is deliberately left out (base.css already normalises the panel), so only the
+ * theme and utilities layers are imported. Note that this file must be imported before
+ * tokens.css: Tailwind's theme layer also defines `--radius-*` and `--text-*`, and the
+ * unlayered app tokens win the cascade, which is what keeps `rounded-md`/`text-sm`
+ * on the panel's 8px/12px scale.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/*
+ * Without these globs Tailwind never sees the class names Streamdown uses and the
+ * rendered markdown comes out unstyled. Paths are relative to this file.
+ */
+@source '../../node_modules/streamdown/dist/*.js';
+@source '../../node_modules/@streamdown/code/dist/*.js';
+@source '../../node_modules/@streamdown/math/dist/*.js';
+
+/*
+ * Streamdown's `dark:` utilities (Shiki's dual-theme colours) have to follow the app's
+ * theme, which is either the system preference or an explicit `data-theme` on <html>.
+ */
+@custom-variant dark {
+	@media (prefers-color-scheme: dark) {
+		&:where(:root:not([data-theme='light']) *) {
+			@slot;
+		}
+	}
+	&:where([data-theme='dark'] *) {
+		@slot;
+	}
+}
+
+/*
+ * The shadcn-style tokens Streamdown references, mapped onto the app's own tokens.
+ * `inline` keeps the `var()` reference instead of resolving it here, so light, dark and
+ * the explicit theme override all follow tokens.css at runtime.
+ */
+@theme inline {
+	--color-background: var(--bg);
+	--color-foreground: var(--fg);
+	--color-muted: var(--bg-sunken);
+	--color-muted-foreground: var(--fg-muted);
+	--color-primary: var(--accent);
+	--color-primary-foreground: var(--accent-contrast);
+	--color-border: var(--border);
+	--color-sidebar: var(--bg-raised);
+	--color-ring: var(--accent);
+}

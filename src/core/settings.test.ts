@@ -16,7 +16,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -70,7 +70,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -88,7 +88,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -133,7 +133,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.tools.mcp).toEqual([])
 	})
 
@@ -145,7 +145,7 @@ describe('normalizeSettings', () => {
 			ui: { ...legacyUi, sendKey: 'mod+enter' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.ui.submitKey).toBe('mod+enter')
 	})
 
@@ -153,6 +153,23 @@ describe('normalizeSettings', () => {
 		const stored = { ...defaultSettings(), ui: { theme: 'dark' } }
 		const settings = normalizeSettings(stored)
 		expect(settings.ui).toEqual({ theme: 'dark', submitKey: 'enter' })
+	})
+
+	it('adds the rendering flags to a store written before they existed', () => {
+		const stored = { ...defaultSettings(), version: 6 }
+		const settings = normalizeSettings(stored)
+		expect(settings.version).toBe(7)
+		expect(settings.rendering).toEqual({ math: true, codeHighlighting: false })
+	})
+
+	it('keeps the rendering flags the user chose', () => {
+		const stored = { ...defaultSettings(), rendering: { math: false, codeHighlighting: true } }
+		expect(normalizeSettings(stored).rendering).toEqual({ math: false, codeHighlighting: true })
+	})
+
+	it('falls back per rendering flag when a value is malformed', () => {
+		const stored = { ...defaultSettings(), rendering: { math: 'yes', codeHighlighting: true } }
+		expect(normalizeSettings(stored).rendering).toEqual({ math: true, codeHighlighting: true })
 	})
 
 	it('keeps MCP servers across normalization, including a disabled one', () => {
@@ -224,7 +241,7 @@ describe('memory settings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(6)
+		expect(settings.version).toBe(7)
 		expect(settings.memory.enabled).toBe(true)
 		expect(settings.tools.enabled).toEqual(['find_in_page', 'remember', 'recall'])
 		expect(settings.tools.autoApprove).toEqual(['recall'])

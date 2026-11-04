@@ -87,7 +87,15 @@ export function MessageItem({
 								/>
 							)
 						case 'text':
-							return <Markdown key={`text-${index}`} text={part.text} streaming={streaming} />
+							return (
+								<Markdown
+									key={`text-${index}`}
+									text={part.text}
+									streaming={streaming}
+									math={settings.rendering.math}
+									codeHighlighting={settings.rendering.codeHighlighting}
+								/>
+							)
 						case 'tool-call':
 							return <ToolCallCard key={part.toolCallId} part={part} />
 						case 'error':

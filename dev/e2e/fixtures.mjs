@@ -19,7 +19,7 @@ export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'open_url' &&
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 6,
+		version: 7,
 		providers: [
 			{
 				id: 'local',
@@ -45,6 +45,7 @@ export function localSettings(endpoint, overrides = {}) {
 		tools: { enabled: ALL_TOOLS, autoApprove: AUTO_APPROVED_TOOLS, mcp: [] },
 		skills: [],
 		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
+		rendering: { math: true, codeHighlighting: false },
 		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant. Answer from the attached page.',
 		...overrides,
@@ -53,7 +54,7 @@ export function localSettings(endpoint, overrides = {}) {
 
 export function promptApiOnlySettings() {
 	return {
-		version: 6,
+		version: 7,
 		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
 		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
 		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
@@ -69,6 +70,7 @@ export function promptApiOnlySettings() {
 		tools: { enabled: [], autoApprove: [], mcp: [] },
 		skills: [],
 		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
+		rendering: { math: true, codeHighlighting: false },
 		ui: { theme: 'light', submitKey: 'enter' },
 		systemPrompt: 'You are a test assistant.',
 	}

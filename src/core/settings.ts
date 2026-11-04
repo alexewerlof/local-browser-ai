@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AppSettings, MemorySettings, ProviderSettings, Skill, ToolSettings } from './types'
+import type { AppSettings, MemorySettings, ProviderSettings, RenderingSettings, Skill, ToolSettings } from './types'
 import { isHttpUrl } from './mcp'
 import { isMemoryToolId } from './memory'
 
@@ -8,7 +8,7 @@ export const PROMPT_API_PROVIDER_ID = 'prompt-api'
 export const PROMPT_API_MODEL_ID = 'text'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 6
+export const SETTINGS_VERSION = 7
 
 const modelRefSchema = z.object({
 	providerId: z.string(),
@@ -61,6 +61,11 @@ const memorySettingsSchema = z.object({
 	autoLimit: z.number().int().min(1).max(8),
 })
 
+const renderingSettingsSchema = z.object({
+	math: z.boolean(),
+	codeHighlighting: z.boolean(),
+})
+
 export const settingsSchema = z.object({
 	version: z.literal(SETTINGS_VERSION),
 	providers: z.array(providerSchema),
@@ -90,6 +95,8 @@ export const settingsSchema = z.object({
 		injectShare: z.number().min(0.05).max(0.4).default(0.15),
 		autoLimit: z.number().int().min(1).max(8).default(3),
 	}),
+	// Added in v7; a store written before it existed gets the defaults.
+	rendering: renderingSettingsSchema.default({ math: true, codeHighlighting: false }),
 	ui: z.object({
 		theme: z.enum(['system', 'light', 'dark']),
 		submitKey: z.enum(['enter', 'mod+enter']),
@@ -204,6 +211,12 @@ export const defaultSettings = (): AppSettings => ({
 		enabled: true,
 		injectShare: 0.15,
 		autoLimit: 3,
+	},
+	rendering: {
+		// KaTeX is cheap next to Shiki and math is a correctness issue, not a nicety.
+		math: true,
+		// Shiki pulls a large grammar/theme chunk, so highlighting is opt-in.
+		codeHighlighting: false,
 	},
 	ui: {
 		theme: 'system',
@@ -324,6 +337,20 @@ function sanitizeMemorySettings(value: unknown, fallback: MemorySettings): Memor
 }
 
 /**
+ * One bad rendering flag must not reset the others, and must never reset the rest of the
+ * document (that would drop providers and API keys).
+ */
+function sanitizeRenderingSettings(value: unknown, fallback: RenderingSettings): RenderingSettings {
+	if (!value || typeof value !== 'object') return fallback
+	const record = value as Record<string, unknown>
+	return {
+		math: typeof record.math === 'boolean' ? record.math : fallback.math,
+		codeHighlighting:
+			typeof record.codeHighlighting === 'boolean' ? record.codeHighlighting : fallback.codeHighlighting,
+	}
+}
+
+/**
  * Turn whatever was stored into a valid settings object.
  *
  * Built-in skills are always present (user copies are kept alongside them), and the
@@ -345,6 +372,10 @@ export function normalizeSettings(input: unknown): AppSettings {
 					},
 					tools: sanitizeTools((stored as { tools?: unknown }).tools, defaults.tools),
 					memory: sanitizeMemorySettings((stored as { memory?: unknown }).memory, defaults.memory),
+					rendering: sanitizeRenderingSettings(
+						(stored as { rendering?: unknown }).rendering,
+						defaults.rendering,
+					),
 					ui: {
 						...defaults.ui,
 						...((stored as { ui?: Record<string, unknown> }).ui ?? {}),
