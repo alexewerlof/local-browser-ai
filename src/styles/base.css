@@ -260,6 +260,14 @@ a:hover {
 	cursor: pointer;
 }
 
+/* The dropdown list is painted by the browser on its own surface, so items do not inherit
+   the control's transparent background; without explicit colours a dark theme renders
+   light text on the popup's white sheet. */
+.select option {
+	background-color: var(--bg-raised);
+	color: var(--fg);
+}
+
 .select__chevron {
 	position: absolute;
 	top: 50%;

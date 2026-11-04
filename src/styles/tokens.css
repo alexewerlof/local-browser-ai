@@ -8,6 +8,9 @@
  */
 
 :root {
+	/* `light dark` follows the OS. The theme blocks below pin it to the app's own theme,
+	   otherwise a dark chat on a light desktop renders native widgets (select popups,
+	   scrollbars, date pickers) light. */
 	color-scheme: light dark;
 
 	--font-ui: Roboto, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -91,6 +94,8 @@
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
+		color-scheme: dark;
+
 		--accent: #a8c7fa;
 		--accent-strong: #d3e3fd;
 		--accent-soft: rgb(168 199 250 / 0.16);
@@ -130,7 +135,13 @@
 	}
 }
 
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+
 :root[data-theme='dark'] {
+	color-scheme: dark;
+
 	--accent: #a8c7fa;
 	--accent-strong: #d3e3fd;
 	--accent-soft: rgb(168 199 250 / 0.16);
