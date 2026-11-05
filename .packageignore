@@ -1,0 +1,15 @@
+# Files and directories that never reach the Web Store zip.
+#
+# One glob per line, matched against paths inside dist/. `#` starts a comment; blank lines
+# are ignored. As in .gitignore, a pattern with no `/` matches at any depth, so `AGENTS.md`
+# also covers `assets/AGENTS.md`; a pattern containing a `/` is anchored to dist/.
+#
+# Everything else in dist/ ships, source maps included: they are built on purpose
+# (sourcemap: true in both vite configs) so reviewers can read the published code.
+# Do not add `*.map` here without deciding to stop publishing them.
+
+# Development-only documentation: the naming contract and the agent guides.
+ontology.yml
+AGENTS.md
+CLAUDE.md
+README.md

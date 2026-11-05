@@ -21,6 +21,26 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 Entry points: `side-panel.html` + `src/app/main.tsx`, `options.html` + `src/options/main.tsx`, and the service worker
 `src/browser/background.ts` (built separately to keep React and the AI SDK out of it).
 
+## Ontology
+
+`ontology.yml` (repo root) is the naming contract: one term per concept, grouped hierarchically, with the code
+identifiers, the exact UI strings and the words that are wrong for it. Read it before naming anything, and add an entry
+in the same change that adds a concept, control or pipeline stage. It is development-only and never shipped.
+
+The five terms that get confused most:
+
+- **Conversation** is the stored chat (code); **Chat** is the same thing as the user sees it (UI). Never "session".
+- **Turn** is one prompt plus its answer. **Run** is one execution of the agent. **Step** is one model call plus the
+  tool calls it requested. Never "round".
+- **Context** is the assembled prompt, **page attachment** is the page, **context window** is the capacity. Never
+  "context" alone for either of the latter two.
+- **Built-in tool** (in `src/browser/tools.ts`) vs **MCP tool** (remote); "remote tools" is the prompt note's wording,
+  not the name. Never "browser tool".
+- **Settings** is the UI and the docs; `options` is only the file path (`options.html`, `src/options`, `options_ui`).
+
+Area files narrow this down: `src/app/AGENTS.md`, `src/core/AGENTS.md`, `src/browser/AGENTS.md`,
+`src/options/AGENTS.md`.
+
 ## Page context
 
 Extraction happens in the page (`src/browser/extract/inject.ts`) and returns three things: cleaned HTML, the page's own
@@ -151,6 +171,10 @@ confirmation modal) and `controls` keeps only the code copy button.
   web harness runs.
 - **Do not delete `dist/` itself.** Flatpak browsers receive it through the document portal, which grants the directory
   inode. `scripts/build.js` empties its contents and Vite runs with `emptyOutDir: false`.
+- **`.packageignore` decides what ships.** `npm run package` packs `dist/` with `glob(…, { exclude })`, filtering by the
+  patterns in `.packageignore` (`.gitignore`-shaped: `#` comments, blank lines, and a pattern without a `/` matching at
+  any depth). The build copies only `public/`, so dev docs never reach `dist/` on their own — the file is the guard
+  against a stray copy. It is read strictly: a missing file fails the package step rather than shipping everything.
 
 ## Commands
 
@@ -178,6 +202,7 @@ migration.
 
 ## Conventions
 
+- Names come from `ontology.yml`; a new concept, control or pipeline stage gets an entry there in the same change.
 - TypeScript strict, `verbatimModuleSyntax`; React 19 function components; no state library — plain `Store` +
   `useSyncExternalStore` (`src/core/store.ts`, `src/app/useStore.ts`).
 - Icons come from `lucide-react`, imported as components at the call site (`import { Settings } from 'lucide-react'`).

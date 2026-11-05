@@ -1,0 +1,206 @@
+# The ontology for Local Browser AI: the naming contract. Development only, never copied to
+# dist/, never shipped in the Web Store zip (scripts/package.js drops it).
+#
+# One line per term, under the domain it belongs to. The key IS the id, unique across the
+# file. The value reads: `<definition>; code <where it lives>; ui <exact strings>; not <words
+# that are wrong for this>` - only the segments that matter are present.
+#
+# To find a word you have but not the thing: follow the tree, then grep. Every wrong word
+# appears in some term's `not`, so `grep -i 'session' ontology.yml` lands on the answer.
+#
+# Rules: one term per concept; code and UI may differ only where an entry says so with both;
+# renaming means changing code, UI, docs and this file in one change; a new concept, control
+# or pipeline stage gets a line here in the same change that adds it.
+
+meta:
+    version: 3
+    updated: 2026-11-05
+    status: contract
+    shipped: false
+
+# The product and how one request is executed.
+harness:
+    harness: the extension as a whole; code src/app, src/core, src/state; not agent framework, backend
+    conversation: the stored chat; code Conversation, conversationStore; ui Chat, Chats, New chat; not session, thread
+    session: a browser or client lifetime, never a chat; code chrome.storage.session, declarativeNetRequest session rules, MCP session; not chat, thread
+    message: one stored transcript item, either role; code ChatMessage, MessageItem; ui N messages; not bubble, entry
+    prompt: the text the user submits; code QueuedPrompt, draftStore, submitPrompt; ui Message, Queue prompt; not question, query
+    turn: one prompt plus its answer; code startTurn, keepRecentTurns; ui Keep recent turns; not round, iteration, exchange
+    run: one execution of the agent, idle to idle; code RunState, runStore; internal, never a UI word; not turn, job, task
+    step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs; ui Maximum tool steps per answer; not round, iteration
+    answer: the assistant output the user reads; code MessageItem, MessageStatus; ui Copy answer, Generate this answer again; not response, reply, output
+    prompt-queue: the per-conversation FIFO filled while a run is busy; code queueStore, drainQueue, QueuedPrompt; ui Queued · N, Queued prompts; not backlog, stack, batch
+    queue-pause: the state Stop sets so the queue stays put; code queuePausedStore, resumeQueue; ui Continue, Continue queued prompts; not hold, suspend
+    aborted: stopped by the user before it finished; code MessageStatus.aborted, ErrorKind.aborted; ui stopped, Stopped.; not cancelled, interrupted, failed
+    prompt-api: Chrome's built-in on-device model API; code prompt-api, promptStatusStore; ui Built-in browser model; not browser API, local model
+
+# The assembled prompt and the token accounting around it.
+context:
+    context: the assembled prompt sent to the model; code ContextPart, buildContext, ContextSnapshot; ui Context, Context settings; not history, page, memory
+    context-part: one labelled slice with its own token count; code ContextPart, system, environment, memory, page, summary, history, mcp; ui System prompt, Language, Memory; not block, chunk
+    context-window: the most tokens one request can hold; code ModelInfo.contextWindow, contextWindowOverride; ui Context window, Context window override; not limit, max tokens, capacity
+    usable-window: what is left for input after the output reserve; code TokenBudget.usable, createBudget; ui usable context window; not budget, limit
+    output-reserve: the share of the window held back for the answer; code outputReserveRatio; ui Reserve for the answer; not output budget, headroom
+    usage: token counts for one message; code Usage, inputTokens, outputTokens; ui N in / M out, input tokens used in the last step; not stats, cost, spend
+    stats: run duration, time to first token, tokens per second; code StreamingStats, transcript__stats; ui ttft, tok/s; not usage, meter, metrics
+    token-estimate: a local guess before the provider reports real usage; code estimateTokens, formatTokens; ui ~N tokens, about N tokens in total; not count, measurement
+    compaction: the process that shrinks old history to fit again; code planCompaction, microCompact, compactNow; ui Compaction, Compact now; not trim, prune, truncate
+    summary: the stored prose that replaces the oldest turns; code ConversationSummary, conversation.summary; ui Earlier conversation; not recap, digest, abstract
+    compaction-threshold: the share of the window where compaction runs itself; code compactionThreshold; ui Compact at, Compacts at; not limit, cutoff, trigger
+    keep-recent-turns: how many newest turns compaction must leave alone; code keepRecentTurns, turnStarts; ui Keep recent turns; not buffer, window
+    reasoning-effort: how much hidden reasoning the model may spend; code ThinkingSelection, ThinkingMenu; ui Reasoning effort, Reasoning, Thinking…; not thinking level, thought level
+    draft-token-count: the live estimate of the unsent prompt's cost; code composer__count, estimateTokens; ui N tok; not usage, meter
+
+# The attached browser page, from extraction to the prompt.
+page:
+    page-attachment: the extracted snapshot of one tab; code PageAttachment, attachmentStore, conversation.attachments; ui Attached page, app view, changed; not document, source, resource
+    tab: a browser tab, the source an attachment comes from; code TabInfo, tabIdStore, tab.extract; ui Attach the current tab; not page, window
+    attach: extract the current tab into the conversation; code onAttach, extractFromTab, claimClickedTab; ui Attach the current tab; not import, upload, capture
+    re-read: extract the attached tab again; code onRefreshAttachment; ui Re-read the page; not refresh, reload, re-extract
+    detach: remove the page attachment; code onRemoveAttachment, detachAttachment; ui Detach the page; not remove, close, unlink
+    stale: an attachment whose tab navigated, so it may not match; code attachment.stale, markAttachmentStale; ui changed; not expired, invalid, outdated
+    extraction: the in-page step that reads a tab; code inject.ts, pipeline.ts, InjectResult; not scraping, parsing, crawling
+    representation: which form of the page is used, article or app or text; code PageRepresentation; ui app view; not format, mode, variant
+    accessibility-skeleton: a role/name/state rendering for control-heavy shells; code inject.ts, representation app; not ARIA tree, DOM dump, snapshot
+    outline: the attachment's headings with levels and sizes; code OutlineEntry, renderOutline; ui N headings; not TOC, table of contents, index
+    section: one heading-anchored slice the page tools can read; code PageChunk, splitIntoSections, read_page_section; ui Reading section; not chunk, block, part
+    page-index: outline with section sizes plus a short opening; code page-index.ts, renderPageIndex; ui page index; not summary, digest, preview
+    excerpts: the outline plus the passages that best match the prompt; code excerpts, PAGE_MODE_DETAILS; ui outline + excerpts; not snippets, highlights
+    page-mode: the runtime call on how much page goes in this turn; code PageContextMode, choosePageMode; ui whole page, page index, outline + excerpts, outline only; not strategy, setting
+    page-context-strategy: the standing preference page mode follows; code PageContextStrategy, context.strategy; ui Strategy; not page mode, policy
+    page-context: whether the page goes in automatically, always or never; code context.pageContext; ui Page context, Attached page; not page mode, attachment setting
+    page-budget: the largest share the page part may occupy; code pageShare; ui Page budget; not page share, page limit
+    page-tools: the built-in tools that read the page on demand; code read_attached_page, find_in_page, get_selection; ui Reading page, Searching page; not extractors
+
+# Durable notes that can enter the context.
+memory:
+    memory: flat global notes that survive across chats; code settings.memory, memory.ts, memoryStore, memory.v1; ui Memory, Memories, Enable memory; not notes, knowledge base, profile
+    memory-item: one stored memory with title, text, mode and source; code MemoryItem, MemoryDocument, MemoryExport; ui Title, Add memory, Edit memory; not note, fact, record
+    memory-source: the chat and message a memory was saved from; code MemorySource, source.conversationId; ui from chat; not origin, provenance
+    memory-mode: whether a memory is always, auto or tool only; code MemoryMode, selectMemoryInjection; ui Always, Auto, Tool only; not pin, pinned, trigger
+    memory-injection: picking memories for a turn and saying what was left out; code selectMemoryInjection, describeMemoryInjection; ui Memory is not in the prompt.; not memory block, memory prompt
+    memory-budget: the largest share the injected memory block may occupy; code injectShare; ui Memory budget; not memory share, memory limit
+    auto-memories-per-message: how many matching auto memories go in one turn; code autoLimit; ui Auto memories per message; not auto cap
+    remember-tool: the built-in tool that creates a memory or updates one; code remember, MemorySaveResult; ui Save to memory, Saved to memory; not memorize, memory writer
+    recall-tool: the built-in tool that searches memories on demand; code recall, recallMemories, RecalledMemory; ui Search memory, Searching memory; not lookup, memory reader
+    tombstone: a deleted memory kept briefly so sync and undo work; code deletedAt, purgeTombstones, restoreMemory; ui Deleted “{title}”., Undo; not soft delete, trash, recycle bin
+
+# Providers, the models behind them, and the effort knobs.
+models:
+    provider: one configured way to reach models; code ProviderSettings, settings.providers, getProvider; ui Providers, Configured providers, Add a provider; not endpoint, server, adapter
+    provider-kind: the protocol family a provider speaks; code ProviderKind, prompt-api, openai-compatible; ui Type, Local / OpenAI-compatible; not provider type, adapter, protocol
+    provider-preset: the template shown when adding a provider; code ProviderPreset, PROVIDER_PRESETS; ui Built-in browser model, Local server (OpenAI-compatible); not quick add, wizard
+    built-in-browser-model: the model Chrome or Edge ships behind the Prompt API; code PROMPT_API_PROVIDER_ID; ui Built-in browser model, Built-in model; not browser model, local model, on-device model
+    local-server: a model server the user runs, reached over the OpenAI-compatible kind; code openai-compatible, baseURL; ui Local server (OpenAI-compatible); not server, host, backend
+    hosted-api: a commercial model API with a base URL and a key; code openai, anthropic, deepseek; ui OpenAI, Anthropic, DeepSeek; not cloud, remote model
+    base-url: the address a provider's HTTP API sits at; code ProviderSettings.baseURL, normalizeBaseURL; ui Base URL; not endpoint URL, host
+    api-key: the credential sent to a hosted API, never synced; code ProviderSettings.apiKey, headers; ui API key; not token, secret, password
+    host-access: the user grant that lets the extension call another origin; code chrome.permissions.request, optional_host_permissions; ui Check site access, Grant host access; not permission
+    model: one model id reachable through a provider; code ModelRef, modelId, ModelInfo, getModelInfo; ui Model, Models, Change model, Search models; not engine, llm
+    model-reference: the provider/model pair a chat or the default uses; code ModelRef, providerId, Conversation.model, settings.defaultModel; not model selection, model choice
+    model-catalog: the static facts about known model ids; code catalog.ts, PROVIDER_DEFAULTS, getModelInfo; ui context N, max out N, tools, reasoning; not catalog, registry
+    default-model: the model reference new chats start with; code settings.defaultModel; ui Default model, Provider, Model; not fallback model, primary model
+
+# Capabilities the model may call, local and remote.
+tools:
+    tool: a capability the model may call; code ToolSet, buildTools, buildMcpTools, enabledBuiltInTools; ui Tools, Tools the model may use; not function, command, plugin, action
+    built-in-tool: a tool implemented inside the extension; code TOOL_DEFINITIONS, ACTION_TOOL_IDS, tools.ts; ui Built-in Tools, Built-in tools; not browser tool, local tool, native tool
+    tool-call: one invocation by the model, with input, output and state; code ToolCallPart, ToolCallState, running, complete, error; ui running, waiting, complete, error; not invocation, tool use
+    tool-output: what a tool returns, clipped and treated as untrusted; code MAX_TOOL_CHARS, clipToolText, tool-text.ts; ui Output, Error, truncated; not payload, body, result payload
+    approval: the inline question before an action tool runs; code requestApproval, resolveApproval, approvalsStore; ui Allow this action?, Allow, Deny; not confirmation, permission, consent
+    auto-approve: the switch that lets a tool or server skip that question; code autoApprove, TOOLS_ADDED_IN; ui Run without asking, Run {tool} without asking; not always allow, trust, whitelist
+    mcp: Model Context Protocol, HTTP servers whose tools join the built-ins; code @ai-sdk/mcp, mcp.ts, net-rules.ts; ui MCP, MCP servers; not connector, plugin system, integration
+    mcp-server: one configured Streamable HTTP endpoint; code McpServerSettings, tools.mcp, mcpServerKey; ui MCP servers, Add MCP server, URL, Headers; not remote server, tool server, endpoint
+    mcp-tool: a tool discovered from that server, offered under a namespaced name; code McpDiscoveredTool, buildMcpTools; ui MCP · {server}; not remote tool, server tool, external tool
+    mcp-catalog: the cached probe result of what each server offers; code McpCatalogEntry, McpCatalogStatus, mcpCatalogStore; ui Not checked, Checking…, Unreachable, {n} tools; not tool list, cache
+    tool-namespace: the model-facing MCP tool name, mcp_server_tool; code mcpToolName, assignToolNames, toolKey; not prefix, qualified name, alias
+    strip-origin: a per-server option that removes the Origin header; code stripOrigin, net-rules.ts; ui Send requests without an Origin header; not CORS bypass, header hack
+
+# Prompt templates the user inserts.
+skills:
+    skill: a reusable prompt template inserted by menu or slash; code Skill, settings.skills, skillStore; ui Skills, Insert a prompt, Add skill; not slash command, macro, recipe
+    built-in-skill: a skill shipped with the extension, editable and resettable; code builtInSkills, summarize-page, critique, compare; ui built-in, Reset; not default skill
+    agent-skill: a vendored coding-agent package under .agents/skills; code .agents/skills, skills-lock.json; not skill, product skill
+
+# Every side-panel element, grouped by where it sits in the panel.
+ui:
+    panel:
+        side-panel: the Chrome side panel where chatting happens; code side-panel.html, src/app, App.tsx; ui Local Browser AI; not popup, sidebar, chat window
+        header: the top bar with the chat title and three buttons; code Header, header__title; ui New chat, Chat history, Settings; not topbar, toolbar, app bar
+        banner: a full-width message above the transcript; code banner, banner--error, banner--warn; ui No model is configured yet., Set up a model, Retry, Dismiss; not toast, alert, notification
+        transcript: the scrolling message list; code Transcript, transcript, transcript__spacer; not chat log, message list, feed, thread
+        empty-state: the first-run screen before any message; code EmptyState, empty__title; ui What are you reading?, Download model; not welcome screen, onboarding, splash
+        chats-drawer: the overlay listing saved chats; code HistoryPanel, drawer, drawer__panel, history; ui Chats, Chat history, Delete chat, No saved chats yet.; not history panel, sidebar, menu
+    composer:
+        composer: the whole input area at the bottom; code Composer, composer, composer--expanded; ui Message; not prompt box, input bar, message box
+        composer-box: the bordered box around the input and toolbar; code composer__box, composer__box--streaming; not input box, border
+        composer-topbar: the strip inside the top edge, reserved for per-prompt context; code composer__topbar; not header, top bar, toolbar
+        composer-input: the auto-growing textarea; code composer__input, composer-input; ui Ask anything, or type / for a skill, Queue another message…; not text field, editor
+        composer-toolbar: the row of chips and buttons along the bottom edge; code composer__toolbar, spacer; not button row, footer, action bar
+        composer-meta: the row under the box with the meter and draft count; code composer__meta, composer__count; ui Enter to submit, ⌘↵ to submit; not status bar, footer
+        queue-row: one queued prompt above the box; code composer__queue-item, composer__queue-text; ui Queued · N, Remove from queue and edit; not pending item, queued message
+        attachment-card: the card showing the attached page; code AttachmentCard, attachment__title, attachment__meta; ui Re-read the page, Detach the page; not page chip, file card
+        chips:
+            chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
+            attach-chip: the icon-only chip that attaches or re-reads the tab; code chip--icon, FileText, RefreshCw; ui Attach the current tab, Re-read the page; not paperclip, upload
+            skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Manage skills in Settings; not skill button
+            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount; ui Tools, Built-in tools, MCP servers; not tool button, plugin menu
+            model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
+            reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, Brain, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
+        menus:
+            popover: the anchored floating panel a chip opens; code Popover, popover__group, popover__item; not dropdown, menu, modal, dialog
+            model-picker: the popover listing models by provider, with search; code ModelPicker; ui Search models, No models. Add a provider in Settings.; not model menu, provider picker
+            slash-menu: the inline skill list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
+        actions:
+            submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
+            stop: the button that aborts the run and parks the queue; code stopGeneration, activeController, Square; ui Stop generating; not cancel, abort, halt
+            continue: the button that clears a queue pause and drains; code resumeQueue, Play; ui Continue, Continue queued prompts; not resume, play, restart
+            expand: the topbar toggle that grows the composer and shrinks it; code expanded, composer--expanded, PanelBottomOpen; ui Expand, Shrink; not fullscreen, maximize, minimize
+            retry: regenerate the last answer; code regenerate, retried; ui Retry, Generate this answer again; not rerun, try again
+    message:
+        message-bubble: the container of a user message; code message__bubble, message__text, message__actions; not user bubble
+        skill-badge: the marker showing which skill filled a message; code message__skill, GraduationCap; not chip, tag
+        message-actions: the hover row with save, copy and retry; code message__footer, SaveMemoryButton; ui Save to memory, Copy answer, Retry; not toolbar, message controls
+        typing-indicator: the three dots before an answer has parts; code typing; ui The model is responding; not spinner, loader, thinking dots
+        aborted-badge: the marker on a stopped message; code badge, MessageStatus.aborted; ui stopped; not cancelled badge
+        reasoning-block: the collapsible block holding the model's reasoning; code ReasoningBlock, reasoning__toggle; ui Thinking…, Thought process, ~N tokens; not thinking block, chain of thought
+        tool-card: the transcript block for one tool call; code ToolCallCard, tool__head, tool__body, tool__approval; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
+    numbers:
+        context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
+    atoms:
+        badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
+
+# The full-page configuration surface. UI says Settings; options survives only in paths.
+settings:
+    settings: the full-page surface opened from the header; code src/options, options.html, options_ui; ui Settings, Settings sections; not options, config, preferences
+    settings-section: one page of it, chosen from the rail; code SectionId, SECTIONS, options__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, Instructions, Tool Calls, Data, Compaction; not box, panel, widget
+    settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
+    switch: the on/off control for booleans; code Switch, role=switch; ui Run without asking, Enable memory; not toggle, checkbox, slider
+    settings-version: the schema version that migrates fields and tools once; code SETTINGS_VERSION, migrateSettings, TOOLS_ADDED_IN; not schema version, config version
+
+# Failures, from a provider error down to a single warning.
+errors:
+    app-error: the normalised error shape with a machine-readable kind; code AppError, toAppError, isRetryableKind; not exception, fault, failure
+    error-kind: the closed set that says what went wrong; code ErrorKind, aborted, auth, context-overflow, permission, unsupported; not error code, error type
+    error-part: an error rendered inside an assistant message; code ErrorPart, message__error; ui This may be temporary.; not message error, inline alert
+    run-error: the banner for a failed run, with Retry; code RunState.error, clearRunError, banner--error; ui Retry, Dismiss; not error toast, error dialog
+    mcp-warning: a dismissible warning that one MCP server is down; code McpWarning, mcpWarningsStore, banner--warn; ui Dismiss; not error, failure
+    inline-error: the error line above the composer box; code attachErrorStore, composer__error; not toast, banner, attach banner
+
+# Known mismatches, keyed by the term they belong to. pending means a change is owed.
+drift:
+    built-in-tool: README says browser tools and an MCP placeholder says Local tools; say built-in tools, and Local MCP server. pending
+    mcp-tool: the prompt note is headed Remote tools and Settings switches say server tools; say MCP tools. pending
+    mcp-server: the composer footer points at Settings → Tools although MCP has its own section; point at Settings → MCP. pending
+    memory-mode: README says pin; say always-on. pending
+    turn: README says requests; say turns. pending
+    tool-call: complete and error print the raw enum while running and waiting are translated; map all four to copy. pending
+    attach-chip: the only icon button with a title but no aria-label; add a matching aria-label. pending
+    settings-section: src/options/ToolsSection.tsx is unreferenced and titles its card Tools; delete it. pending
+    page-context: the meter row of the same name shows a page mode, not the setting; shorten the row to Page. pending
+    conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
+    settings: paths say options while UI and docs say Settings; the dual register is approved. decision
+    reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
+    built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision
+    tool-card: Settings names the capability, the transcript names the activity; deliberate, do not copy one into the other. decision
