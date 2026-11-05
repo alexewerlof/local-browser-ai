@@ -139,7 +139,7 @@ export function MessageItem({
 						<button
 							type="button"
 							className="button button--ghost button--icon button--sm"
-							onClick={copy}
+							onClick={() => void copy()}
 							title="Copy answer"
 							aria-label="Copy answer"
 						>

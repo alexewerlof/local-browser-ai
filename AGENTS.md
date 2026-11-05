@@ -182,17 +182,18 @@ confirmation modal) and `controls` keeps only the code copy button.
 
 ## Commands
 
-| Task                   | Command                                  |
-| ---------------------- | ---------------------------------------- |
-| Build                  | `npm run build`                          |
-| Watch                  | `npm run dev`                            |
-| Serve the panel as web | `npm run serve` → http://localhost:4173/ |
-| Browser scenarios      | `npm run e2e`                            |
-| Extension smoke test   | `npm run e2e:ext`                        |
-| Unit tests             | `npm test` (`vitest run`)                |
-| Typecheck              | `npm run typecheck`                      |
-| Format                 | `npm run fmt`                            |
-| Package zip            | `npm run package`                        |
+| Task                   | Command                                      |
+| ---------------------- | -------------------------------------------- |
+| Build                  | `npm run build`                              |
+| Watch                  | `npm run dev`                                |
+| Serve the panel as web | `npm run serve` → http://localhost:4173/     |
+| Browser scenarios      | `npm run e2e`                                |
+| Extension smoke test   | `npm run e2e:ext`                            |
+| Unit tests             | `npm test` (`vitest run`)                    |
+| Typecheck              | `npm run typecheck`                          |
+| Lint                   | `npm run lint` (fix with `npm run lint:fix`) |
+| Format                 | `npm run fmt`                                |
+| Package zip            | `npm run package`                            |
 
 The harness serves `dist/` as an ordinary web page and injects `dev/e2e/chrome-shim.mjs`. Scenarios live in
 `dev/e2e/scenarios/` and use `dev/e2e/fake-server.mjs` (an OpenAI-compatible SSE server that records request bodies and
@@ -206,6 +207,20 @@ migration.
 
 ## Conventions
 
+- **Run the loop before calling a change done:** `npm run typecheck && npm run lint && npm test`, then `npm run fmt`.
+  `eslint.config.js` is the correctness gate: the JavaScript and TypeScript recommended presets, the two core React hook
+  rules, and the type-aware `no-floating-promises` / `no-misused-promises` for `src/` (only `src/` and `vite.config.ts`
+  are in a tsconfig, so `dev/` and `scripts/` lint syntax-only). Prettier owns layout and `eslint-config-prettier` runs
+  last, so never restyle code to satisfy a rule, and never hand-fix formatting — run `npm run fmt`. Fire-and-forget
+  promises are marked `void` (that is the repo-wide convention the rule enforces), and an async click handler becomes
+  `onClick={() => void save()}`, never `onClick={async () => …}`.
+- Silencing a rule needs `// eslint-disable-next-line <rule>` immediately under a comment that says why. The baseline is
+  down to three, each explained in place: `no-control-regex` in `src/core/memory.ts` (stripping control characters is
+  the point) and the two deliberate hook dependency lists (`ComposerMenus`, `McpServersCard`) that refresh MCP catalog
+  entries when a menu opens, not on every settings keystroke. A bare disable, or a new one without a reason, is a review
+  comment.
+- `dev/e2e/**` is linted with Node **and** browser globals because every `page.evaluate()` callback is serialized into
+  the page; adding a global there is a config change in `eslint.config.js`, not a `no-undef` disable in a scenario.
 - Names come from `ontology.yml`; a new concept, control or pipeline stage gets an entry there in the same change.
 - TypeScript strict, `verbatimModuleSyntax`; React 19 function components; no state library — plain `Store` +
   `useSyncExternalStore` (`src/core/store.ts`, `src/app/useStore.ts`).

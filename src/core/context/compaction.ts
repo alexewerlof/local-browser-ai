@@ -1,5 +1,5 @@
 import type { ChatMessage } from '../types'
-import { estimateMessagesTokens, estimateTokens } from './tokens'
+import { estimateMessagesTokens } from './tokens'
 
 export interface CompactionPlan {
 	toSummarize: ChatMessage[]

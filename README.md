@@ -94,6 +94,7 @@ npm test           # unit tests (Vitest)
 npm run e2e        # browser scenarios against a fake OpenAI-compatible server
 npm run e2e:ext    # load dist/ as a real extension in Chromium
 npm run typecheck
+npm run lint
 npm run fmt
 ```
 

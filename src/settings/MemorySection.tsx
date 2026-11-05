@@ -17,7 +17,7 @@ import {
 } from '../state/memory'
 import { updateSettings } from '../state/settings'
 import { useStore } from '../app/useStore'
-import { RangeField, SelectField, Switch, SwitchField, TextAreaField, TextField } from './fields'
+import { RangeField, SelectField, SwitchField, TextAreaField, TextField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
 const MODE_OPTIONS: Array<{ value: MemoryMode; label: string }> = [

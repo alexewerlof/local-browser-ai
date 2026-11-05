@@ -192,7 +192,7 @@ export function Composer({
 								<button
 									type="button"
 									className="button button--ghost button--icon composer__queue-remove"
-									onClick={() => editQueued(item)}
+									onClick={() => void editQueued(item)}
 									title="Remove from queue and edit"
 									aria-label={`Remove queued prompt and edit: ${item.text.slice(0, 60)}`}
 								>

@@ -14,7 +14,7 @@
  */
 export function chromeShim(config = {}) {
 	const STORAGE_KEY = '__lb_ai_storage__'
-	let persisted = {}
+	let persisted
 	try {
 		persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '{}')
 	} catch {

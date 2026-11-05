@@ -73,6 +73,7 @@ export function ToolsMenu({
 		if (!open || servers.length === 0) return
 		void refreshMcpServers(servers)
 		// Refresh when the menu opens, not on every settings change.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open])
 
 	const toggle = (id: string) => {

@@ -47,6 +47,9 @@ export function isMemoryToolId(id: string): id is MemoryToolId {
 
 /* ------------------------------------------------------------------ text */
 
+// Control characters are exactly what this regex has to match: they are stripped from
+// stored text so a pasted file cannot smuggle terminal escapes into the prompt.
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g
 
 /** Cut to a number of code points, so a surrogate pair is never split. */

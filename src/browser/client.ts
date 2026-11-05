@@ -1,7 +1,7 @@
 import { AppError, toAppError } from '../providers/errors'
 import { getChrome } from '../platform/chrome'
 import { extractPageInPageContext } from './extract/inject'
-import { EVENT_FLAG, isRpcEnvelope, RPC_FLAG, type BackgroundRequest, type TabInfo } from './protocol'
+import { EVENT_FLAG, RPC_FLAG, type BackgroundRequest, type TabInfo } from './protocol'
 
 const TIMEOUT_MS = 20_000
 

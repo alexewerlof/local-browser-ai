@@ -14,7 +14,7 @@ const distDir = fileURLToPath(new URL('../dist/', import.meta.url))
  * extension from it. So: remove the children, keep the directory.
  */
 function emptyDirectory(directory) {
-	let entries = []
+	let entries
 	try {
 		entries = readdirSync(directory)
 	} catch {

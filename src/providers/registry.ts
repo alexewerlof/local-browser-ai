@@ -36,7 +36,6 @@ export async function createLanguageModel(
 	modelId: string,
 	options: CreateModelOptions = {},
 ): Promise<LanguageModel> {
-	const info = options.info ?? getModelInfo(provider.kind, modelId)
 	const baseURL = normalizeBaseURL(provider.baseURL, DEFAULT_BASE_URLS[provider.kind] ?? '')
 
 	switch (provider.kind) {

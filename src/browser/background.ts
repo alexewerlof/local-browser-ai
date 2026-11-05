@@ -242,7 +242,7 @@ async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 	if (!isRpcEnvelope(message)) return false
 	log('rpc', message.request.type)
-	handleRequest(message.request)
+	void handleRequest(message.request)
 		.then((value): BackgroundResponse => ({ ok: true, value }))
 		.catch((error): BackgroundResponse => {
 			const appError = toAppError(error)

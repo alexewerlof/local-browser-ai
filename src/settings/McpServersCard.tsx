@@ -24,6 +24,7 @@ export function McpServersCard({ settings }: { settings: AppSettings }) {
 		if (servers.length === 0) return
 		void refreshMcpServers(servers)
 		// Only re-check when a server is added, edited or removed; `signature` is that set.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [signature])
 
 	const patchServer = (id: string, update: (server: McpServerSettings) => McpServerSettings) =>

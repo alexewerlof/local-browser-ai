@@ -52,6 +52,11 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 		void storageEstimate().then(setEstimate)
 	}, [cleared])
 
+	const deleteAllChats = async () => {
+		await clearConversations()
+		setCleared((value) => !value)
+	}
+
 	return (
 		<div className="section">
 			<SettingsCard title="Appearance">
@@ -162,14 +167,7 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 					</div>
 				)}
 				<div className="row" style={{ gap: 'var(--space-3)' }}>
-					<button
-						type="button"
-						className="button button--danger"
-						onClick={async () => {
-							await clearConversations()
-							setCleared((value) => !value)
-						}}
-					>
+					<button type="button" className="button button--danger" onClick={() => void deleteAllChats()}>
 						Delete all chats
 					</button>
 					{cleared && <span className="hint">Chats deleted.</span>}

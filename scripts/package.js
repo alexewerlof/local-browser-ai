@@ -41,7 +41,9 @@ async function readPackageIgnore(file) {
 		text = await readFile(file, 'utf8')
 	} catch (error) {
 		if (error.code === 'ENOENT') {
-			throw new Error(`Missing ${relative(process.cwd(), file)}: it decides what stays out of the zip.`)
+			throw new Error(`Missing ${relative(process.cwd(), file)}: it decides what stays out of the zip.`, {
+				cause: error,
+			})
 		}
 		throw error
 	}

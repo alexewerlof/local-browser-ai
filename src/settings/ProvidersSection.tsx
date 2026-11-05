@@ -208,6 +208,12 @@ function ProviderEditor({
 		setGranted(await hasHostAccess(draft.baseURL))
 	}
 
+	/** Nothing may await before this: the permission prompt needs the click's gesture. */
+	const grantHostAccess = async () => {
+		if (!draft.baseURL) return
+		setGranted(await requestHostAccess(draft.baseURL))
+	}
+
 	const save = async () => {
 		// Saving is the user asking to use this endpoint, so ask for the grant now, while
 		// the click's gesture is live. Generate-and-send later has no prompt available.
@@ -347,9 +353,7 @@ function ProviderEditor({
 					<button
 						type="button"
 						className="button button--primary button--sm"
-						onClick={async () => {
-							if (draft.baseURL) setGranted(await requestHostAccess(draft.baseURL))
-						}}
+						onClick={() => void grantHostAccess()}
 					>
 						Grant host access
 					</button>
