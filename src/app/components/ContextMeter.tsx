@@ -117,7 +117,7 @@ export function ContextMeter({
 					className="button button--ghost button--sm"
 					onClick={() => {
 						setOpen(false)
-						void openOptionsPage()
+						void openOptionsPage('context')
 					}}
 				>
 					<Settings size={13} />

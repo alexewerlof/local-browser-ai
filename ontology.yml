@@ -143,13 +143,13 @@ ui:
         chips:
             chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
             attach-chip: the icon-only chip that attaches or re-reads the tab; code chip--icon, FileText, RefreshCw; ui Attach the current tab, Re-read the page; not paperclip, upload
-            skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Manage skills in Settings; not skill button
-            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount; ui Tools, Built-in tools, MCP servers; not tool button, plugin menu
+            skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Manage skills; not skill button
+            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount; ui Tools, Built-in tools, MCP servers, No MCP servers yet., Manage built-in tools, Manage MCP servers; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, Brain, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__group, popover__item; not dropdown, menu, modal, dialog
-            model-picker: the popover listing models by provider, with search; code ModelPicker; ui Search models, No models. Add a provider in Settings.; not model menu, provider picker
+            model-picker: the popover listing models by provider, with search; code ModelPicker; ui Search models, No models. Add a provider in Settings., Manage models; not model menu, provider picker
             slash-menu: the inline skill list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
@@ -169,11 +169,13 @@ ui:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openOptionsPage, settingsSectionHash; ui Manage skills, Manage built-in tools, Manage MCP servers, Manage models; not cog, settings link, configure icon
 
 # The full-page configuration surface. UI says Settings; options survives only in paths.
 settings:
-    settings: the full-page surface opened from the header; code src/options, options.html, options_ui; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SectionId, SECTIONS, options__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/options, options.html, options_ui, openOptionsPage; ui Settings, Settings sections; not options, config, preferences
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, options__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings-route: the fragment that names the open section, General at the root; code parseSettingsHash, settingsSectionHash, options.html#/skills; ui hash, options.html#/skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, Instructions, Tool Calls, Data, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
     switch: the on/off control for booleans; code Switch, role=switch; ui Run without asking, Enable memory; not toggle, checkbox, slider
@@ -192,7 +194,7 @@ errors:
 drift:
     built-in-tool: README says browser tools and an MCP placeholder says Local tools; say built-in tools, and Local MCP server. pending
     mcp-tool: the prompt note is headed Remote tools and Settings switches say server tools; say MCP tools. pending
-    mcp-server: the composer footer points at Settings → Tools although MCP has its own section; point at Settings → MCP. pending
+    mcp-server: MCP servers have their own section and their own gear, which opens Settings → MCP; the Tools menu never sends the user to Built-in Tools for them. decision
     memory-mode: README says pin; say always-on. pending
     turn: README says requests; say turns. pending
     tool-call: complete and error print the raw enum while running and waiting are translated; map all four to copy. pending

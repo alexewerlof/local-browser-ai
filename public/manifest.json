@@ -9,7 +9,7 @@
 		"48": "images/icon-48.png",
 		"128": "images/icon-128.png"
 	},
-	"permissions": ["sidePanel", "scripting", "activeTab", "contextMenus", "storage", "search"],
+	"permissions": ["sidePanel", "scripting", "activeTab", "tabs", "contextMenus", "storage", "search"],
 	"host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
 	"optional_host_permissions": ["http://*/*", "https://*/*"],
 	"action": {

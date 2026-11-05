@@ -9,6 +9,7 @@
  * @param {object} [config.tab] The tab the extension is attached to.
  * @param {object} [config.extraction] Result returned by `tab.extract`.
  * @param {string} [config.selection] Text returned by `tab.selection`.
+ * @param {string[]} [config.openTabs] Already-open tabs, as paths resolved against the page.
  * @param {boolean} [config.denyExtraction] Make extraction fail like a missing activeTab grant.
  */
 export function chromeShim(config = {}) {
@@ -105,6 +106,17 @@ export function chromeShim(config = {}) {
 	let pendingTabId = config.tab ? tab.id : null
 	const opened = []
 	const searches = []
+	// Tabs beyond the attached one, so a scenario can start with Settings already open.
+	const otherTabs = (config.openTabs ?? []).map((path, index) => ({
+		id: 500 + index,
+		windowId: 2,
+		active: false,
+		url: new URL(path, location.href).toString(),
+		title: 'Settings',
+	}))
+	let nextTabId = 600
+	const updatedTabs = []
+	const focusedWindows = []
 
 	async function handleRequest(request) {
 		switch (request.type) {
@@ -275,6 +287,10 @@ export function chromeShim(config = {}) {
 		action: { onClicked: inertEvent() },
 		windows: {
 			create: async () => ({ tabs: [{ id: 999 }] }),
+			async update(id, props) {
+				focusedWindows.push({ id, ...props })
+				return { id }
+			},
 		},
 		scripting: {
 			async executeScript() {
@@ -282,15 +298,27 @@ export function chromeShim(config = {}) {
 			},
 		},
 		tabs: {
+			// The attached tab first, then whatever the scenario says is already open.
 			async query() {
-				return [tab]
+				return [tab, ...otherTabs]
 			},
-			async get() {
-				return tab
+			async get(id) {
+				return [tab, ...otherTabs].find((entry) => entry.id === id) ?? tab
 			},
 			async create({ url }) {
 				opened.push(url)
-				return { id: 999 }
+				const created = { id: nextTabId++, windowId: 2, active: true, url, title: '' }
+				otherTabs.push(created)
+				return created
+			},
+			async update(id, props) {
+				const target = [tab, ...otherTabs].find((entry) => entry.id === id)
+				if (target) {
+					if (props.url !== undefined) target.url = props.url
+					if (props.active !== undefined) target.active = props.active
+				}
+				updatedTabs.push({ id, ...props })
+				return target
 			},
 			async sendMessage(message) {
 				return sendMessage(message)
@@ -308,6 +336,9 @@ export function chromeShim(config = {}) {
 	globalThis.__LB_AI_TEST__ = {
 		opened,
 		searches,
+		/** `tabs.update` calls, in order: the tab the app activated (and navigated, if any). */
+		updatedTabs,
+		focusedWindows,
 		setExtraction(next) {
 			extraction = next
 		},

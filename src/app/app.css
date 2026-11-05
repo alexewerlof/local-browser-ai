@@ -946,6 +946,19 @@
 	padding: var(--space-2) var(--space-3);
 }
 
+/* Group heading with its settings gear on the trailing edge. */
+.popover__group-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.popover__group-head .popover__group-label {
+	padding: 0;
+}
+
 .popover__item {
 	display: flex;
 	align-items: center;
@@ -1023,6 +1036,11 @@
 	padding: var(--space-2) var(--space-3);
 	border-top: 1px solid var(--border);
 	background: var(--bg-sunken);
+}
+
+/* A footer holding one control keeps it on the trailing edge. */
+.popover__footer--end {
+	justify-content: flex-end;
 }
 
 .context-row {

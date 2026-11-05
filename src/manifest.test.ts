@@ -21,8 +21,13 @@ describe('manifest', () => {
 
 	it('requests only the permissions the app uses', () => {
 		expect(new Set(manifest.permissions)).toEqual(
-			new Set(['sidePanel', 'scripting', 'activeTab', 'contextMenus', 'storage', 'search']),
+			new Set(['sidePanel', 'scripting', 'activeTab', 'tabs', 'contextMenus', 'storage', 'search']),
 		)
+	})
+
+	it('reads tab URLs so Settings is opened once and then focused', () => {
+		// `tabs` is what makes `tabs.query()` return `url`, which `openOptionsPage` matches on.
+		expect(manifest.permissions).toContain('tabs')
 	})
 
 	it('grants tab access through activeTab, not broad host permissions', () => {

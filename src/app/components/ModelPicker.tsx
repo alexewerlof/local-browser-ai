@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Settings, Sparkles } from 'lucide-react'
+import { Check, ChevronDown, Sparkles } from 'lucide-react'
 import type { AppSettings, ModelRef } from '../../core/types'
 import { getModelInfo } from '../../providers/catalog'
-import { openOptionsPage } from '../../platform/chrome'
 import { formatTokens } from '../../core/util'
 import { Popover } from './Popover'
+import { SettingsButton } from './SettingsButton'
 
 export function ModelPicker({
 	settings,
@@ -100,18 +100,8 @@ export function ModelPicker({
 					</div>
 				))}
 			</div>
-			<div className="popover__footer">
-				<button
-					type="button"
-					className="button button--ghost button--sm"
-					onClick={() => {
-						setOpen(false)
-						void openOptionsPage()
-					}}
-				>
-					<Settings size={13} />
-					Manage models
-				</button>
+			<div className="popover__footer popover__footer--end">
+				<SettingsButton section="models" label="Manage models" onClose={() => setOpen(false)} />
 			</div>
 		</Popover>
 	)

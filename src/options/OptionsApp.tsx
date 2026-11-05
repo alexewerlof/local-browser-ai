@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
 	Brain,
 	CpuAi,
@@ -10,6 +10,12 @@ import {
 	Wrench,
 	type LucideIcon,
 } from 'lucide-react'
+import {
+	SETTINGS_SECTIONS,
+	parseSettingsHash,
+	settingsSectionHash,
+	type SettingsSectionId,
+} from '../core/settings-routes'
 import { extensionUrl, getManifest } from '../platform/chrome'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
@@ -22,24 +28,49 @@ import { MemorySection } from './MemorySection'
 import { ContextSection } from './ContextSection'
 import { GeneralSection } from './GeneralSection'
 
-type SectionId = 'providers' | 'models' | 'skills' | 'tools' | 'mcp' | 'memory' | 'context' | 'general'
-
-const SECTIONS: Array<{ id: SectionId; label: string; icon: LucideIcon }> = [
-	{ id: 'general', label: 'General', icon: Settings },
-	{ id: 'providers', label: 'Providers', icon: CpuAi },
-	{ id: 'models', label: 'Models', icon: Sparkles },
-	{ id: 'skills', label: 'Skills', icon: GraduationCap },
-	{ id: 'tools', label: 'Built-in Tools', icon: Wrench },
-	{ id: 'mcp', label: 'MCP', icon: PocketKnife },
-	{ id: 'memory', label: 'Memory', icon: MemoryStick },
-	{ id: 'context', label: 'Context', icon: Brain },
-]
+/** Every section needs an icon; a missing entry is a type error rather than a blank rail. */
+const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
+	general: Settings,
+	providers: CpuAi,
+	models: Sparkles,
+	skills: GraduationCap,
+	tools: Wrench,
+	mcp: PocketKnife,
+	memory: MemoryStick,
+	context: Brain,
+}
 
 export function OptionsApp() {
 	const status = useStore(settingsStatusStore)
 	const settings = useStore(settingsStore)
-	const [section, setSection] = useState<SectionId>('general')
+	const [section, setSection] = useState<SettingsSectionId>(() => parseSettingsHash(window.location.hash))
 	const manifest = getManifest()
+
+	useEffect(() => {
+		// Rewrite a hand-typed or stale fragment so the URL always names the open section.
+		// `replaceState` leaves no history entry, so Back still walks the sections the user
+		// actually visited.
+		const sync = () => {
+			const next = parseSettingsHash(window.location.hash)
+			const canonical = settingsSectionHash(next)
+			if (window.location.hash !== canonical) window.history.replaceState(null, '', canonical)
+			setSection(next)
+		}
+		sync()
+		// `hashchange` covers an URL edited by hand; `popstate` covers Back and Forward.
+		window.addEventListener('hashchange', sync)
+		window.addEventListener('popstate', sync)
+		return () => {
+			window.removeEventListener('hashchange', sync)
+			window.removeEventListener('popstate', sync)
+		}
+	}, [])
+
+	const openSection = (id: SettingsSectionId) => {
+		const hash = settingsSectionHash(id)
+		if (window.location.hash !== hash) window.history.pushState(null, '', hash)
+		setSection(id)
+	}
 
 	if (status !== 'ready') return <div className="boot">Loading settings…</div>
 
@@ -56,19 +87,22 @@ export function OptionsApp() {
 					/>
 					<span className="options__brand-label">{manifest.name}</span>
 				</div>
-				{SECTIONS.map((entry) => (
-					<button
-						key={entry.id}
-						type="button"
-						className={`options__nav-item${section === entry.id ? ' options__nav-item--active' : ''}`}
-						aria-current={section === entry.id ? 'page' : undefined}
-						title={entry.label}
-						onClick={() => setSection(entry.id)}
-					>
-						<entry.icon size={20} />
-						<span className="options__nav-label">{entry.label}</span>
-					</button>
-				))}
+				{SETTINGS_SECTIONS.map((entry) => {
+					const Icon = SECTION_ICONS[entry.id]
+					return (
+						<button
+							key={entry.id}
+							type="button"
+							className={`options__nav-item${section === entry.id ? ' options__nav-item--active' : ''}`}
+							aria-current={section === entry.id ? 'page' : undefined}
+							title={entry.label}
+							onClick={() => openSection(entry.id)}
+						>
+							<Icon size={20} />
+							<span className="options__nav-label">{entry.label}</span>
+						</button>
+					)
+				})}
 			</nav>
 
 			<main className="options__content">

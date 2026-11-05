@@ -6,6 +6,7 @@ import { mcpServerKey } from '../../core/mcp'
 import { mcpCatalogStore, refreshMcpServers } from '../../state/mcp'
 import { useStore } from '../useStore'
 import { Popover } from './Popover'
+import { SettingsButton } from './SettingsButton'
 
 export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
 	const [open, setOpen] = useState(false)
@@ -43,8 +44,8 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 					</button>
 				))}
 			</div>
-			<div className="popover__footer">
-				<span className="hint">Manage skills in Settings</span>
+			<div className="popover__footer popover__footer--end">
+				<SettingsButton section="skills" label="Manage skills" onClose={() => setOpen(false)} />
 			</div>
 		</Popover>
 	)
@@ -105,7 +106,14 @@ export function ToolsMenu({
 			) : (
 				<>
 					<div className="popover__group">
-						<div className="popover__group-label">Built-in tools</div>
+						<div className="popover__group-head">
+							<span className="popover__group-label">Built-in tools</span>
+							<SettingsButton
+								section="tools"
+								label="Manage built-in tools"
+								onClose={() => setOpen(false)}
+							/>
+						</div>
 						{TOOL_DEFINITIONS.map((definition) => {
 							const checked = enabled.has(definition.id)
 							return (
@@ -120,35 +128,30 @@ export function ToolsMenu({
 						})}
 					</div>
 
-					{servers.length > 0 && (
-						<div className="popover__group">
-							<div className="popover__group-label">MCP servers</div>
-							{servers.map((server) => (
-								<label key={server.id} className="popover__check">
-									<input
-										type="checkbox"
-										checked={server.enabled}
-										onChange={(event) => onToggleMcp(server.id, event.target.checked)}
-									/>
-									<span>
-										<span className="popover__item-main">{server.label}</span>
-										<span className="popover__item-sub">
-											{mcpStatus(server, catalog[mcpServerKey(server)])}
-										</span>
-									</span>
-								</label>
-							))}
+					<div className="popover__group">
+						<div className="popover__group-head">
+							<span className="popover__group-label">MCP servers</span>
+							<SettingsButton section="mcp" label="Manage MCP servers" onClose={() => setOpen(false)} />
 						</div>
-					)}
+						{servers.map((server) => (
+							<label key={server.id} className="popover__check">
+								<input
+									type="checkbox"
+									checked={server.enabled}
+									onChange={(event) => onToggleMcp(server.id, event.target.checked)}
+								/>
+								<span>
+									<span className="popover__item-main">{server.label}</span>
+									<span className="popover__item-sub">
+										{mcpStatus(server, catalog[mcpServerKey(server)])}
+									</span>
+								</span>
+							</label>
+						))}
+						{servers.length === 0 && <p className="popover__empty">No MCP servers yet.</p>}
+					</div>
 				</>
 			)}
-			<div className="popover__footer">
-				<span className="hint">
-					{servers.length > 0
-						? 'MCP servers are managed in Settings → Tools.'
-						: 'Requires a model that supports tool calling. Add MCP servers in Settings.'}
-				</span>
-			</div>
 		</Popover>
 	)
 }

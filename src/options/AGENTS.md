@@ -10,7 +10,17 @@ settings-field, switch) plus the setting entries in their domain groups: `contex
 Local rules:
 
 - Rail order is fixed: General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context. General is the landing
-  section. A new section is a new rail item and a new ontology entry for each card title it adds.
+  section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
+  `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
+- The open section is the URL fragment, Chrome-style: General is the root and every other section is `#/<id>`
+  (`options.html#/skills`). A path segment is impossible (the page is a static file), so the slash lives in the
+  fragment. The page reads the fragment on mount, normalises an unknown or hand-typed one with `replaceState`, syncs on
+  `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click. `openOptionsPage(section)` in
+  `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then activates the one Settings tab
+  and moves it to the section (`tabs.update`), creating the tab only when none is open. That reuse is why the manifest
+  requests `tabs`; never open a second Settings tab.
+- A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
+  skills"), not a sentence. The Tools menu carries one gear per group: built-in tools and MCP.
 - Card title is sentence case (`Built-in tools`, `MCP servers`, `Memory settings`); the rail label alone is title case
   (`Built-in Tools`).
 - One control per `.field`, label first, hint second. Reuse `Switch`, `RangeField` and `SelectField` from `fields.tsx`

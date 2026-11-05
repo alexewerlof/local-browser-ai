@@ -143,12 +143,13 @@ confirmation modal) and `controls` keeps only the code copy button.
   overrides; provider-reported usage is the source of truth once a request completes.
 - **Tab access is `activeTab`.** `chrome.action.onClicked` opens the panel and remembers the tab; the panel claims it
   and extracts. Navigating or switching tabs revokes access, so the attachment is marked stale. Do not add install-time
-  host permissions for page content.- **Never set `openPanelOnActionClick: true`.** Chrome persists that flag per
-  profile, and while it is set the browser handles the toolbar click itself and **does not fire `action.onClicked`**, so
-  nothing gets attached and nothing logs. The worker resets the flag on every start; keep it that way. Likewise,
-  `sidePanel.open()` must be the first call in a gesture handler — never `await` before it, or the gesture is lost.-
-  **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no imports, no module
-  helpers) because `chrome.scripting.executeScript({ func })` serializes it.
+  host permissions for page content. The `tabs` permission is requested only for tab _URLs_ — `openOptionsPage` uses
+  them to find the open Settings tab — and it grants no page content.- **Never set `openPanelOnActionClick: true`.**
+  Chrome persists that flag per profile, and while it is set the browser handles the toolbar click itself and **does not
+  fire `action.onClicked`**, so nothing gets attached and nothing logs. The worker resets the flag on every start; keep
+  it that way. Likewise, `sidePanel.open()` must be the first call in a gesture handler — never `await` before it, or
+  the gesture is lost.- **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no
+  imports, no module helpers) because `chrome.scripting.executeScript({ func })` serializes it.
 - **Page content is untrusted input.** It is wrapped with an explicit instruction to ignore embedded instructions, and
   model output is never executed as code. Markdown renders through Streamdown with `rehype-raw` deliberately omitted, so
   tags in an answer stay inert text.
@@ -212,6 +213,12 @@ migration.
   Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
+- Settings sections are hash-routed (`options.html#/skills`; General is the root `#/`). `SETTINGS_SECTIONS` in
+  `src/core/settings-routes.ts` is the order, and `openOptionsPage(section)` opens Settings at a section. Settings is a
+  **single tab**: the function queries open tabs (hence the `tabs` permission), focuses the window, and moves the
+  existing tab to the section instead of opening another one; with no section it keeps the section already on screen. A
+  menu that points at Settings uses the `SettingsButton` gear rather than a sentence. Paths cannot carry the section —
+  the page is a static extension file — so the slash has to live in the fragment.
 - Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
   the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`

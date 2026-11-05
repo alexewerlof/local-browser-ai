@@ -76,7 +76,7 @@ export function App() {
 								: (promptStatus?.message ?? 'The built-in model is unavailable in this browser.')}
 					</span>
 					<span className="spacer" />
-					<button type="button" className="button button--sm" onClick={() => void openOptionsPage()}>
+					<button type="button" className="button button--sm" onClick={() => void openOptionsPage('models')}>
 						Set up a model
 					</button>
 				</div>

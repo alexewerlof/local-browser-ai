@@ -214,6 +214,42 @@ async function main() {
 		assert.match(await options.locator('.options__brand-label').textContent(), /Local Browser AI/)
 		await options.close()
 
+		// 5a. Settings stays a single tab. The header gear finds the tab that is already open
+		//     and activates it; the `tabs` permission is what makes its URL visible.
+		const panel = await context.newPage()
+		panel.on('pageerror', (error) => pageErrors.push(error.message))
+		await panel.goto(`chrome-extension://${extensionId}/side-panel.html`)
+		await panel.waitForSelector('.app', { timeout: 20000 })
+
+		const optionsTabs = () =>
+			panel.evaluate(async () => {
+				const tabs = await chrome.tabs.query({})
+				return tabs
+					.filter((tab) => tab.url?.includes('/options.html'))
+					.map((tab) => ({ id: tab.id, active: tab.active, url: tab.url }))
+			})
+		const until = async (predicate, label) => {
+			const deadline = Date.now() + 10000
+			while (Date.now() < deadline) {
+				if (await predicate()) return
+				await new Promise((done) => setTimeout(done, 100))
+			}
+			throw new Error(`timed out waiting for ${label}`)
+		}
+
+		await panel.locator('button[aria-label="Settings"]').click()
+		await until(async () => (await optionsTabs()).length === 1, 'the first Settings tab')
+		// Bring the panel back, then ask again: it must reuse the tab, not stack a second one.
+		await panel.bringToFront()
+		await panel.locator('button[aria-label="Settings"]').click()
+		await until(async () => {
+			const tabs = await optionsTabs()
+			return tabs.length === 1 && tabs[0].active === true
+		}, 'the open Settings tab to be activated')
+		const [settingsTab] = await optionsTabs()
+		assert.match(settingsTab.url, new RegExp(`^chrome-extension://${extensionId}/options\\.html`))
+		await panel.close()
+
 		// 5b. An MCP server that rejects browser origins still works, but only when the
 		//     manifest grants `declarativeNetRequestWithHostAccess`, the one MV3 mechanism
 		//     that can drop a forbidden header. Skipped rather than failed when it is absent.
