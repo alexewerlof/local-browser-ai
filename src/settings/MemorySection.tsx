@@ -17,7 +17,7 @@ import {
 } from '../state/memory'
 import { updateSettings } from '../state/settings'
 import { useStore } from '../app/useStore'
-import { RangeField, SelectField, Switch, TextAreaField, TextField } from './fields'
+import { RangeField, SelectField, Switch, SwitchField, TextAreaField, TextField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
 const MODE_OPTIONS: Array<{ value: MemoryMode; label: string }> = [
@@ -135,19 +135,12 @@ export function MemorySection({ settings }: { settings: AppSettings }) {
 			</p>
 
 			<SettingsCard title="Memory settings">
-				<div className="field">
-					<span className="field__text">
-						<span className="field__label">Enable memory</span>
-						<span className="field__hint">
-							Injects memories into the prompt and gives the model the remember and recall tools.
-						</span>
-					</span>
-					<Switch
-						label="Enable memory"
-						checked={settings.memory.enabled}
-						onChange={(enabled) => setPolicy({ enabled })}
-					/>
-				</div>
+				<SwitchField
+					label="Enable memory"
+					hint="Injects memories into the prompt and gives the model the remember and recall tools."
+					checked={settings.memory.enabled}
+					onChange={(enabled) => setPolicy({ enabled })}
+				/>
 				<RangeField
 					label="Memory budget"
 					min={0.05}

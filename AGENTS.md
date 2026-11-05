@@ -164,7 +164,9 @@ confirmation modal) and `controls` keeps only the code copy button.
   namespaced (`mcp_<server>_<tool>`), clipped to `MAX_TOOL_CHARS`, and their output is treated as untrusted data — it
   never becomes instructions. Do not commit a real endpoint or use a live server in tests; use
   `dev/e2e/mock-mcp-server.mjs`. Pass an explicit `fetch` wrapper to the transport: browsers reject a `fetch` whose
-  receiver is not the global scope ("Illegal invocation").
+  receiver is not the global scope ("Illegal invocation"). A server is edited in place in the list (`McpServerEditor`, a
+  `.mcp-editor` child of `.rows`), never in a second card, and its headers are Name/Value rows
+  (`headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`) rather than a textarea.
 - **A server that rejects browser origins is handled in the browser, not the header.** Many MCP servers answer 403 to
   any request carrying `Origin` (DNS-rebinding protection), and `Origin` is a forbidden header no script can drop. A
   server with `stripOrigin: true` gets a session-scoped `declarativeNetRequest` rule (`src/platform/net-rules.ts`,

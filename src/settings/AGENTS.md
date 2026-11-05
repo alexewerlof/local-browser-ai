@@ -24,8 +24,17 @@ Local rules:
   skills"), not a sentence. The Tools menu carries one gear per group: built-in tools and MCP.
 - Card title is sentence case (`Built-in tools`, `MCP servers`, `Memory settings`); the rail label alone is title case
   (`Built-in Tools`).
-- One control per `.field`, label first, hint second. Reuse `Switch`, `RangeField` and `SelectField` from `fields.tsx`
-  rather than new controls.
+- One control per `.field`, label first, hint second. Reuse `Switch`, `SwitchField`, `RangeField` and `SelectField` from
+  `fields.tsx` rather than new controls. `SwitchField` is the label + switch row (`Field` cannot hold a switch: it
+  renders a `<label>`, and a button inside a label toggles twice).
+- Editing a list item happens **in place**, not in a second card under the list: `McpServersCard` swaps that server's
+  row for `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the same
+  `.rows` and inherits the card's hairlines. Prefer this for any future list editor; `SkillsSection` and `MemorySection`
+  still open a separate card.
+- The MCP server's headers are `Name`/`Value` rows (`HeaderRow` + `headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`),
+  not a textarea: one row per pair with a trash button, and an "Add header" button below. The helpers own validation (a
+  fully blank row is dropped; a name without a value, an invalid name and a repeated name are row errors) so the
+  component only renders `headerErrors`.
 - Card titles and control labels are quoted verbatim in the ontology. Never invent a second word for a setting that
   already has an entry.
 

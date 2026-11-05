@@ -179,47 +179,70 @@ function safeJson(value: unknown): string {
 	}
 }
 
-export interface ParsedHeaders {
-	headers: Record<string, string>
-	errors: string[]
+/** One editable header pair in the Settings server editor. */
+export interface HeaderRow {
+	name: string
+	value: string
 }
 
-/** Parse the Settings page's `Name: value` lines. Blank lines and `#` comments are skipped. */
-export function parseHeaderLines(text: string): ParsedHeaders {
+export interface HeaderRowsResult {
+	headers: Record<string, string>
+	/** One message per row, `undefined` when that row is fine or blank. */
+	errors: Array<string | undefined>
+}
+
+/** Turn the stored header map into the editor's rows, keeping the stored order. */
+export function headersToRows(headers: Record<string, string> | undefined): HeaderRow[] {
+	return Object.entries(headers ?? {}).map(([name, value]) => ({ name, value }))
+}
+
+/**
+ * Turn the editor's rows into the header map sent to the server. A row with both
+ * fields empty is dropped (it is a row the user added and did not fill in).
+ */
+export function rowsToHeaders(rows: readonly HeaderRow[]): HeaderRowsResult {
 	const headers: Record<string, string> = {}
-	const errors: string[] = []
+	const errors: Array<string | undefined> = []
+	const seen = new Map<string, number>()
 
-	for (const [index, raw] of text.split(/\r?\n/).entries()) {
-		const line = raw.trim()
-		if (!line || line.startsWith('#')) continue
+	for (const [index, row] of rows.entries()) {
+		const name = row.name.trim()
+		const value = row.value.trim()
 
-		const colon = line.indexOf(':')
-		if (colon <= 0) {
-			errors.push(`Line ${index + 1}: expected "Name: value".`)
+		if (!name && !value) {
+			errors.push(undefined)
+			continue
+		}
+		if (!name) {
+			errors.push('Enter a header name.')
 			continue
 		}
 
-		const name = line.slice(0, colon).trim()
-		const value = line.slice(colon + 1).trim()
+		const previous = seen.get(name.toLowerCase())
+		if (previous !== undefined) {
+			errors.push(`"${name}" is already used by row ${previous + 1}.`)
+			continue
+		}
+
 		if (!HEADER_NAME_PATTERN.test(name)) {
-			errors.push(`Line ${index + 1}: "${name}" is not a valid header name.`)
+			errors.push(`"${name}" is not a valid header name.`)
+			continue
+		}
+		if (!value) {
+			errors.push('Enter a value.')
 			continue
 		}
 		if (/[\r\n]/.test(value)) {
-			errors.push(`Line ${index + 1}: a header value cannot contain a line break.`)
+			errors.push('A header value cannot contain a line break.')
 			continue
 		}
 
+		seen.set(name.toLowerCase(), index)
+		errors.push(undefined)
 		headers[name] = value
 	}
 
 	return { headers, errors }
-}
-
-export function formatHeaderLines(headers: Record<string, string> | undefined): string {
-	return Object.entries(headers ?? {})
-		.map(([name, value]) => `${name}: ${value}`)
-		.join('\n')
 }
 
 /** One-line explanation for a failed connection or tool call, safe to show in the UI. */

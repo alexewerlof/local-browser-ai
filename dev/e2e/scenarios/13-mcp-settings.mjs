@@ -46,12 +46,64 @@ export async function run(ctx) {
 			window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.disabledTools?.includes('echo'),
 		)
 
+		// Editing replaces that server's row, in the same card; there is no second panel.
+		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		const editor = page.locator('.mcp-editor')
+		await editor.waitFor()
+		assert.equal(await page.locator('.mcp-server').count(), 0)
+		assert.match(await editor.textContent(), /Edit Mock tools/)
+
+		// Headers are Name/Value rows: fill them, add rows with the button below.
+		await editor.locator('input[aria-label="Header 1 name"]').fill('Authorization')
+		await editor.locator('input[aria-label="Header 1 value"]').fill('Bearer abc')
+		await editor.locator('button:has-text("Add header")').click()
+		await editor.locator('input[aria-label="Header 2 name"]').fill('X-Env')
+		await editor.locator('input[aria-label="Header 2 value"]').fill('test')
+		// A row left blank is dropped instead of becoming an empty header.
+		await editor.locator('button:has-text("Add header")').click()
+		await editor.locator('button[role="switch"][aria-label="Send requests without an Origin header"]').click()
+		await editor.locator('button:has-text("Save server")').click()
+		await page.waitForFunction(
+			() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.headers?.Authorization === 'Bearer abc',
+		)
+		assert.equal(await page.locator('.mcp-server').count(), 1)
+
+		let stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())
+		assert.deepEqual(stored.tools.mcp[0].headers, { Authorization: 'Bearer abc', 'X-Env': 'test' })
+		assert.equal(stored.tools.mcp[0].stripOrigin, true)
+
+		// The trash button removes that row only.
+		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('button[aria-label="Remove header 2"]').click()
+		await page.locator('.mcp-editor button:has-text("Save server")').click()
+		await page.waitForFunction(
+			() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.headers?.['X-Env'] === undefined,
+		)
+		stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())
+		assert.deepEqual(stored.tools.mcp[0].headers, { Authorization: 'Bearer abc' })
+
+		// A repeated name is a row error and blocks the save.
+		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('.mcp-editor button:has-text("Add header")').click()
+		await page.locator('.mcp-editor input[aria-label="Header 2 name"]').fill('authorization')
+		await page.locator('.mcp-editor input[aria-label="Header 2 value"]').fill('other')
+		await page.locator('.mcp-editor button:has-text("Save server")').click()
+		await page.waitForSelector('.mcp-header__error')
+		assert.match(await page.locator('.mcp-header__error').first().textContent(), /already used by row 1/)
+		stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())
+		assert.deepEqual(stored.tools.mcp[0].headers, { Authorization: 'Bearer abc' })
+
+		// Cancel restores the row untouched.
+		await page.locator('.mcp-editor button:has-text("Cancel")').click()
+		await page.waitForSelector('.mcp-server')
+		assert.equal(await page.locator('.mcp-server').count(), 1)
+
 		// Add a second server through the editor.
 		await page.locator('.section__action button:has-text("Add MCP server")').click()
-		const editor = page.locator('section.group:has-text("Add an MCP server")')
-		await editor.locator('input').nth(0).fill('Second server')
-		await editor.locator('input').nth(1).fill(mcp.url)
-		await editor.locator('button:has-text("Add server")').click()
+		const added = page.locator('.mcp-editor')
+		await added.locator('input').nth(0).fill('Second server')
+		await added.locator('input').nth(1).fill(mcp.url)
+		await added.locator('button:has-text("Add server")').click()
 		await page.waitForFunction(() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.length === 2)
 		assert.equal(await page.locator('.mcp-server').count(), 2)
 
@@ -59,12 +111,12 @@ export async function run(ctx) {
 		await page.locator('.mcp-server').nth(1).locator('button:has-text("Remove")').click()
 		await page.waitForFunction(() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.length === 1)
 
-		const stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())
+		stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())
 		assert.deepEqual(stored.tools.mcp[0].disabledTools, ['echo'])
 
 		// Invalid URLs are rejected before anything is stored.
 		await page.locator('.section__action button:has-text("Add MCP server")').click()
-		const invalid = page.locator('section.group:has-text("Add an MCP server")')
+		const invalid = page.locator('.mcp-editor')
 		await invalid.locator('input').nth(0).fill('Bad server')
 		await invalid.locator('input').nth(1).fill('ws://localhost:9000/mcp')
 		await invalid.locator('button:has-text("Add server")').click()

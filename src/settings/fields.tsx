@@ -172,3 +172,31 @@ export function Switch({
 		</button>
 	)
 }
+
+/**
+ * A labelled boolean row: text on the left, switch on the right. Not a `Field`,
+ * because `Field` renders a `<label>` and a button inside a label double-toggles.
+ */
+export function SwitchField({
+	label,
+	hint,
+	checked,
+	disabled,
+	onChange,
+}: {
+	label: string
+	hint?: ReactNode
+	checked: boolean
+	disabled?: boolean
+	onChange: (checked: boolean) => void
+}) {
+	return (
+		<div className="field">
+			<span className="field__text">
+				<span className="field__label">{label}</span>
+				{hint && <span className="field__hint">{hint}</span>}
+			</span>
+			<Switch label={label} checked={checked} disabled={disabled} onChange={onChange} />
+		</div>
+	)
+}

@@ -111,6 +111,8 @@ tools:
     auto-approve: the switch that lets a tool or server skip that question; code autoApprove, TOOLS_ADDED_IN; ui Run without asking, Run {tool} without asking, Run MCP tools from {server} without asking; not always allow, trust, whitelist
     mcp: Model Context Protocol, HTTP servers whose tools join the built-ins; code @ai-sdk/mcp, mcp.ts, net-rules.ts; ui MCP, MCP servers; not connector, plugin system, integration
     mcp-server: one configured Streamable HTTP endpoint; code McpServerSettings, tools.mcp, mcpServerKey; ui MCP servers, Add MCP server, URL, Headers; not remote server, tool server, endpoint
+    mcp-server-editor: the form that adds or edits one server in place of its row; code McpServerEditor, mcp-editor; ui Add an MCP server, Edit {server}, Add server, Save server, Test connection, Cancel; not panel, dialog, modal
+    mcp-header: one Name/Value pair sent with every request to that server; code HeaderRow, headersToRows, rowsToHeaders, mcp-header; ui Headers, Name, Value, Add header, Remove header; not attribute, parameter, key-value
     mcp-tool: a tool discovered from that server, offered under a namespaced name; code McpDiscoveredTool, buildMcpTools; ui MCP · {server}; not remote tool, server tool, external tool
     mcp-catalog: the cached probe result of what each server offers; code McpCatalogEntry, McpCatalogStatus, mcpCatalogStore; ui Not checked, Checking…, Unreachable, {n} tools; not tool list, cache
     tool-namespace: the model-facing MCP tool name, mcp_server_tool; code mcpToolName, assignToolNames, toolKey; not prefix, qualified name, alias
@@ -178,7 +180,7 @@ settings:
     settings-route: the fragment that names the open section, General at the root; code parseSettingsHash, settingsSectionHash, settings.html#/skills; ui hash, settings.html#/skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, Instructions, Tool Calls, Data, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
-    switch: the on/off control for booleans; code Switch, role=switch; ui Run without asking, Enable memory; not toggle, checkbox, slider
+    switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Run without asking, Enable memory, Send requests without an Origin header; not toggle, checkbox, slider
     settings-version: the schema version that migrates fields and tools once; code SETTINGS_VERSION, migrateSettings, TOOLS_ADDED_IN; not schema version, config version
 
 # Failures, from a provider error down to a single warning.

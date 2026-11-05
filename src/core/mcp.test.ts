@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
 	assignToolNames,
 	describeMcpError,
-	formatHeaderLines,
 	formatMcpResult,
+	headersToRows,
 	isHttpUrl,
 	mcpServerKey,
 	mcpToolName,
 	normalizeToolSchema,
-	parseHeaderLines,
+	rowsToHeaders,
 	toolKey,
 } from './mcp'
 import { MAX_TOOL_CHARS } from './tool-text'
@@ -150,29 +150,59 @@ describe('formatMcpResult', () => {
 	})
 })
 
-describe('header lines', () => {
-	it('round-trips Name: value pairs', () => {
-		const { headers, errors } = parseHeaderLines('Authorization: Bearer abc\nX-Env: test')
-		expect(errors).toEqual([])
-		expect(headers).toEqual({ Authorization: 'Bearer abc', 'X-Env': 'test' })
-		expect(formatHeaderLines(headers)).toBe('Authorization: Bearer abc\nX-Env: test')
+describe('header rows', () => {
+	it('round-trips Name/value pairs in order', () => {
+		const rows = headersToRows({ Authorization: 'Bearer abc', 'X-Env': 'test' })
+		expect(rows).toEqual([
+			{ name: 'Authorization', value: 'Bearer abc' },
+			{ name: 'X-Env', value: 'test' },
+		])
+		expect(rowsToHeaders(rows)).toEqual({
+			headers: { Authorization: 'Bearer abc', 'X-Env': 'test' },
+			errors: [undefined, undefined],
+		})
+	})
+
+	it('tolerates a missing header map', () => {
+		expect(headersToRows(undefined)).toEqual([])
+		expect(rowsToHeaders([])).toEqual({ headers: {}, errors: [] })
 	})
 
 	it('keeps colons inside the value', () => {
-		const { headers } = parseHeaderLines('X-Url: http://localhost:9000/mcp')
+		const { headers } = rowsToHeaders([{ name: 'X-Url', value: 'http://localhost:9000/mcp' }])
 		expect(headers['X-Url']).toBe('http://localhost:9000/mcp')
 	})
 
-	it('skips blank lines and comments', () => {
-		const { headers, errors } = parseHeaderLines('\n# token goes here\nX-Key: 1\n')
-		expect(errors).toEqual([])
-		expect(headers).toEqual({ 'X-Key': '1' })
+	it('drops a fully blank row without reporting it', () => {
+		const result = rowsToHeaders([
+			{ name: '  ', value: '' },
+			{ name: 'X-Key', value: '1' },
+		])
+		expect(result.headers).toEqual({ 'X-Key': '1' })
+		expect(result.errors).toEqual([undefined, undefined])
 	})
 
-	it('reports invalid lines instead of silently dropping them', () => {
-		const { headers, errors } = parseHeaderLines('no colon here\nBad Name: x\nGood: yes')
-		expect(headers).toEqual({ Good: 'yes' })
-		expect(errors).toHaveLength(2)
+	it('reports the row that is incomplete or invalid', () => {
+		const result = rowsToHeaders([
+			{ name: '', value: 'orphan' },
+			{ name: 'Bad Name', value: 'x' },
+			{ name: 'NoValue', value: '' },
+			{ name: 'Good', value: 'yes' },
+		])
+		expect(result.headers).toEqual({ Good: 'yes' })
+		expect(result.errors[0]).toMatch(/name/)
+		expect(result.errors[1]).toMatch(/not a valid header name/)
+		expect(result.errors[2]).toMatch(/value/)
+		expect(result.errors[3]).toBeUndefined()
+	})
+
+	it('rejects duplicate names regardless of case', () => {
+		const result = rowsToHeaders([
+			{ name: 'X-Key', value: '1' },
+			{ name: 'x-key', value: '2' },
+		])
+		expect(result.headers).toEqual({ 'X-Key': '1' })
+		expect(result.errors[1]).toMatch(/already used by row 1/)
 	})
 })
 

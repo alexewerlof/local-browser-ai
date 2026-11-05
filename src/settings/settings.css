@@ -497,6 +497,66 @@ body {
 	border-top: 1px solid var(--separator);
 }
 
+/* The server form replaces that server's row inside the list, so the list and the
+ * form are one card sharing hairlines instead of two stacked panels. */
+.mcp-editor {
+	display: flex;
+	flex-direction: column;
+}
+
+.mcp-editor > * + * {
+	border-top: 1px solid var(--separator);
+}
+
+.mcp-editor__head,
+.mcp-editor > .field {
+	min-height: 48px;
+	padding: 12px 20px;
+}
+
+.mcp-editor__head {
+	font-size: var(--text-md);
+	font-weight: 500;
+}
+
+/* An action row gets Chrome's two-line breathing room, like .card > .row. */
+.mcp-editor > .row {
+	padding: 16px 20px;
+}
+
+/* Header pairs: name, value, remove. */
+.mcp-headers {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-3);
+	width: 100%;
+}
+
+.mcp-header {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
+	align-items: center;
+	gap: var(--space-3);
+	width: 100%;
+}
+
+.mcp-header > .input {
+	width: 100%;
+}
+
+.mcp-header > .input[aria-invalid='true'] {
+	border-color: var(--danger-fg);
+}
+
+/* The message belongs to the whole row, so it spans every column. */
+.mcp-header__error {
+	grid-column: 1 / -1;
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--danger-fg);
+}
+
 .inline-code {
 	padding: 1px var(--space-2);
 	border-radius: var(--radius-sm);
