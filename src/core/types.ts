@@ -1,4 +1,4 @@
-/** Domain model shared by the side panel, the options page and the background worker. */
+/** Domain model shared by the side panel, the Settings page and the background worker. */
 
 export type ProviderKind = 'prompt-api' | 'openai' | 'anthropic' | 'deepseek' | 'openai-compatible'
 
@@ -327,7 +327,7 @@ export interface UiSettings {
 	theme: 'system' | 'light' | 'dark'
 	/** Which key combination submits the composer. */
 	submitKey: 'enter' | 'mod+enter'
-	/** Text size of the panel and the options page. */
+	/** Text size of the panel and the Settings page. */
 	fontSize: FontSize
 }
 

@@ -22,7 +22,7 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				'side-panel': fileURLToPath(new URL('side-panel.html', import.meta.url)),
-				options: fileURLToPath(new URL('options.html', import.meta.url)),
+				settings: fileURLToPath(new URL('settings.html', import.meta.url)),
 			},
 			output: {
 				entryFileNames: 'assets/[name]-[hash].js',

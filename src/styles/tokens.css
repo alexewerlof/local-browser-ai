@@ -3,7 +3,7 @@
  *
  * Values follow Chrome's own WebUI tokens (chrome://settings is built on `cr_elements`):
  * neutral surfaces, a blue primary, hairline borders and pill-shaped controls. Both the
- * side panel and the options page read these, so the panel stays compact while sharing
+ * side panel and the Settings page read these, so the panel stays compact while sharing
  * the same visual language.
  */
 
@@ -45,8 +45,8 @@
 	--duration-fast: 120ms;
 	--duration-normal: 200ms;
 
-	/* Control sizing. The panel keeps compact controls; the options page raises both to
-	   Chrome's 36px in options.css. */
+	/* Control sizing. The panel keeps compact controls; the Settings page raises both to
+	   Chrome's 36px in settings.css. */
 	--button-height: 28px;
 	--control-height: 28px;
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { localSettings } from '../fixtures.mjs'
 
-export const name = '17-memory-options'
+export const name = '17-memory-settings'
 
 const exportedFile = {
 	kind: 'local-browser-ai.memory',
@@ -21,10 +21,10 @@ const exportedFile = {
 }
 
 export async function run(ctx) {
-	await ctx.openOptions({ settings: localSettings('http://127.0.0.1:1/v1') })
+	await ctx.openSettings({ settings: localSettings('http://127.0.0.1:1/v1') })
 	const { page } = ctx
 
-	await page.locator('.options__nav-item:has-text("Memory")').click()
+	await page.locator('.settings__nav-item:has-text("Memory")').click()
 	await page.waitForSelector('.memory-empty')
 	assert.match(await page.locator('.memory-empty').textContent(), /Nothing saved yet/)
 

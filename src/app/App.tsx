@@ -20,7 +20,7 @@ import { attachBusyStore, attachErrorStore } from '../state/composer'
 import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
 import { promptStatusStore } from '../state/prompt'
 import { settingsStatusStore, settingsStore, updateSettings } from '../state/settings'
-import { openOptionsPage } from '../platform/chrome'
+import { openSettings } from '../platform/chrome'
 import { attachClickedTab, detachAttachment, refreshAttachment } from '../state/bootstrap'
 import { Composer } from './components/Composer'
 import { Header } from './components/Header'
@@ -76,7 +76,7 @@ export function App() {
 								: (promptStatus?.message ?? 'The built-in model is unavailable in this browser.')}
 					</span>
 					<span className="spacer" />
-					<button type="button" className="button button--sm" onClick={() => void openOptionsPage('models')}>
+					<button type="button" className="button button--sm" onClick={() => void openSettings('models')}>
 						Set up a model
 					</button>
 				</div>

@@ -1,7 +1,7 @@
 /**
  * Which Settings section the page shows, and how that section is named in the URL.
  *
- * The page is a static extension file, so a path segment (`options.html/skills`) would need a
+ * The page is a static extension file, so a path segment (`settings.html/skills`) would need a
  * server to rewrite it. The slash lives in the fragment instead, mirroring Chrome's own
  * settings (`chrome://settings/performance`): General is the root, every other section is
  * `#/<id>`.

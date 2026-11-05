@@ -4,7 +4,7 @@ import type { PromptApiStatus } from './types'
  * Prompt API availability, download and context-window probing.
  *
  * `@browser-ai/core` owns the session lifecycle; we only read the small status surface
- * it exposes and warm the model (from the options page or the onboarding step) so the
+ * it exposes and warm the model (from the Settings page or the onboarding step) so the
  * first prompt does not trigger a download.
  */
 export async function getPromptApiStatus(): Promise<PromptApiStatus> {

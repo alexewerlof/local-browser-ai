@@ -143,7 +143,7 @@ export function describeServerError(server: McpServerSettings, error: unknown): 
 }
 
 /**
- * Connect, list tools, disconnect. Used by the options page and the composer menu, so
+ * Connect, list tools, disconnect. Used by the Settings page and the composer menu, so
  * the two show the same answer for the same server.
  */
 export function refreshMcpServer(server: McpServerSettings): Promise<McpCatalogEntry> {

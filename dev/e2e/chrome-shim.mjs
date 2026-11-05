@@ -1,6 +1,6 @@
 /**
  * Installed in the page before any app script runs. Provides the slice of the
- * `chrome.*` API the panel and options page use, so the real UI can run as an
+ * `chrome.*` API the panel and Settings page use, so the real UI can run as an
  * ordinary web page.
  *
  * @param {object} config
@@ -192,7 +192,7 @@ export function chromeShim(config = {}) {
 				},
 			},
 			openOptionsPage: async () => {
-				window.__lbaiOptionsRequested = true
+				window.__lbaiOpenSettingsRequested = true
 			},
 			onConnect: inertEvent(),
 			onInstalled: inertEvent(),

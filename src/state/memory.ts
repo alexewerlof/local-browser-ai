@@ -64,7 +64,7 @@ function enqueue(update: MemoryMutation): Promise<boolean> {
 
 let initialized = false
 
-/** Load once and keep the store in sync with writes from the options page. */
+/** Load once and keep the store in sync with writes from the Settings page. */
 export async function initMemory(): Promise<void> {
 	if (initialized) return
 	initialized = true

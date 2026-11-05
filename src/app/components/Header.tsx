@@ -1,6 +1,6 @@
 import { MessageSquarePlus, MessagesSquare, Settings } from 'lucide-react'
 import type { Conversation } from '../../core/types'
-import { openOptionsPage } from '../../platform/chrome'
+import { openSettings } from '../../platform/chrome'
 
 export function Header({
 	conversation,
@@ -37,7 +37,7 @@ export function Header({
 			<button
 				type="button"
 				className="button button--ghost button--icon button--sm"
-				onClick={() => void openOptionsPage()}
+				onClick={() => void openSettings()}
 				title="Settings"
 				aria-label="Settings"
 			>

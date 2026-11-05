@@ -98,10 +98,10 @@ function createContext(page, name) {
 		 * Open the settings page with the same shim, optionally at a section:
 		 * `hash` is the fragment to load, e.g. `'#/skills'`.
 		 */
-		async openOptions(config, hash = '') {
+		async openSettings(config, hash = '') {
 			await page.addInitScript(chromeShim, config ?? {})
-			await page.goto(`${BASE_URL}/options.html${hash}`)
-			await page.waitForSelector('.options', { timeout: 15000 })
+			await page.goto(`${BASE_URL}/settings.html${hash}`)
+			await page.waitForSelector('.settings', { timeout: 15000 })
 		},
 		waitFor(fn, arg, options) {
 			return page.waitForFunction(fn, arg, { timeout: 15000, ...options })

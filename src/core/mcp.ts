@@ -1,7 +1,7 @@
 /**
  * Pure helpers for MCP servers: URLs, header lines, model-facing tool names, result
  * formatting and error text. Nothing here touches the network or the AI SDK, so the
- * settings schema, the options page and the runtime can all share it.
+ * settings schema, the Settings page and the runtime can all share it.
  */
 
 import { clipToolText, MAX_TOOL_CHARS } from './tool-text'
@@ -184,7 +184,7 @@ export interface ParsedHeaders {
 	errors: string[]
 }
 
-/** Parse the options page's `Name: value` lines. Blank lines and `#` comments are skipped. */
+/** Parse the Settings page's `Name: value` lines. Blank lines and `#` comments are skipped. */
 export function parseHeaderLines(text: string): ParsedHeaders {
 	const headers: Record<string, string> = {}
 	const errors: string[] = []

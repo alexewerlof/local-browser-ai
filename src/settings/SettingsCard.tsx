@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 /**
  * A Chrome settings group: a secondary-coloured heading followed by a card.
- * Rows inside the card are separated by hairlines (see options.css).
+ * Rows inside the card are separated by hairlines (see settings.css).
  */
 export function SettingsCard({
 	title,

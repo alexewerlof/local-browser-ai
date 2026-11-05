@@ -5,7 +5,7 @@ export const name = '22-font-size'
 
 /**
  * The font-size setting is a multiplier on the type tokens, written to `<html>` so the panel
- * and the options page share it. It must survive a reload and never touch control geometry.
+ * and the Settings page share it. It must survive a reload and never touch control geometry.
  */
 export async function run(ctx) {
 	const settings = localSettings('http://127.0.0.1:1/v1', {
@@ -25,8 +25,8 @@ export async function run(ctx) {
 	assert.equal(composerSize, '16.25px')
 
 	// The settings page reads the same tokens, so its own type follows the choice.
-	await ctx.openOptions({ settings })
-	await page.waitForSelector('.options')
+	await ctx.openSettings({ settings })
+	await page.waitForSelector('.settings')
 	assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--text-scale')), '1.25')
 	assert.equal(
 		await page
@@ -48,6 +48,6 @@ export async function run(ctx) {
 
 	// Reload: the choice comes back from storage and is applied again on boot.
 	await page.reload()
-	await page.waitForSelector('.options')
+	await page.waitForSelector('.settings')
 	assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--text-scale')), '1.5')
 }

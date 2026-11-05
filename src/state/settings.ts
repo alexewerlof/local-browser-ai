@@ -16,7 +16,7 @@ const persist = debounce((settings: AppSettings) => {
 
 /**
  * Appearance is a document-level concern, so it is applied to `<html>` whenever settings land
- * rather than from a component effect: the panel and the options page both read the same
+ * rather than from a component effect: the panel and the Settings page both read the same
  * `data-theme` attribute and `--text-scale` token.
  */
 function applyAppearance(settings: AppSettings): void {
@@ -47,7 +47,7 @@ export async function loadSettings(): Promise<AppSettings> {
 
 let initialized = false
 
-/** Load once and keep the store in sync with changes made from the options page. */
+/** Load once and keep the store in sync with changes made from the Settings page. */
 export async function initSettings(): Promise<void> {
 	if (initialized) return
 	initialized = true

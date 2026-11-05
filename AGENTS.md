@@ -10,7 +10,7 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | Layer       | Location           | Responsibility                                                                               |
 | ----------- | ------------------ | -------------------------------------------------------------------------------------------- |
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.      |
-| Settings UI | `src/options/`     | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.       |
+| Settings UI | `src/settings/`    | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.       |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, memory, compaction.       |
 | Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.     |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped remote tools.                 |
@@ -18,7 +18,7 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, IndexedDB persistence, attachments. |
 | Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                              |
 
-Entry points: `side-panel.html` + `src/app/main.tsx`, `options.html` + `src/options/main.tsx`, and the service worker
+Entry points: `side-panel.html` + `src/app/main.tsx`, `settings.html` + `src/settings/main.tsx`, and the service worker
 `src/browser/background.ts` (built separately to keep React and the AI SDK out of it).
 
 ## Ontology
@@ -36,10 +36,12 @@ The five terms that get confused most:
   "context" alone for either of the latter two.
 - **Built-in tool** (in `src/browser/tools.ts`) vs **MCP tool** (remote); "remote tools" is the prompt note's wording,
   not the name. Never "browser tool".
-- **Settings** is the UI and the docs; `options` is only the file path (`options.html`, `src/options`, `options_ui`).
+- **Settings** is the UI and the docs, and the code too: `settings.html`, `src/settings`, `openSettings`. The one
+  exception is Chrome's own manifest key `options_ui`, which cannot be renamed; note that `chrome://extensions` labels
+  the entry "Extension options" from that key.
 
 Area files narrow this down: `src/app/AGENTS.md`, `src/core/AGENTS.md`, `src/browser/AGENTS.md`,
-`src/options/AGENTS.md`.
+`src/settings/AGENTS.md`.
 
 ## Page context
 
@@ -143,12 +145,12 @@ confirmation modal) and `controls` keeps only the code copy button.
   overrides; provider-reported usage is the source of truth once a request completes.
 - **Tab access is `activeTab`.** `chrome.action.onClicked` opens the panel and remembers the tab; the panel claims it
   and extracts. Navigating or switching tabs revokes access, so the attachment is marked stale. Do not add install-time
-  host permissions for page content. The `tabs` permission is requested only for tab _URLs_ — `openOptionsPage` uses
-  them to find the open Settings tab — and it grants no page content.- **Never set `openPanelOnActionClick: true`.**
-  Chrome persists that flag per profile, and while it is set the browser handles the toolbar click itself and **does not
-  fire `action.onClicked`**, so nothing gets attached and nothing logs. The worker resets the flag on every start; keep
-  it that way. Likewise, `sidePanel.open()` must be the first call in a gesture handler — never `await` before it, or
-  the gesture is lost.- **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no
+  host permissions for page content. The `tabs` permission is requested only for tab _URLs_ — `openSettings` uses them
+  to find the open Settings tab — and it grants no page content.- **Never set `openPanelOnActionClick: true`.** Chrome
+  persists that flag per profile, and while it is set the browser handles the toolbar click itself and **does not fire
+  `action.onClicked`**, so nothing gets attached and nothing logs. The worker resets the flag on every start; keep it
+  that way. Likewise, `sidePanel.open()` must be the first call in a gesture handler — never `await` before it, or the
+  gesture is lost.- **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no
   imports, no module helpers) because `chrome.scripting.executeScript({ func })` serializes it.
 - **Page content is untrusted input.** It is wrapped with an explicit instruction to ignore embedded instructions, and
   model output is never executed as code. Markdown renders through Streamdown with `rehype-raw` deliberately omitted, so
@@ -158,7 +160,7 @@ confirmation modal) and `controls` keeps only the code copy button.
   accept `auto` and `tool` only.
 - **MCP servers are HTTP-only and live in the panel.** `@ai-sdk/mcp` is imported only by `src/state/mcp.ts`; the service
   worker must stay free of it (no process to spawn, so stdio servers cannot be supported). MCP has its own settings
-  section (`src/options/McpSection.tsx`), separate from Built-in Tools. Each turn connects fresh, lists tools, and
+  section (`src/settings/McpSection.tsx`), separate from Built-in Tools. Each turn connects fresh, lists tools, and
   closes every client when the run ends. A server that is down is a dismissible warning, never a failed turn. Tools are
   namespaced (`mcp_<server>_<tool>`), clipped to `MAX_TOOL_CHARS`, and their output is treated as untrusted data — it
   never becomes instructions. Do not commit a real endpoint or use a live server in tests; use
@@ -213,8 +215,8 @@ migration.
   Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
-- Settings sections are hash-routed (`options.html#/skills`; General is the root `#/`). `SETTINGS_SECTIONS` in
-  `src/core/settings-routes.ts` is the order, and `openOptionsPage(section)` opens Settings at a section. Settings is a
+- Settings sections are hash-routed (`settings.html#/skills`; General is the root `#/`). `SETTINGS_SECTIONS` in
+  `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. Settings is a
   **single tab**: the function queries open tabs (hence the `tabs` permission), focuses the window, and moves the
   existing tab to the section instead of opening another one; with no section it keeps the section already on screen. A
   menu that points at Settings uses the `SettingsButton` gear rather than a sentence. Paths cannot carry the section —
@@ -231,7 +233,7 @@ migration.
   `ACTION_TOOL_IDS`), a `TOOLS_ADDED_IN` entry with the version it shipped in (add an `autoApprove` list when only some
   of those ids should run without asking), and a `SETTINGS_VERSION` bump. Existing stores only receive the id when their
   version is below that entry, which is what keeps a later user toggle from being undone on every load.
-- Icons: `MemoryStick` is memory everywhere (options nav, memory tool cards, the panel's save action).
+- Icons: `MemoryStick` is memory everywhere (Settings rail, memory tool cards, the panel's save action).
 - The composer has a top bar inside the box border (`.composer__topbar`), empty for now and reserved for per-prompt
   context. Its right side holds the Expand/Shrink toggle (`PanelBottomOpen`/`PanelBottomClose`): `.composer--expanded`
   sizes the whole composer to 75% of the panel so a sliver of transcript stays visible, and the textarea then scrolls

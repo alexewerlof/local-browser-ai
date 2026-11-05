@@ -27,7 +27,7 @@
 		"default_path": "side-panel.html"
 	},
 	"options_ui": {
-		"page": "options.html",
+		"page": "settings.html",
 		"open_in_tab": true
 	},
 	"content_security_policy": {

@@ -26,7 +26,7 @@ describe('manifest', () => {
 	})
 
 	it('reads tab URLs so Settings is opened once and then focused', () => {
-		// `tabs` is what makes `tabs.query()` return `url`, which `openOptionsPage` matches on.
+		// `tabs` is what makes `tabs.query()` return `url`, which `openSettings` matches on.
 		expect(manifest.permissions).toContain('tabs')
 	})
 
@@ -42,9 +42,10 @@ describe('manifest', () => {
 		expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' })
 	})
 
-	it('has a side panel and an options page', () => {
+	it('has a side panel and a Settings page', () => {
 		expect(manifest.side_panel.default_path).toBe('side-panel.html')
-		expect(manifest.options_ui.page).toBe('options.html')
+		// `options_ui` is Chrome's manifest key; the page it points at is Settings.
+		expect(manifest.options_ui.page).toBe('settings.html')
 		expect(manifest.options_ui.open_in_tab).toBe(true)
 	})
 

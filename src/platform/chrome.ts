@@ -35,14 +35,14 @@ export function extensionUrl(path: string): string {
 /**
  * Open Settings at a section, reusing the tab that is already open.
  *
- * Chrome offers no "focus the options page" call, so the extension does it itself: `tabs.query`
+ * Chrome offers no "focus the Settings page" call, so the extension does it itself: `tabs.query`
  * gives it the tab URLs (that is what the `tabs` permission is for), the match is a prefix
  * because fragments are not part of a match pattern, and the section is applied with
  * `tabs.update`. Only one Settings tab is ever open.
  */
-export async function openOptionsPage(section?: SettingsSectionId): Promise<void> {
+export async function openSettings(section?: SettingsSectionId): Promise<void> {
 	const chromeApi = getChrome()
-	const base = extensionUrl('options.html')
+	const base = extensionUrl('settings.html')
 	const sectionHash = section === undefined ? null : settingsSectionHash(section)
 	const url = sectionHash === null ? base : `${base}${sectionHash}`
 	if (!chromeApi?.tabs) {

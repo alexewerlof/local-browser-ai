@@ -9,7 +9,7 @@ import { startMockMcpServer } from './mock-mcp-server.mjs'
 
 /**
  * Loads the real unpacked extension into Chromium and checks the pieces the plain-page
- * harness cannot reach: the service worker, the typed RPC transport, the options page,
+ * harness cannot reach: the service worker, the typed RPC transport, the Settings page,
  * extension-only asset URLs, the page extractor, and the side panel behavior migration.
  *
  * Branded Google Chrome refuses `--load-extension`, so this must run on Playwright's
@@ -199,20 +199,20 @@ async function main() {
 		assert.match(result.html, /shadow-content-text/)
 		assert.match(result.html, /iframe-content-text/)
 
-		// 5. The options page loads from the same manifest.
-		const options = await context.newPage()
-		options.on('pageerror', (error) => pageErrors.push(error.message))
-		await options.goto(`chrome-extension://${extensionId}/options.html`)
-		await options.waitForSelector('.options', { timeout: 20000 })
-		assert.equal(await options.locator('.options__nav-item').count(), 8)
+		// 5. The Settings page loads from the same manifest.
+		const settingsPage = await context.newPage()
+		settingsPage.on('pageerror', (error) => pageErrors.push(error.message))
+		await settingsPage.goto(`chrome-extension://${extensionId}/settings.html`)
+		await settingsPage.waitForSelector('.settings', { timeout: 20000 })
+		assert.equal(await settingsPage.locator('.settings__nav-item').count(), 8)
 		// The brand is the extension icon plus its manifest name, and General leads the rail.
-		assert.equal(await options.locator('.options__nav-item').first().textContent(), 'General')
+		assert.equal(await settingsPage.locator('.settings__nav-item').first().textContent(), 'General')
 		assert.equal(
-			await options.locator('.options__brand-icon').getAttribute('src'),
+			await settingsPage.locator('.settings__brand-icon').getAttribute('src'),
 			`chrome-extension://${extensionId}/images/icon-32.png`,
 		)
-		assert.match(await options.locator('.options__brand-label').textContent(), /Local Browser AI/)
-		await options.close()
+		assert.match(await settingsPage.locator('.settings__brand-label').textContent(), /Local Browser AI/)
+		await settingsPage.close()
 
 		// 5a. Settings stays a single tab. The header gear finds the tab that is already open
 		//     and activates it; the `tabs` permission is what makes its URL visible.
@@ -221,11 +221,11 @@ async function main() {
 		await panel.goto(`chrome-extension://${extensionId}/side-panel.html`)
 		await panel.waitForSelector('.app', { timeout: 20000 })
 
-		const optionsTabs = () =>
+		const settingsTabs = () =>
 			panel.evaluate(async () => {
 				const tabs = await chrome.tabs.query({})
 				return tabs
-					.filter((tab) => tab.url?.includes('/options.html'))
+					.filter((tab) => tab.url?.includes('/settings.html'))
 					.map((tab) => ({ id: tab.id, active: tab.active, url: tab.url }))
 			})
 		const until = async (predicate, label) => {
@@ -238,16 +238,16 @@ async function main() {
 		}
 
 		await panel.locator('button[aria-label="Settings"]').click()
-		await until(async () => (await optionsTabs()).length === 1, 'the first Settings tab')
+		await until(async () => (await settingsTabs()).length === 1, 'the first Settings tab')
 		// Bring the panel back, then ask again: it must reuse the tab, not stack a second one.
 		await panel.bringToFront()
 		await panel.locator('button[aria-label="Settings"]').click()
 		await until(async () => {
-			const tabs = await optionsTabs()
+			const tabs = await settingsTabs()
 			return tabs.length === 1 && tabs[0].active === true
 		}, 'the open Settings tab to be activated')
-		const [settingsTab] = await optionsTabs()
-		assert.match(settingsTab.url, new RegExp(`^chrome-extension://${extensionId}/options\\.html`))
+		const [settingsTab] = await settingsTabs()
+		assert.match(settingsTab.url, new RegExp(`^chrome-extension://${extensionId}/settings\\.html`))
 		await panel.close()
 
 		// 5b. An MCP server that rejects browser origins still works, but only when the
@@ -345,8 +345,8 @@ async function main() {
 		await context.close()
 		;({ context, extensionId } = await launch(profile))
 		const repaired = await context.newPage()
-		await repaired.goto(`chrome-extension://${extensionId}/options.html`)
-		await repaired.waitForSelector('.options', { timeout: 20000 })
+		await repaired.goto(`chrome-extension://${extensionId}/settings.html`)
+		await repaired.waitForSelector('.settings', { timeout: 20000 })
 		const deadline = Date.now() + 8000
 		let current = await repaired.evaluate(() => chrome.sidePanel.getPanelBehavior())
 		while (current.openPanelOnActionClick && Date.now() < deadline) {
@@ -356,7 +356,7 @@ async function main() {
 		assert.equal(current.openPanelOnActionClick, false, 'the worker should reset a legacy panel behavior')
 		await context.close()
 
-		console.log('✔ extension: service worker, RPC, panel, options, extraction, behavior migration')
+		console.log('✔ extension: service worker, RPC, panel, Settings, extraction, behavior migration')
 	} catch (error) {
 		console.error(`✖ extension smoke test failed\n${error.stack ?? error}`)
 		process.exitCode = 1

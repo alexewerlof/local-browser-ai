@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { ContextSnapshot } from '../../state/chat'
 import { formatTokens } from '../../core/util'
 import { RefreshCw, Settings } from 'lucide-react'
-import { openOptionsPage } from '../../platform/chrome'
+import { openSettings } from '../../platform/chrome'
 import { Popover } from './Popover'
 
 const PART_COLORS: Record<string, string> = {
@@ -117,7 +117,7 @@ export function ContextMeter({
 					className="button button--ghost button--sm"
 					onClick={() => {
 						setOpen(false)
-						void openOptionsPage('context')
+						void openSettings('context')
 					}}
 				>
 					<Settings size={13} />

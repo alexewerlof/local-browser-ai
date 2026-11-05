@@ -40,7 +40,7 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	context: Brain,
 }
 
-export function OptionsApp() {
+export function SettingsApp() {
 	const status = useStore(settingsStatusStore)
 	const settings = useStore(settingsStore)
 	const [section, setSection] = useState<SettingsSectionId>(() => parseSettingsHash(window.location.hash))
@@ -75,17 +75,17 @@ export function OptionsApp() {
 	if (status !== 'ready') return <div className="boot">Loading settings…</div>
 
 	return (
-		<div className="options">
-			<nav className="options__nav" aria-label="Settings sections">
-				<div className="options__brand">
+		<div className="settings">
+			<nav className="settings__nav" aria-label="Settings sections">
+				<div className="settings__brand">
 					<img
-						className="options__brand-icon"
+						className="settings__brand-icon"
 						src={extensionUrl('images/icon-32.png')}
 						alt=""
 						width={24}
 						height={24}
 					/>
-					<span className="options__brand-label">{manifest.name}</span>
+					<span className="settings__brand-label">{manifest.name}</span>
 				</div>
 				{SETTINGS_SECTIONS.map((entry) => {
 					const Icon = SECTION_ICONS[entry.id]
@@ -93,20 +93,20 @@ export function OptionsApp() {
 						<button
 							key={entry.id}
 							type="button"
-							className={`options__nav-item${section === entry.id ? ' options__nav-item--active' : ''}`}
+							className={`settings__nav-item${section === entry.id ? ' settings__nav-item--active' : ''}`}
 							aria-current={section === entry.id ? 'page' : undefined}
 							title={entry.label}
 							onClick={() => openSection(entry.id)}
 						>
 							<Icon size={20} />
-							<span className="options__nav-label">{entry.label}</span>
+							<span className="settings__nav-label">{entry.label}</span>
 						</button>
 					)
 				})}
 			</nav>
 
-			<main className="options__content">
-				<div className="options__column">
+			<main className="settings__content">
+				<div className="settings__column">
 					{section === 'general' && <GeneralSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
 					{section === 'models' && <ModelsSection settings={settings} />}

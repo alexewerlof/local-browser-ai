@@ -1,6 +1,6 @@
 import { Settings } from 'lucide-react'
 import type { SettingsSectionId } from '../../core/settings-routes'
-import { openOptionsPage } from '../../platform/chrome'
+import { openSettings } from '../../platform/chrome'
 
 /**
  * The gear that closes a popover and opens Settings at the section that owns its content.
@@ -24,7 +24,7 @@ export function SettingsButton({
 			aria-label={label}
 			onClick={() => {
 				onClose()
-				void openOptionsPage(section)
+				void openSettings(section)
 			}}
 		>
 			<Settings size={13} />

@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 3
+    version: 4
     updated: 2026-11-05
     status: contract
     shipped: false
@@ -169,13 +169,13 @@ ui:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
-        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openOptionsPage, settingsSectionHash; ui Manage skills, Manage built-in tools, Manage MCP servers, Manage models; not cog, settings link, configure icon
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage built-in tools, Manage MCP servers, Manage models; not cog, settings link, configure icon
 
-# The full-page configuration surface. UI says Settings; options survives only in paths.
+# The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
-    settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/options, options.html, options_ui, openOptionsPage; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, options__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
-    settings-route: the fragment that names the open section, General at the root; code parseSettingsHash, settingsSectionHash, options.html#/skills; ui hash, options.html#/skills; not query string, path, tab
+    settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings-route: the fragment that names the open section, General at the root; code parseSettingsHash, settingsSectionHash, settings.html#/skills; ui hash, settings.html#/skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, Instructions, Tool Calls, Data, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
     switch: the on/off control for booleans; code Switch, role=switch; ui Run without asking, Enable memory; not toggle, checkbox, slider
@@ -199,10 +199,8 @@ drift:
     turn: README says requests; say turns. pending
     tool-call: complete and error print the raw enum while running and waiting are translated; map all four to copy. pending
     attach-chip: the only icon button with a title but no aria-label; add a matching aria-label. pending
-    settings-section: src/options/ToolsSection.tsx is unreferenced and titles its card Tools; delete it. pending
     page-context: the meter row of the same name shows a page mode, not the setting; shorten the row to Page. pending
     conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
-    settings: paths say options while UI and docs say Settings; the dual register is approved. decision
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
     built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision
     tool-card: Settings names the capability, the transcript names the activity; deliberate, do not copy one into the other. decision

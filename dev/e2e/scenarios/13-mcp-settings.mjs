@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { localSettings } from '../fixtures.mjs'
 import { startMockMcpServer } from '../mock-mcp-server.mjs'
 
-export const name = '13-mcp-options'
+export const name = '13-mcp-settings'
 
 const server = (overrides = {}) => ({
 	id: 'mcp_1',
@@ -19,7 +19,7 @@ export async function run(ctx) {
 	const mcp = await startMockMcpServer()
 
 	try {
-		await ctx.openOptions({
+		await ctx.openSettings({
 			settings: localSettings('http://127.0.0.1:1/v1', {
 				tools: { enabled: [], autoApprove: [], mcp: [server({ url: mcp.url })] },
 			}),
@@ -28,7 +28,7 @@ export async function run(ctx) {
 		ctx.expectConsoleError(/400 \(Bad Request\)/)
 		const { page } = ctx
 
-		await page.locator('.options__nav-item:has-text("MCP")').click()
+		await page.locator('.settings__nav-item:has-text("MCP")').click()
 		await page.waitForSelector('.mcp-server')
 
 		// Discovery runs on mount: the server is up, so its two tools are listed.
