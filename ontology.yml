@@ -66,7 +66,7 @@ page:
     section: one heading-anchored slice the page tools can read; code PageChunk, splitIntoSections, read_page_section; ui Reading section; not chunk, block, part
     page-index: outline with section sizes plus a short opening; code page-index.ts, renderPageIndex; ui page index; not summary, digest, preview
     excerpts: the outline plus the passages that best match the prompt; code excerpts, PAGE_MODE_DETAILS; ui outline + excerpts; not snippets, highlights
-    page-mode: the runtime call on how much page goes in this turn; code PageContextMode, choosePageMode; ui whole page, page index, outline + excerpts, outline only; not strategy, setting
+    page-mode: the runtime call on how much page goes in this turn; code PageContextMode, choosePageMode; ui whole page, page index, outline + excerpts, outline only, Page; not strategy, setting
     page-context-strategy: the standing preference page mode follows; code PageContextStrategy, context.strategy; ui Strategy; not page mode, policy
     page-context: whether the page goes in automatically, always or never; code context.pageContext; ui Page context, Attached page; not page mode, attachment setting
     page-budget: the largest share the page part may occupy; code pageShare; ui Page budget; not page share, page limit
@@ -105,10 +105,10 @@ models:
 tools:
     tool: a capability the model may call; code ToolSet, buildTools, buildMcpTools, enabledBuiltInTools; ui Tools, Tools the model may use; not function, command, plugin, action
     built-in-tool: a tool implemented inside the extension; code TOOL_DEFINITIONS, ACTION_TOOL_IDS, tools.ts; ui Built-in Tools, Built-in tools; not browser tool, local tool, native tool
-    tool-call: one invocation by the model, with input, output and state; code ToolCallPart, ToolCallState, running, complete, error; ui running, waiting, complete, error; not invocation, tool use
+    tool-call: one invocation by the model, with input, output and state; code ToolCallPart, ToolCallState, running, complete, error; ui waiting, running, done, failed, denied; not invocation, tool use
     tool-output: what a tool returns, clipped and treated as untrusted; code MAX_TOOL_CHARS, clipToolText, tool-text.ts; ui Output, Error, truncated; not payload, body, result payload
     approval: the inline question before an action tool runs; code requestApproval, resolveApproval, approvalsStore; ui Allow this action?, Allow, Deny; not confirmation, permission, consent
-    auto-approve: the switch that lets a tool or server skip that question; code autoApprove, TOOLS_ADDED_IN; ui Run without asking, Run {tool} without asking; not always allow, trust, whitelist
+    auto-approve: the switch that lets a tool or server skip that question; code autoApprove, TOOLS_ADDED_IN; ui Run without asking, Run {tool} without asking, Run MCP tools from {server} without asking; not always allow, trust, whitelist
     mcp: Model Context Protocol, HTTP servers whose tools join the built-ins; code @ai-sdk/mcp, mcp.ts, net-rules.ts; ui MCP, MCP servers; not connector, plugin system, integration
     mcp-server: one configured Streamable HTTP endpoint; code McpServerSettings, tools.mcp, mcpServerKey; ui MCP servers, Add MCP server, URL, Headers; not remote server, tool server, endpoint
     mcp-tool: a tool discovered from that server, offered under a namespaced name; code McpDiscoveredTool, buildMcpTools; ui MCP · {server}; not remote tool, server tool, external tool
@@ -190,16 +190,13 @@ errors:
     mcp-warning: a dismissible warning that one MCP server is down; code McpWarning, mcpWarningsStore, banner--warn; ui Dismiss; not error, failure
     inline-error: the error line above the composer box; code attachErrorStore, composer__error; not toast, banner, attach banner
 
-# Known mismatches, keyed by the term they belong to. pending means a change is owed.
+# Known divergences, keyed by the term they belong to. Two markers:
+#   pending  - a change is owed; fix it and delete the line.
+#   decision - a deliberate exception that is part of the contract. Do NOT "fix" one into a
+#              regression; delete the line only if the decision itself is reversed.
+# An empty list is the goal for `pending`, not for `decision`.
 drift:
-    built-in-tool: README says browser tools and an MCP placeholder says Local tools; say built-in tools, and Local MCP server. pending
-    mcp-tool: the prompt note is headed Remote tools and Settings switches say server tools; say MCP tools. pending
     mcp-server: MCP servers have their own section and their own gear, which opens Settings → MCP; the Tools menu never sends the user to Built-in Tools for them. decision
-    memory-mode: README says pin; say always-on. pending
-    turn: README says requests; say turns. pending
-    tool-call: complete and error print the raw enum while running and waiting are translated; map all four to copy. pending
-    attach-chip: the only icon button with a title but no aria-label; add a matching aria-label. pending
-    page-context: the meter row of the same name shows a page mode, not the setting; shorten the row to Page. pending
     conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
     built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision

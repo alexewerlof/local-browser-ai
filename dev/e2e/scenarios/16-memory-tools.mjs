@@ -35,7 +35,7 @@ export async function run(ctx) {
 		assert.deepEqual(labels, ['Saving to memory', 'Searching memory'])
 
 		await page.waitForFunction(() => document.body.innerText.includes('Saved.'))
-		assert.deepEqual(await page.locator('.tool__head .badge').allTextContents(), ['complete', 'complete'])
+		assert.deepEqual(await page.locator('.tool__head .badge').allTextContents(), ['done', 'done'])
 
 		// Both tools are advertised to the model.
 		const toolNames = server.requests[0].tools.map((tool) => tool.function.name)

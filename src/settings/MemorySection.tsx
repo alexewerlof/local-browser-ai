@@ -129,9 +129,9 @@ export function MemorySection({ settings }: { settings: AppSettings }) {
 		<div className="section">
 			<p className="section__intro">
 				Memory is a flat list of notes that survive across chats. An always-on memory is injected into every
-				request, an auto memory only when your message matches it, and a tool-only memory sits in storage until
-				the model searches for it. Memories are stored in this browser profile; use export to move them to
-				another machine.
+				turn, an auto memory only when your message matches it, and a tool-only memory sits in storage until the
+				model searches for it. Memories are stored in this browser profile; use export to move them to another
+				machine.
 			</p>
 
 			<SettingsCard title="Memory settings">

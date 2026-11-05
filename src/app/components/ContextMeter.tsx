@@ -84,7 +84,7 @@ export function ContextMeter({
 					<span className="badge">{formatTokens(snapshot.compactionAt)}</span>
 				</div>
 				<div className="context-row">
-					<span className="context-row__label muted">Page context</span>
+					<span className="context-row__label muted">Page</span>
 					<span className="badge">
 						{snapshot.pageMode === 'none'
 							? 'not attached'

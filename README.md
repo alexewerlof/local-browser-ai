@@ -12,14 +12,14 @@ machine, or a hosted API.
 - **Chat with the current tab.** Click the toolbar icon and the page is extracted, cleaned with Readability, converted
   to markdown and attached. The model sees the whole page when it fits, and an outline plus the most relevant excerpts
   when it does not.
-- **Browser tools.** The model can read the page, list its sections, search it, read the current selection, check the
+- **Built-in tools.** The model can read the page, list its sections, search it, read the current selection, check the
   current date and time, search the web with your default search engine, and open links in a new tab (with your
   approval). A web search opens the results in a new tab; the model cannot read them, so it asks you to attach that tab
   when it needs the content.
-- **Memory.** A flat list of notes that survives across chats. An always-on memory is injected into every request, an
-  auto memory only when your message matches it, and a tool-only memory stays in storage until the model searches for it
-  with `recall`. The model saves new memories with `remember` without asking, but changing one it already saved asks
-  first. Edit, pin, delete and export them in **Settings → Memory**.
+- **Memory.** A flat list of notes that survives across chats. An always-on memory is injected into every turn, an auto
+  memory only when your message matches it, and a tool-only memory stays in storage until the model searches for it with
+  `recall`. The model saves new memories with `remember` without asking, but changing one it already saved asks first.
+  Edit, make one always-on, delete or export them in **Settings → Memory**.
 - **Context budgeting and compaction.** A meter below the composer shows what the system prompt, page, summary and
   history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps going.
 - **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.

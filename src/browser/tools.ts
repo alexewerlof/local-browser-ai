@@ -420,7 +420,7 @@ export function buildTools(
 						result.action === 'unchanged'
 							? 'That memory was already saved; nothing changed.'
 							: result.item.mode === 'always'
-								? 'Saved. The user pinned it to always-on memory.'
+								? 'Saved to always-on memory.'
 								: 'Saved. The user can review it in Settings \u2192 Memory.',
 				}
 			},

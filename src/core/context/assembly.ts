@@ -40,7 +40,7 @@ export interface BuildContextOptions {
 	memoryToolsEnabled?: boolean
 }
 
-const MCP_NOTE_HEADER = '## Remote tools'
+const MCP_NOTE_HEADER = '## MCP tools'
 
 /** One short note is enough: the tool descriptions already say where each tool lives. */
 function renderMcpNote(servers: string[]): string {
@@ -264,7 +264,7 @@ export function buildContext(options: BuildContextOptions): AssembledContext {
 			id: 'mcp',
 			label: 'MCP tools',
 			tokens: estimateTokens(note),
-			detail: 'Remote tools are described in the request; their results are untrusted data.',
+			detail: 'MCP tools are described in the request; their results are untrusted data.',
 		})
 	}
 

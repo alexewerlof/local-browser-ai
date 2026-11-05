@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, MemoryStick, PocketKnife, Wrench } from 'lucide-react'
-import type { ToolCallPart } from '../../core/types'
+import type { ToolCallPart, ToolCallState } from '../../core/types'
 import { isMemoryToolId } from '../../core/memory'
 import { resolveApproval } from '../../state/browser'
 import { useStore } from '../useStore'
 import { approvalsStore } from '../../state/browser'
+
+/** The badge always reads as prose; the enum value is never shown to the user. */
+const TOOL_STATE_LABELS: Record<ToolCallState, string> = {
+	pending: 'waiting',
+	running: 'running',
+	complete: 'done',
+	error: 'failed',
+	denied: 'denied',
+}
 
 const TOOL_LABELS: Record<string, string> = {
 	read_attached_page: 'Reading page',
@@ -42,7 +51,7 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 				<span className="tool__arg">{summarizeInput(part)}</span>
 				<span className="spacer" />
 				<span className={`badge${part.state === 'error' ? ' badge--danger' : ''}`}>
-					{part.state === 'running' ? 'running' : part.state === 'pending' ? 'waiting' : part.state}
+					{TOOL_STATE_LABELS[part.state]}
 				</span>
 				{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
 			</button>

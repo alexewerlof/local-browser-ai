@@ -68,7 +68,7 @@ export function McpServersCard({ settings }: { settings: AppSettings }) {
 										<span className="provider__meta">{server.url}</span>
 										<div className="tool-option">
 											<Switch
-												label={`Run ${server.label} tools without asking`}
+												label={`Run MCP tools from ${server.label} without asking`}
 												checked={server.autoApprove}
 												disabled={!server.enabled}
 												onChange={(autoApprove) =>
@@ -336,7 +336,7 @@ function McpServerEditor({
 				label="Name"
 				value={draft.label}
 				onChange={(label) => patch({ label })}
-				placeholder="Local tools"
+				placeholder="Local MCP server"
 			/>
 			<TextField
 				label="URL"

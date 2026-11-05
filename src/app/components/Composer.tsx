@@ -74,6 +74,7 @@ export function Composer({
 	const [expanded, setExpanded] = useState(false)
 
 	const attachment = conversation.attachments[0]
+	const attachLabel = attachment ? 'Re-read the page' : 'Attach the current tab'
 	const streaming = run.status === 'streaming'
 	const busy = run.status !== 'idle'
 	const modelRef = conversation.model ?? settings.defaultModel
@@ -267,7 +268,8 @@ export function Composer({
 						className="chip chip--icon"
 						onClick={attachment ? onRefreshAttachment : onAttach}
 						disabled={attachBusy}
-						title={attachment ? 'Re-read the page' : 'Attach the current tab'}
+						title={attachLabel}
+						aria-label={attachLabel}
 					>
 						{attachment ? <RefreshCw size={13} /> : <FileText size={13} />}
 					</button>

@@ -2,7 +2,7 @@
 
 A Chrome/Edge (MV3) side-panel chat harness. The extension is provider-agnostic: the model can be the browser's built-in
 Prompt API, a local server (llama.cpp, Ollama, LM Studio, vLLM), or a hosted API (OpenAI, Anthropic, DeepSeek). A domain
-layer owns conversations, the context budget, compaction, skills and browser tools; providers are swappable adapters
+layer owns conversations, the context budget, compaction, skills and built-in tools; providers are swappable adapters
 over the [Vercel AI SDK](https://ai-sdk.dev).
 
 ## Architecture
@@ -13,8 +13,8 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | Settings UI | `src/settings/`    | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.       |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page-context assembly, BM25, memory, compaction.       |
 | Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.     |
-| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped remote tools.                 |
-| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, browser tools.              |
+| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                    |
+| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, built-in tools.             |
 | State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, IndexedDB persistence, attachments. |
 | Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                              |
 
@@ -34,8 +34,7 @@ The five terms that get confused most:
   tool calls it requested. Never "round".
 - **Context** is the assembled prompt, **page attachment** is the page, **context window** is the capacity. Never
   "context" alone for either of the latter two.
-- **Built-in tool** (in `src/browser/tools.ts`) vs **MCP tool** (remote); "remote tools" is the prompt note's wording,
-  not the name. Never "browser tool".
+- **Built-in tool** (in `src/browser/tools.ts`) vs **MCP tool** (remote). Never "browser tool".
 - **Settings** is the UI and the docs, and the code too: `settings.html`, `src/settings`, `openSettings`. The one
   exception is Chrome's own manifest key `options_ui`, which cannot be renamed; note that `chrome://extensions` labels
   the entry "Extension options" from that key.
@@ -196,8 +195,8 @@ confirmation modal) and `controls` keeps only the code copy button.
 The harness serves `dist/` as an ordinary web page and injects `dev/e2e/chrome-shim.mjs`. Scenarios live in
 `dev/e2e/scenarios/` and use `dev/e2e/fake-server.mjs` (an OpenAI-compatible SSE server that records request bodies and
 can emit tool calls). Add a scenario by creating `NN-name.mjs` exporting `run(ctx)`; config is
-`{ settings, tab, extraction, selection, storage }`. Remote tools use `dev/e2e/mock-mcp-server.mjs`, a stateless MCP
-server on a random port; never point a scenario at a real or fixed endpoint.
+`{ settings, tab, extraction, selection, storage }`. MCP tools use `dev/e2e/mock-mcp-server.mjs`, a stateless MCP server
+on a random port; never point a scenario at a real or fixed endpoint.
 
 `npm run e2e:ext` additionally exercises what the shim cannot: the real service worker, the injectable extractor against
 a localhost fixture page (localhost is in `host_permissions`, so no `activeTab` grant is needed) and the panel-behavior

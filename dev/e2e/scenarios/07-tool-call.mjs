@@ -31,7 +31,7 @@ export async function run(ctx) {
 
 		// The answer that follows the tool result is rendered too.
 		await page.waitForFunction(() => document.body.innerText.includes('Teams costs 25 EUR.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'complete')
+		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
 
 		assert.equal(server.requests.length, 2)
 		const second = server.requests[1]

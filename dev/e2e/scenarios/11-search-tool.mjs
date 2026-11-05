@@ -31,7 +31,7 @@ export async function run(ctx) {
 		assert.match(await page.locator('.tool__name').textContent(), /Searching the web/)
 
 		await page.waitForFunction(() => document.body.innerText.includes('I opened the results in a new tab.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'complete')
+		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
 
 		// The query ran through the default search engine, in a new tab unless the model
 		// asked for something else.

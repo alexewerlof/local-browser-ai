@@ -27,7 +27,7 @@ export async function run(ctx) {
 		assert.match(await page.locator('.tool__name').textContent(), /Checking the clock/)
 
 		await page.waitForFunction(() => document.body.innerText.includes('It is 2 November 2026.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'complete')
+		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
 
 		assert.equal(server.requests.length, 2)
 		const toolMessage = server.requests[1].messages.find((message) => message.role === 'tool')
