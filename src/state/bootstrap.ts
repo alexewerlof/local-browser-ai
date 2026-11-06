@@ -60,16 +60,33 @@ function pageReadable(): { ok: true } | { ok: false; message: string } {
 	return { ok: true }
 }
 
-/** Capture one tab and append it to the chat on screen. */
-export async function addPage(tabId?: number): Promise<void> {
+export interface AddPageOptions {
+	/**
+	 * Skip the capture when the same document is already in the chat.
+	 *
+	 * Only a selection passes this: quoting a passage is not a request for another copy
+	 * of its page, and every quote would otherwise cost a second page block. An explicit
+	 * add never sets it — see `addPage`.
+	 */
+	reuseExisting?: boolean
+}
+
+/**
+ * Capture one tab and append it to the chat on screen.
+ *
+ * An explicit add always captures, even for a document that is already in the chat: a
+ * right-click on a page the user has already added is a request for *this* version, so
+ * the new capture becomes the next handle (`p2`) beside the earlier one. That is what
+ * makes "what changed on this page?" answerable, and it costs nothing when the page has
+ * not changed — the two blocks are small, and their text lives outside the prompt.
+ */
+export async function addPage(tabId?: number, options: AddPageOptions = {}): Promise<void> {
 	if (addPageBusyStore.get()) return
 	addPageBusyStore.set(true)
 	addPageErrorStore.set(null)
 	try {
 		const info = await readTabInfo(tabId)
-		// The document is already in this chat: capturing it again would freeze a second
-		// block under a new handle for the same page.
-		if (findAttachedPage(info.url)) return
+		if (options.reuseExisting && findAttachedPage(info.url)) return
 
 		const readable = pageReadable()
 		if (!readable.ok) {
@@ -92,11 +109,12 @@ export async function addPage(tabId?: number): Promise<void> {
  * Add a selection: the quote goes into the draft, and the page it came from is captured
  * so the model knows the title and URL and can read the rest of the page with the page
  * tools. The quote lands even when the capture is refused (a model without tools), since
- * the selected text alone is still useful.
+ * the selected text alone is still useful. A page already in the chat is reused rather
+ * than captured again.
  */
 async function addSelection(text: string, tabId: number): Promise<void> {
 	quoteSelection(text)
-	await addPage(tabId)
+	await addPage(tabId, { reuseExisting: true })
 }
 
 /** Add every page the user asked for while the panel was not listening. */

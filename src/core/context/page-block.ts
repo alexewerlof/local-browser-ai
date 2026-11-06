@@ -82,10 +82,15 @@ function outlineLine(entry: PageSnapshot['outline'][number], cost: number | unde
 	return `${indent}- [${entry.id}] ${clip(entry.text, MAX_HEADING_CHARS)}${size}`
 }
 
+/**
+ * When the page was captured, to the second and in UTC. A chat can hold two captures of
+ * one page, and their stamps are what tell the versions apart: the date alone would give
+ * both captures the same line.
+ */
 function capturedOn(timestamp: number): string {
 	const date = new Date(timestamp)
 	if (Number.isNaN(date.getTime())) return 'unknown'
-	return date.toISOString().slice(0, 10)
+	return `${date.toISOString().slice(0, 19).replace('T', ' ')} UTC`
 }
 
 /** The handle the model names a page by: `p1`, `p2`, … */

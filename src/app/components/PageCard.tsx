@@ -1,6 +1,6 @@
 import { FileText } from 'lucide-react'
 import type { PageSnapshot } from '../../core/types'
-import { formatBytes } from '../../core/util'
+import { formatBytes, relativeTime } from '../../core/util'
 
 function hostOf(url: string): string {
 	try {
@@ -40,6 +40,7 @@ export function PageCard({ page, onOpen }: { page: PageSnapshot; onOpen: (page: 
 				{formatBytes(page.totalChars)} · {page.outline.length} headings
 				{page.representation === 'app' ? ' · app view' : ''}
 				{page.truncated ? ' · truncated' : ''}
+				{/* The stamp tells two captures of one page apart. */}· {relativeTime(page.capturedAt)}
 			</span>
 		</div>
 	)

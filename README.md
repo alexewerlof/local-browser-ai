@@ -14,6 +14,10 @@ machine, or a hosted API.
   across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
   sources, or ground a conversation in more than one page. Each page appears in the chat with its title and URL; click
   it to bring that tab back (the page is reopened if the tab is gone).
+- **The same page, several versions.** Adding a page you already added captures it again as a new version with its own
+  handle (`p1`, then `p2`), leaving the earlier one exactly as it was. Ask _what changed since last week_ and the model
+  can compare the two captures — prices, changelogs, release notes, a news article as it develops — because both blocks
+  stay in the conversation with the time they were captured.
 - **Page text stays out of the way.** Adding a page captures it once, in full, and puts only a small block in the
   conversation: the page's title, URL, size and outline, with a short handle (`p1`, `p2`) the model uses to read the
   parts it needs. The rest is fetched on demand, so a two-hundred-section page costs about a hundred tokens until the
@@ -86,7 +90,7 @@ What enters the conversation is a block of a few dozen tokens per page:
 ```text
 ## Page p1 — Example Pricing
 URL: https://example.com/pricing
-Captured: 2026-11-06 · 1,204 words · 9 sections · 14 links
+Captured: 2026-11-06 12:40:07 UTC · 1,204 words · 9 sections · 14 links
 Outline (id, heading, reading size):
 - [h0] Example Pricing — ~12 tok
   - [h1] Teams — ~28 tok

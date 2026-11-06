@@ -108,7 +108,8 @@ describe('renderPageBlock', () => {
 		const block = renderPageBlock(snapshot())
 		expect(block).toContain('## Page p1 — Example Pricing')
 		expect(block).toContain('URL: https://example.com/pricing')
-		expect(block).toContain('Captured: 2026-11-06')
+		// To the second: two captures of one page in the same chat must be tellable apart.
+		expect(block).toContain('Captured: 2026-11-06 00:00:00 UTC')
 	})
 
 	it('lists the outline with ids and section sizes', () => {

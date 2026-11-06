@@ -40,9 +40,9 @@ function documentKey(url: string): string {
 /**
  * The page of this chat already showing `url`, if any.
  *
- * Adding is idempotent per document: a second add of the page on screen skips the capture
- * instead of freezing a `p2` that duplicates `p1`. A selection added twice therefore
- * quotes twice but captures once.
+ * Only the selection path asks: a quote reuses the page it came from, so selecting five
+ * passages on one page adds one page and five quotes. An explicit add ignores this and
+ * captures again, which is how a chat ends up holding two versions of one page.
  */
 export function findAttachedPage(url: string, pages: PageSnapshot[] = pagesStore.get()): PageSnapshot | undefined {
 	const key = documentKey(url)

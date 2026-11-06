@@ -55,7 +55,8 @@ context:
 # Pages the user adds to a chat, from capture to the prompt.
 page:
     page: a page added to a chat, captured once and immutable afterwards; code PageSnapshot, pagesStore, conversationId; ui Example Pricing, 2 pages; not attachment, document, source, resource
-    page-add: capture a tab and append it to the chat on screen; code addPage, addPageBusyStore, page.add, findAttachedPage; ui Add to chat, Adding the page…; not attach, import, upload, capture
+    page-add: capture a tab and append it to the chat on screen; code addPage, addPageBusyStore, page.add; ui Add to chat, Adding the page…; not attach, import, upload, capture
+    page-version: a second capture of a page already in the chat, kept beside the earlier one under its own handle; code addPage, findAttachedPage, capturedAt; ui Captured 2026-11-06 12:40:07 UTC, Add to chat again; not snapshot, copy, duplicate, re-add
     selection-add: quote the selected text into the draft and capture the page it came from; code quoteSelection, addSelection, selection.add; ui Add to chat (the same menu item); not snippet, excerpt, copy, attach
     page-handle: the short id the model names a page by; code handle, p1, PAGE_HANDLE_HINT; not url, index, position
     page-block: 'the frozen prompt text for one page: handle, title, URL, size and outline; code renderPageBlock, PageSnapshot.block, freezePage; ui Page p1; not summary, digest, preview, index'

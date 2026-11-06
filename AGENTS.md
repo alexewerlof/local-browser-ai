@@ -54,7 +54,13 @@ panel first (a gesture), queues the tab id in session storage and broadcasts `pa
 broadcast is only a **nudge**: both it and the boot drain call `drainPendingPages()`, because adding from the event as
 well would add the same page twice when the two paths land together. A selection quotes the text into the draft **and**
 captures its page, so the model gets the title, URL and outline of where the passage came from; a document already in
-the chat is not captured twice (`findAttachedPage`).
+the chat is reused rather than captured again (`findAttachedPage`, `addPage(tabId, { reuseExisting: true })`).
+
+**Adding a page twice is a feature, not a mistake.** An explicit add never skips: it captures the page again and appends
+a second snapshot with the next handle (`p2` beside `p1`), so a chat can hold two versions of one document and the model
+can answer "what changed?". The earlier block is untouched, because the transcript is append-only. The capture stamp in
+the block therefore carries the time to the second (`Captured: 2026-11-06 12:40:07 UTC`) — a date alone would give both
+versions the same line.
 
 Capture happens once. Extraction runs in the page (`src/browser/extract/inject.ts`) and returns cleaned HTML, the page's
 own text and an accessibility skeleton; `pipeline.ts` picks a representation (Readability for articles, the skeleton for
@@ -66,7 +72,7 @@ The block is the whole point: a few dozen tokens naming the page, its URL, its s
 ```text
 ## Page p1 — Example Pricing
 URL: https://example.com/pricing
-Captured: 2026-11-06 · 1,204 words · 9 sections · 14 links
+Captured: 2026-11-06 12:40:07 UTC · 1,204 words · 9 sections · 14 links
 Outline (id, heading, reading size):
 - [h0] Example Pricing — ~12 tok
   - [h1] Teams — ~28 tok
