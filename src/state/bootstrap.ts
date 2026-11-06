@@ -1,15 +1,32 @@
-import { appendPage, conversationStore, flushPersistence, refreshContext, setModel } from './chat'
+import {
+	appendPage,
+	conversationStore,
+	flushPersistence,
+	refreshContext,
+	restoreLastConversation,
+	setModel,
+} from './chat'
 import { addPageBusyStore, addPageErrorStore, quoteSelection } from './composer'
 import { extractPage, initBrowserEvents, takePendingPageTabs } from './browser'
-import { bindPages, nextPageHandle, pagesStore } from './pages'
+import { nextPageHandle, pagesStore } from './pages'
 import { initSettings, settingsStore } from './settings'
 import { initMemory, memoryStore } from './memory'
 import { refreshPromptStatus } from './prompt'
+import { Store } from '../core/store'
 import { enabledBuiltInTools, normalizeSettings } from '../core/settings'
 import { freezePage } from '../core/context/page-block'
 import { hasPageTools } from '../browser/tools'
 import { getModelInfo } from '../providers/catalog'
 import { toAppError } from '../providers/errors'
+
+/**
+ * Whether the panel has finished opening.
+ *
+ * Settings alone cannot gate the first paint any more: the panel reopens on the chat it
+ * was showing, and rendering the brand-new chat first would flash its title and empty
+ * transcript before the saved one lands. The first paint waits for the whole boot.
+ */
+export const bootStatusStore = new Store<'loading' | 'ready'>('loading')
 
 /**
  * Pages are only useful to a model that can read them on demand: the block carries the
@@ -76,12 +93,24 @@ export async function bootstrap(): Promise<void> {
 	await initSettings()
 	await initMemory()
 
+	// The panel reopens on the chat it was showing. Restoring before the browser events
+	// are wired keeps a page add from landing in the chat that is about to be replaced;
+	// the worker queues those tabs, so `drainPendingPages` still delivers them.
+	try {
+		await restoreLastConversation()
+	} catch {
+		// A failed restore must not cost the panel its event wiring: the next chat still
+		// works, it is simply new.
+	}
+
 	const settings = settingsStore.get()
 	const conversation = conversationStore.get()
 	if (!conversation.model && settings.defaultModel) setModel(settings.defaultModel)
 
+	// The worker both queues a tab and broadcasts `page.add`, so both paths drain the same
+	// queue: whichever arrives first adds the page, and the other one finds it gone.
 	initBrowserEvents({
-		onPageAdd: (tabId) => void addPage(tabId),
+		onPageAdd: () => void drainPendingPages(),
 		onSelection: (text) => quoteSelection(text),
 	})
 
@@ -98,8 +127,7 @@ export async function bootstrap(): Promise<void> {
 	// and the outgoing prompt must be recomputed.
 	memoryStore.subscribe(() => refreshContext())
 
-	// A fresh panel always opens a new chat, which owns no pages.
-	bindPages([])
+	// Pages are bound by the restore above, and a fresh chat starts with none.
 	refreshContext()
 
 	const activeModel = conversationStore.get().model
@@ -112,4 +140,6 @@ export async function bootstrap(): Promise<void> {
 	document.addEventListener('visibilitychange', () => {
 		if (document.visibilityState === 'hidden') void flushPersistence()
 	})
+
+	bootStatusStore.set('ready')
 }

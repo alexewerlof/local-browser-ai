@@ -1,8 +1,19 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { ChatMessage, Conversation, PageSnapshot } from '../core/types'
 import { freezePage } from '../core/context/page-block'
 import { createId } from '../core/util'
-import { appendPage, commit, conversationStore, createConversation, flushPersistence, openConversation } from './chat'
+import {
+	appendPage,
+	commit,
+	conversationStore,
+	createConversation,
+	flushPersistence,
+	openConversation,
+	queuePausedStore,
+	restoreLastConversation,
+	resumeQueue,
+} from './chat'
 import {
 	clearConversations,
 	deleteConversation,
@@ -11,7 +22,9 @@ import {
 	saveConversation,
 	savePage,
 } from './database'
+import { clearOpenChatId, readOpenChatId, writeOpenChatId } from './panel-state'
 import { bindPages, pagesStore } from './pages'
+import { bindQueue, enqueuePrompt, queueStore, removeQueuedPrompt } from './queue'
 
 function message(text: string, createdAt: number): ChatMessage {
 	return {
@@ -213,5 +226,114 @@ describe('pages', () => {
 		const userMessage = conversationStore.get().messages.find((entry) => entry.role === 'user')
 		expect(userMessage?.parts[0]).toEqual({ type: 'page-ref', pageId: adopted[0]?.id })
 		expect(adopted[0]?.messageId).toBe(userMessage?.id)
+	})
+})
+
+describe('restoreLastConversation', () => {
+	beforeEach(async () => {
+		await flushPersistence()
+		await clearConversations()
+		// jsdom has no `chrome.storage`, so the key lands in localStorage.
+		localStorage.clear()
+		commit(createConversation(null))
+		bindPages([])
+		bindQueue(conversationStore.get().id)
+		// Every test starts from "the panel has never been closed".
+		await clearOpenChatId()
+	})
+
+	it('reopens the chat that was on screen, with its transcript and pages', async () => {
+		const stored = savedChat('Earlier chat', [message('hello', 1_000)])
+		await saveConversation(stored)
+		const entry = page(stored.id, 'p1', 'https://example.com/a', 1_000)
+		await savePage({ ...entry, messageId: 'msg-1' })
+		await writeOpenChatId(stored.id)
+
+		await restoreLastConversation()
+
+		expect(conversationStore.get().id).toBe(stored.id)
+		expect(conversationStore.get().title).toBe('Earlier chat')
+		expect(conversationStore.get().messages).toHaveLength(1)
+		expect(pagesStore.get().map((restored) => restored.handle)).toEqual(['p1'])
+		// A page that already reached a turn stays claimed, so no later turn carries it again.
+		expect(pagesStore.get()[0]?.messageId).toBe('msg-1')
+	})
+
+	it('starts a new chat when the remembered chat is gone', async () => {
+		const fresh = conversationStore.get().id
+		await writeOpenChatId('chat-missing')
+
+		await restoreLastConversation()
+
+		expect(conversationStore.get().id).toBe(fresh)
+		expect(await readOpenChatId()).toBeNull()
+	})
+
+	it('does nothing when the chat is already on screen', async () => {
+		const current = conversationStore.get()
+		// A stored copy that would be visible if the chat were reloaded from the database.
+		await saveConversation({ ...current, title: 'Saved copy' })
+		await writeOpenChatId(current.id)
+
+		await restoreLastConversation()
+
+		expect(conversationStore.get().title).toBe('New chat')
+	})
+
+	it('parks a restored queue instead of running it', async () => {
+		const stored = savedChat('Queued chat', [message('hello', 1_000)])
+		await saveConversation(stored)
+		await bindQueue(stored.id)
+		await enqueuePrompt(stored.id, 'run me later')
+		await writeOpenChatId(stored.id)
+
+		await restoreLastConversation()
+
+		expect(queueStore.get().map((item) => item.text)).toEqual(['run me later'])
+		// Opening the panel must never spend a request on its own: Continue is the decision.
+		expect(queuePausedStore.get()).toBe(true)
+
+		// With nothing left to run, Continue only clears the pause.
+		await removeQueuedPrompt(stored.id, queueStore.get()[0]?.id ?? '')
+		resumeQueue()
+		expect(queuePausedStore.get()).toBe(false)
+	})
+
+	it('leaves the queue running when the restored chat has nothing queued', async () => {
+		const stored = savedChat('Quiet chat', [message('hello', 1_000)])
+		await saveConversation(stored)
+		await writeOpenChatId(stored.id)
+
+		await restoreLastConversation()
+
+		expect(queuePausedStore.get()).toBe(false)
+	})
+})
+
+describe('open chat memory', () => {
+	beforeEach(async () => {
+		await flushPersistence()
+		await clearConversations()
+		localStorage.clear()
+		commit(createConversation(null))
+		await clearOpenChatId()
+	})
+
+	it('remembers the chat that is on screen', async () => {
+		const chat = savedChat('Remembered', [message('hi', 1_000)])
+
+		commit(chat)
+
+		expect(await readOpenChatId()).toBe(chat.id)
+	})
+
+	it('follows a chat switch', async () => {
+		const first = savedChat('First', [message('one', 1_000)])
+		const second = savedChat('Second', [message('two', 2_000)])
+		commit(first)
+
+		commit(second)
+
+		expect(await readOpenChatId()).toBe(second.id)
 	})
 })

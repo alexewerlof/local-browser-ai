@@ -47,7 +47,9 @@ Area files narrow this down: `src/app/AGENTS.md`, `src/core/AGENTS.md`, `src/bro
 A page joins a chat **only** from the context menu ("Add this page to chat"). The toolbar button just shows and hides
 the panel; nothing else adds a page. The menu handler in the worker opens the panel first (a gesture), queues the tab id
 in session storage and broadcasts `page.add`; the panel drains the queue with `page.pending`, so an add that arrived
-before the panel loaded is not lost and several adds are drained in order.
+before the panel loaded is not lost and several adds are drained in order. The broadcast is only a **nudge**: both it
+and the boot drain call `drainPendingPages()`, because adding from the event as well would add the same page twice when
+the two paths land together.
 
 Capture happens once. Extraction runs in the page (`src/browser/extract/inject.ts`) and returns cleaned HTML, the page's
 own text and an accessibility skeleton; `pipeline.ts` picks a representation (Readability for articles, the skeleton for
@@ -120,8 +122,10 @@ visible while streaming — Stop aborts the current answer, Submit queues the ne
 so `stopGeneration` sets `queuePausedStore` (only when something is queued) and `runTurn`'s `finally` skips the drain. A
 Continue button (Lucide `Play`, `aria-label="Continue"`) appears next to Submit while the queue is paused;
 `resumeQueue()` clears the flag and drains. Any explicit submit, `newChat` and `openConversation` also clear it, so a
-new prompt or a freshly opened chat never inherits an old pause. The pause is in-memory only: a reloaded panel resumes
-the queue (that is what `21-queue-persist` asserts).
+new prompt or a freshly opened chat never inherits an old pause. Reopening the panel is the one place that does **not**
+auto-resume: a restored chat with prompts still queued starts parked (see "Reopening the panel"), so opening the panel
+never spends a request on its own. `21-queue-persist` is that scenario: reload → chat and queue come back, nothing runs
+until Continue.
 
 `src/state/queue.ts` owns `queueStore` (only ever the queue of the conversation on screen) and `src/state/database.ts`
 holds it in the `queues` object store keyed by conversation id (DB v2). The queue is **not** a field on `Conversation`:
@@ -137,6 +141,30 @@ call `drainQueue`, and three flags keep it single-owner: `draining` (a nested tu
 prompt taken in that window is handed back with `restorePromptFront`) and `queuePausedStore`. A prompt leaves the queue
 before its turn starts, so a failing answer cannot replay the same entry forever. Removing a queued prompt **replaces**
 the draft and restores its skill, so the text stays editable instead of being thrown away.
+
+## Reopening the panel
+
+Closing the side panel destroys it, so the panel opens on the chat it was showing. The id is written by `commit()` in
+`src/state/chat.ts` through `src/state/panel-state.ts` (key `ui-state.v1`, one `{ conversationId }` record), only when
+it changes — never per token. `restoreLastConversation()` runs in `bootstrap()` before the browser events are wired and
+rebuilds the panel in the same order `openConversation` does: the conversation, then `bindPages(await loadPages(id))`,
+then the queue. Skipping the pages step is not an option — a chat's pages live beside it in their own store, so the
+strip would come back empty and any page still waiting for a turn would be stranded.
+
+Restoring is deliberately quiet:
+
+- **The queue comes back parked.** `queuePausedStore` is set when the restored queue is not empty, so the Continue
+  button is there and nothing is sent until it is pressed. `openConversation` from the Chats drawer still clears the
+  pause and drains, because that is an explicit gesture on that chat.
+- **A remembered id that no longer resolves** (chat deleted in Settings, or from another window) is cleared and the
+  panel stays on the fresh chat.
+- **The reply that was streaming is `aborted`**, via `reviveStored` in `src/state/database.ts`.
+- **Two windows share the one record**, so the last chat opened wins. Accepted for v1.
+
+`App.tsx` gates its first paint on `bootStatusStore` (from `src/state/bootstrap.ts`), not on `settingsStatusStore`:
+settings land before the restore, and rendering then would flash the new chat's title and empty transcript before the
+saved one replaced them. `29-restore-chat` is the scenario (transcript, both chips — the sent one still marked — and the
+next turn carrying both frozen blocks); `21-queue-persist` is the parking one.
 
 ## Rendering
 
@@ -234,7 +262,12 @@ The harness serves `dist/` as an ordinary web page and injects `dev/e2e/chrome-s
 `dev/e2e/scenarios/` and use `dev/e2e/fake-server.mjs` (an OpenAI-compatible SSE server that records request bodies and
 can emit tool calls). Add a scenario by creating `NN-name.mjs` exporting `run(ctx)`; config is
 `{ settings, tab, extraction, selection, storage }`. MCP tools use `dev/e2e/mock-mcp-server.mjs`, a stateless MCP server
-on a random port; never point a scenario at a real or fixed endpoint.
+on a random port; never point a scenario at a real or fixed endpoint. It has two failure switches that between them
+cover the realistic setups: `rejectOrigins` answers 403 to any browser `Origin` (which is what `stripOrigin` fixes, and
+why the real-extension test uses it) and `requireHeaders` answers 401 to every POST without the given Name/Value rows,
+recording the refused names in `denied` — that is how `11-mcp-tools` proves a configured `Authorization` header really
+reaches the server instead of only being stored. Its CORS reply echoes the requested header names, because the `*`
+wildcard does not cover `Authorization`.
 
 `npm run e2e:ext` additionally exercises what the shim cannot: the real service worker, the injectable extractor against
 a localhost fixture page (localhost is in `host_permissions`, so no `activeTab` grant is needed) and the panel-behavior

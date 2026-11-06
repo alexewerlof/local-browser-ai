@@ -20,6 +20,8 @@ function page(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
 
 	return {
 		id: 'page',
+		conversationId: 'chat-test',
+		handle: 'p1',
 		url: 'https://example.com/pricing',
 		title: 'Example Pricing',
 		markdown,
@@ -49,9 +51,9 @@ function page(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
 			},
 		],
 		capturedAt: 0,
-		stale: false,
 		truncated: false,
 		totalChars: markdown.length,
+		block: '',
 		...overrides,
 	}
 }

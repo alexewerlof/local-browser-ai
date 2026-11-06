@@ -75,3 +75,38 @@ export const exampleTab = {
 	url: 'https://example.com/pricing',
 	title: 'Example Pricing',
 }
+
+/** A second tab, so a scenario can give one chat more than one page. */
+export const deskTab = {
+	id: 43,
+	windowId: 1,
+	url: 'https://garden.example/desk',
+	title: 'Standing desk — Garden',
+	favIconUrl: '',
+}
+
+/** What the worker extracts from `deskTab`. */
+export const deskExtraction = {
+	url: deskTab.url,
+	baseUrl: deskTab.url,
+	canonicalUrl: deskTab.url,
+	title: deskTab.title,
+	description: 'A desk',
+	lang: 'en',
+	faviconUrl: '',
+	byline: '',
+	publishedTime: '',
+	selection: '',
+	truncated: false,
+	text: 'The desk costs 1299 EUR and ships in April.',
+	aria: '',
+	controls: 0,
+	html: [
+		'<html><body><article>',
+		'<h1>Standing desk</h1>',
+		'<p>The desk costs 1299 EUR and ships in April.</p>',
+		'<h2>Warranty</h2>',
+		'<p>Ten years on the frame, three on the motor.</p>',
+		'</article></body></html>',
+	].join(''),
+}

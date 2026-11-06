@@ -28,6 +28,7 @@ import { requestApproval } from './browser'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, loadPages, saveConversation, savePage } from './database'
+import { clearOpenChatId, readOpenChatId, writeOpenChatId } from './panel-state'
 import { bindPages, pagesStore, pendingPages } from './pages'
 import {
 	bindQueue,
@@ -126,9 +127,18 @@ export async function flushPersistence(): Promise<void> {
 	await Promise.all([saveConversation(conversationStore.get()), flushQueuePersistence()])
 }
 
+/** Chat whose id is already in storage; the panel restores it on its next load. */
+let rememberedChatId: string | null = null
+
 /** Set the store; persistence is scheduled rather than awaited. */
 export function commit(conversation: Conversation): void {
 	conversationStore.set(conversation)
+	// Which chat was on screen is not part of any chat, so it is written on its own. The
+	// guard keeps the per-token commits of a run from writing the same id again.
+	if (conversation.id !== rememberedChatId) {
+		rememberedChatId = conversation.id
+		void writeOpenChatId(conversation.id)
+	}
 	scheduleSave()
 }
 
@@ -299,6 +309,36 @@ export async function openConversation(id: string): Promise<void> {
 export async function removeConversation(id: string): Promise<void> {
 	await deleteConversation(id)
 	if (conversationStore.get().id === id) newChat()
+}
+
+/**
+ * Open the chat the panel was showing when it closed.
+ *
+ * The side panel is destroyed on close, so the chat on screen has to be written down.
+ * Restoring is deliberately quiet: the transcript, its pages and its queue come back,
+ * but a queue that still holds prompts starts **parked**, so reopening the panel never
+ * spends a request without the user asking for it.
+ */
+export async function restoreLastConversation(): Promise<void> {
+	const id = await readOpenChatId()
+	if (!id || conversationStore.get().id === id) return
+
+	const stored = await loadConversation(id)
+	if (!stored) {
+		// Deleted in Settings or from another window; the fresh chat stands.
+		await clearOpenChatId()
+		return
+	}
+
+	commit(stored)
+	// A chat's pages live beside it, not on it: without them the chips disappear and any
+	// page that never reached a turn would be orphaned in the database.
+	bindPages(await loadPages(id))
+	await loadQueueFor(id)
+	runStore.set({ status: 'idle' })
+	// Park, do not drain: Continue is the user's decision, exactly like after a Stop.
+	queuePausedStore.set(queueStore.get().length > 0)
+	refreshContext()
 }
 
 export function setModel(ref: ModelRef): void {

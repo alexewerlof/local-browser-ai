@@ -8,8 +8,11 @@ export const name = '11-mcp-tools'
 /** `mcp_<server slug>_<tool>` — see `mcpToolName` in src/core/mcp.ts. */
 const TOOL_NAME = 'mcp_mock_tools_echo'
 
+/** The mock answers 401 without this, so the tool call proves the header was sent. */
+const HEADERS = { Authorization: 'Bearer abc' }
+
 export async function run(ctx) {
-	const mcp = await startMockMcpServer()
+	const mcp = await startMockMcpServer({ requireHeaders: HEADERS })
 	const server = await startFakeModelServer({
 		chunks: ['The', ' server', ' said', ' hello.'],
 		toolScript: (body) => (body.messages.at(-1)?.role === 'tool' ? 'text' : 'tool-call'),
@@ -28,7 +31,7 @@ export async function run(ctx) {
 							id: 'mcp_1',
 							label: 'Mock tools',
 							url: mcp.url,
-							headers: {},
+							headers: HEADERS,
 							enabled: true,
 							autoApprove: true,
 							disabledTools: [],
@@ -65,6 +68,8 @@ export async function run(ctx) {
 
 		// And the call really reached the MCP server, with the raw tool name.
 		assert.deepEqual(mcp.calls, [{ name: 'echo', arguments: { message: 'hello' } }])
+		// No request was refused, so the configured Authorization header was sent.
+		assert.deepEqual(mcp.denied, [])
 
 		// The composer menu exposes servers as checkboxes and persists the choice.
 		await page.locator('.chip:has-text("Tools")').click()

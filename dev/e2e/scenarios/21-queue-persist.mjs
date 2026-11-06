@@ -33,15 +33,21 @@ export async function run(ctx) {
 		await page.waitForSelector('.composer__queue')
 		assert.equal(await page.locator('.composer__queue-item').count(), 1)
 
-		// Reload while the turn is still running: the panel opens a fresh chat.
+		// Reload while the turn is still running: the panel reopens on the same chat, with
+		// the answer it was writing marked as stopped and its queue intact.
 		await page.reload()
 		await page.waitForSelector('.composer__input')
-		// A new chat starts with an empty queue; the pending prompt belongs to the old one.
-		assert.equal(await page.locator('.composer__queue').count(), 0)
+		assert.equal(await page.locator('.header__title').textContent(), title)
+		await page.waitForSelector('.composer__queue')
+		assert.equal(await page.locator('.composer__queue-item').count(), 1)
 
-		// Reopening the saved chat restores its queue, and the prompt runs right away.
-		await page.locator('button[aria-label="Chat history"]').click()
-		await page.locator('.history__main', { hasText: title }).click()
+		// Reopening the panel must never spend a request on its own: the queue is parked
+		// behind Continue, exactly like after a Stop.
+		assert.equal(server.requests.length, 1)
+		assert.equal(await page.locator('button[aria-label="Continue"]').isVisible(), true)
+
+		// Continue hands the queued prompt its turn.
+		await page.locator('button[aria-label="Continue"]').click()
 
 		await waitFor(() => server.requests.length >= 2)
 		await page.waitForFunction(() => document.querySelectorAll('.message--user').length >= 2)

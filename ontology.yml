@@ -13,8 +13,8 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 4
-    updated: 2026-11-05
+    version: 5
+    updated: 2026-11-06
     status: contract
     shipped: false
 
@@ -22,6 +22,7 @@ meta:
 harness:
     harness: the extension as a whole; code src/app, src/core, src/state; not agent framework, backend
     conversation: the stored chat; code Conversation, conversationStore; ui Chat, Chats, New chat; not session, thread
+    open-chat: the chat the panel was showing, reopened on its next load; code restoreLastConversation, readOpenChatId, writeOpenChatId, ui-state.v1; not last session, restore point
     session: a browser or client lifetime, never a chat; code chrome.storage.session, declarativeNetRequest session rules, MCP session; not chat, thread
     message: one stored transcript item, either role; code ChatMessage, MessageItem; ui N messages; not bubble, entry
     prompt: the text the user submits; code QueuedPrompt, draftStore, submitPrompt; ui Message, Queue prompt; not question, query
@@ -30,7 +31,7 @@ harness:
     step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs; ui Maximum tool steps per answer; not round, iteration
     answer: the assistant output the user reads; code MessageItem, MessageStatus; ui Copy answer, Generate this answer again; not response, reply, output
     prompt-queue: the per-conversation FIFO filled while a run is busy; code queueStore, drainQueue, QueuedPrompt; ui Queued · N, Queued prompts; not backlog, stack, batch
-    queue-pause: the state Stop sets so the queue stays put; code queuePausedStore, resumeQueue; ui Continue, Continue queued prompts; not hold, suspend
+    queue-pause: the state Stop or a restored chat sets so the queue stays put; code queuePausedStore, resumeQueue, restoreLastConversation; ui Continue, Continue queued prompts; not hold, suspend
     aborted: stopped by the user before it finished; code MessageStatus.aborted, ErrorKind.aborted; ui stopped, Stopped.; not cancelled, interrupted, failed
     prompt-api: Chrome's built-in on-device model API; code prompt-api, promptStatusStore; ui Built-in browser model; not browser API, local model
 

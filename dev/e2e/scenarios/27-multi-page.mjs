@@ -1,41 +1,8 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { deskExtraction, deskTab, exampleTab, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '27-multi-page'
-
-const desk = {
-	id: 43,
-	windowId: 1,
-	url: 'https://garden.example/desk',
-	title: 'Standing desk — Garden',
-	favIconUrl: '',
-}
-
-const deskExtraction = {
-	url: desk.url,
-	baseUrl: desk.url,
-	canonicalUrl: desk.url,
-	title: desk.title,
-	description: 'A desk',
-	lang: 'en',
-	faviconUrl: '',
-	byline: '',
-	publishedTime: '',
-	selection: '',
-	truncated: false,
-	text: 'The desk costs 1299 EUR and ships in April.',
-	aria: '',
-	controls: 0,
-	html: [
-		'<html><body><article>',
-		'<h1>Standing desk</h1>',
-		'<p>The desk costs 1299 EUR and ships in April.</p>',
-		'<h2>Warranty</h2>',
-		'<p>Ten years on the frame, three on the motor.</p>',
-		'</article></body></html>',
-	].join(''),
-}
 
 /**
  * Two pages in one chat: both blocks travel in the turn that added the second one, and
@@ -53,7 +20,7 @@ export async function run(ctx) {
 		// The second page arrives from another tab, while the panel is open.
 		await page.evaluate(
 			([nextTab, nextExtraction]) => window.__LB_AI_TEST__.addPage(nextTab, nextExtraction),
-			[desk, deskExtraction],
+			[deskTab, deskExtraction],
 		)
 		await page.waitForFunction(() => document.querySelectorAll('.page-chip').length === 2)
 
@@ -86,7 +53,7 @@ export async function run(ctx) {
 		)
 		assert.deepEqual(
 			focused.map((entry) => entry.tabId),
-			[desk.id, exampleTab.id],
+			[deskTab.id, exampleTab.id],
 		)
 	} finally {
 		await server.close()

@@ -70,7 +70,12 @@ export function focusPage(tabId: number | undefined, url: string): Promise<void>
 }
 
 export interface BrowserEventHandlers {
-	onPageAdd: (tabId: number) => void
+	/**
+	 * A nudge, not the page itself: the worker queues the tab *and* broadcasts it, so the
+	 * queue is the single source of truth. Adding from the event as well would add the
+	 * same page twice when both paths land.
+	 */
+	onPageAdd: () => void
 	onSelection: (text: string) => void
 }
 
@@ -79,7 +84,7 @@ export function initBrowserEvents(handlers: BrowserEventHandlers): () => void {
 	return onBackgroundEvent((event) => {
 		switch (event.type) {
 			case 'page.add':
-				handlers.onPageAdd(event.tabId)
+				handlers.onPageAdd()
 				break
 			case 'selection.add':
 				handlers.onSelection(event.text)

@@ -9,10 +9,17 @@ import { z } from 'zod'
  * It is deliberately tiny and local: scenarios must never depend on a real MCP server
  * or on a fixed port. Every call is recorded so a scenario can assert that the model's
  * tool call actually reached the server.
+ *
+ * `requireHeaders` models the common real-world case of a server that answers 401
+ * without credentials, which is what proves the settings' Name/Value rows are really
+ * sent. It is checked on POST only: a browser's CORS preflight (OPTIONS) never carries
+ * them, and the notification stream (GET) is not part of what the panel calls.
  */
 export async function startMockMcpServer(options = {}) {
-	const { calls = [], rejectOrigins = false } = options
+	const { calls = [], rejectOrigins = false, requireHeaders = null } = options
 	const seenOrigins = []
+	/** Required headers that were missing or wrong, once per rejected request. */
+	const denied = []
 
 	/** One server per request: stateless mode has no session to share. */
 	const createMcp = () => {
@@ -65,9 +72,12 @@ export async function startMockMcpServer(options = {}) {
 		})
 
 	const httpServer = createServer(async (request, response) => {
-		// The harness serves dist/ as an ordinary page, so the MCP server needs CORS.
+		// The harness serves dist/ as an ordinary page, so the MCP server needs CORS. Echo
+		// the requested header names rather than `*`: the wildcard explicitly does not
+		// cover `Authorization`, so a preflight for it would otherwise fail.
+		const requestedHeaders = request.headers['access-control-request-headers']
 		response.setHeader('Access-Control-Allow-Origin', '*')
-		response.setHeader('Access-Control-Allow-Headers', '*')
+		response.setHeader('Access-Control-Allow-Headers', requestedHeaders ?? '*')
 		response.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id')
 		response.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
 
@@ -84,6 +94,18 @@ export async function startMockMcpServer(options = {}) {
 			response.writeHead(403, { 'Content-Type': 'application/json' })
 			response.end(JSON.stringify({ error: 'Origin not allowed' }))
 			return
+		}
+
+		if (requireHeaders && request.method === 'POST') {
+			const missing = Object.entries(requireHeaders).filter(
+				([name, value]) => request.headers[name.toLowerCase()] !== value,
+			)
+			if (missing.length > 0) {
+				denied.push(...missing.map(([name]) => name))
+				response.writeHead(401, { 'Content-Type': 'application/json' })
+				response.end(JSON.stringify({ error: 'Unauthorized' }))
+				return
+			}
 		}
 
 		if (!request.url?.startsWith('/mcp')) {
@@ -148,6 +170,8 @@ export async function startMockMcpServer(options = {}) {
 		calls,
 		/** Origins refused by `rejectOrigins`, so a test can prove the header was sent. */
 		seenOrigins,
+		/** Required headers refused by `requireHeaders`; empty when every request had them. */
+		denied,
 		async close() {
 			httpServer.closeAllConnections()
 			await new Promise((resolve) => httpServer.close(resolve))

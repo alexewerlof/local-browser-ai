@@ -17,9 +17,10 @@ import {
 	openConversation,
 } from '../state/chat'
 import { addPageBusyStore, addPageErrorStore } from '../state/composer'
+import { bootStatusStore } from '../state/bootstrap'
 import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
 import { promptStatusStore } from '../state/prompt'
-import { settingsStatusStore, settingsStore, updateSettings } from '../state/settings'
+import { settingsStore, updateSettings } from '../state/settings'
 import { openSettings } from '../platform/chrome'
 import { focusPage } from '../state/browser'
 import { pagesStore } from '../state/pages'
@@ -30,7 +31,7 @@ import { Transcript } from './components/Transcript'
 import { useStore } from './useStore'
 
 export function App() {
-	const settingsStatus = useStore(settingsStatusStore)
+	const bootStatus = useStore(bootStatusStore)
 	const settings = useStore(settingsStore)
 	const conversation = useStore(conversationStore)
 	const run = useStore(runStore)
@@ -43,7 +44,7 @@ export function App() {
 	const promptStatus = useStore(promptStatusStore)
 	const [historyOpen, setHistoryOpen] = useState(false)
 
-	if (settingsStatus !== 'ready') {
+	if (bootStatus !== 'ready') {
 		return (
 			<div className="boot">
 				<span className="typing">
