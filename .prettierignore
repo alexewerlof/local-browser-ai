@@ -1,3 +1,8 @@
 # Ignore dependency directories
 /node_modules
 /vendor
+
+# Vendored agent skills: installed from upstream and hash-locked in skills-lock.json,
+# so reformatting them would desync the recorded hash (and Prettier mangles their
+# markdown tables, whose code spans contain pipes).
+/.agents

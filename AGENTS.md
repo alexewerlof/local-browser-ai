@@ -205,6 +205,25 @@ on a random port; never point a scenario at a real or fixed endpoint.
 a localhost fixture page (localhost is in `host_permissions`, so no `activeTab` grant is needed) and the panel-behavior
 migration.
 
+## Dependencies
+
+`npm audit` reports zero vulnerabilities and stays there. `npm run package` is the canary for the packaging toolchain:
+it is the only `archiver` caller and `scripts/` is not typechecked.
+
+- **Upgrade the AI SDK in lockstep.** `ai`, the four adapters and `@ai-sdk/mcp` each pin an exact `@ai-sdk/provider` /
+  `@ai-sdk/provider-utils` pair, so bumping one alone nests a second provider copy. Move the whole family in one change
+  and check `npm ls @ai-sdk/provider` shows a single version (and bump the `@ai-sdk/provider-utils` range with it).
+  `@ai-sdk/mcp` was pinned exactly at 2.0.86 for that reason; 2.0.91 shares `4.0.36`/`5.0.75` with `ai@7.0.163`, so a
+  caret is safe again — re-verify the pairing before re-pinning it.
+- **Two `overrides` are deliberate** and close advisories npm cannot fix by moving a dependency: `katex ^0.19.1` (forced
+  past `@streamdown/math`'s `^0.16.27`; `17-math` and `18-rendering-off` cover it) and `minimatch ^11.0.4` (forced past
+  `eslint` / `typescript-eslint`'s `^10.2.6`). Drop them only when upstream widens its range, and treat a forced major
+  inside the lint toolchain as unproven until `npm run lint` has actually matched files.
+- **TypeScript is held at 6.x** although 7.x is published: `typescript-eslint` caps its peer at `<6.1.0`, so TS 7 alone
+  would silently drop the type-aware rules. Take it with a typescript-eslint that supports it.
+- Node 24.15+ is the floor (`engines`): Vitest 5, jsdom 31 and ESLint 10 support nothing below it.
+- `npm run fmt` skips `/.agents`: those skills are vendored and hash-locked in `skills-lock.json`.
+
 ## Conventions
 
 - **Run the loop before calling a change done:** `npm run typecheck && npm run lint && npm test`, then `npm run fmt`.

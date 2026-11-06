@@ -2,7 +2,7 @@ import { createWriteStream, readFileSync, statSync } from 'node:fs'
 import { glob, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import archiver from 'archiver'
+import { ZipArchive } from 'archiver'
 
 const distDir = fileURLToPath(new URL('../dist/', import.meta.url))
 const ignoreFile = fileURLToPath(new URL('../.packageignore', import.meta.url))
@@ -11,7 +11,7 @@ const outputName = `${manifest.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-$
 const outputPath = fileURLToPath(new URL(`../${outputName}`, import.meta.url))
 
 const output = createWriteStream(outputPath)
-const archive = archiver('zip', { zlib: { level: 1 } })
+const archive = new ZipArchive({ zlib: { level: 1 } })
 
 output.on('close', () => {
 	console.log(`Packaged ${outputName} (${(archive.pointer() / 1024 / 1024).toFixed(1)} MB, ${shipped} files)`)

@@ -87,6 +87,8 @@ JSON file if you want them on another machine; import merges by id and keeps the
 
 ## Development
 
+Requires Node 24.15 or newer: Vitest 5, jsdom 31 and ESLint 10 all drop support below that.
+
 ```shell
 npm run dev        # build in watch mode
 npm run serve      # serve dist/ at http://localhost:4173 for manual testing
