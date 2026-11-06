@@ -7,8 +7,8 @@ import {
 	setModel,
 } from './chat'
 import { addPageBusyStore, addPageErrorStore, quoteSelection } from './composer'
-import { extractPage, initBrowserEvents, takePendingPageTabs } from './browser'
-import { nextPageHandle, pagesStore } from './pages'
+import { extractPage, initBrowserEvents, readTabInfo, takePendingPageTabs } from './browser'
+import { findAttachedPage, nextPageHandle, pagesStore } from './pages'
 import { initSettings, settingsStore } from './settings'
 import { initMemory, memoryStore } from './memory'
 import { refreshPromptStatus } from './prompt'
@@ -66,13 +66,18 @@ export async function addPage(tabId?: number): Promise<void> {
 	addPageBusyStore.set(true)
 	addPageErrorStore.set(null)
 	try {
+		const info = await readTabInfo(tabId)
+		// The document is already in this chat: capturing it again would freeze a second
+		// block under a new handle for the same page.
+		if (findAttachedPage(info.url)) return
+
 		const readable = pageReadable()
 		if (!readable.ok) {
 			addPageErrorStore.set(readable.message)
 			return
 		}
 
-		const { page, info } = await extractPage(tabId)
+		const { page } = await extractPage(info.id, info)
 		const conversation = conversationStore.get()
 		const snapshot = freezePage({ ...page, tabIdHint: info.id }, conversation.id, nextPageHandle(pagesStore.get()))
 		await appendPage(snapshot)
@@ -81,6 +86,17 @@ export async function addPage(tabId?: number): Promise<void> {
 	} finally {
 		addPageBusyStore.set(false)
 	}
+}
+
+/**
+ * Add a selection: the quote goes into the draft, and the page it came from is captured
+ * so the model knows the title and URL and can read the rest of the page with the page
+ * tools. The quote lands even when the capture is refused (a model without tools), since
+ * the selected text alone is still useful.
+ */
+async function addSelection(text: string, tabId: number): Promise<void> {
+	quoteSelection(text)
+	await addPage(tabId)
 }
 
 /** Add every page the user asked for while the panel was not listening. */
@@ -111,7 +127,7 @@ export async function bootstrap(): Promise<void> {
 	// queue: whichever arrives first adds the page, and the other one finds it gone.
 	initBrowserEvents({
 		onPageAdd: () => void drainPendingPages(),
-		onSelection: (text) => quoteSelection(text),
+		onSelection: (text, tabId) => void addSelection(text, tabId),
 	})
 
 	settingsStore.subscribe(() => {

@@ -47,8 +47,12 @@ export function resolveApproval(toolCallId: string, approved: boolean): void {
 }
 
 /** Extract a tab into a page, throwing a typed error on failure. */
-export async function extractPage(tabId?: number): Promise<{ page: CapturedPage; info: TabInfo }> {
-	const info = await getTabInfo(tabId)
+export async function extractPage(
+	tabId?: number,
+	/** Metadata already fetched by the caller, to save a second `tab.info` round trip. */
+	known?: TabInfo,
+): Promise<{ page: CapturedPage; info: TabInfo }> {
+	const info = known ?? (await getTabInfo(tabId))
 	const result = await extractTab(info.id)
 	const page = processExtraction(result)
 	// The worker's tab metadata is fresher than the page's own: a page may carry no
@@ -64,6 +68,11 @@ export function takePendingPageTabs(): Promise<number[]> {
 	return takePendingPages()
 }
 
+/** Tab metadata (title, URL, favicon) without extracting the page. */
+export function readTabInfo(tabId?: number): Promise<TabInfo> {
+	return getTabInfo(tabId)
+}
+
 /** Bring the page behind a card back on screen, reopening it when its tab is gone. */
 export function focusPage(tabId: number | undefined, url: string): Promise<void> {
 	return focusPageInBrowser(tabId, url)
@@ -76,7 +85,8 @@ export interface BrowserEventHandlers {
 	 * same page twice when both paths land.
 	 */
 	onPageAdd: () => void
-	onSelection: (text: string) => void
+	/** Selected text, and the tab it came from, because the page is captured too. */
+	onSelection: (text: string, tabId: number) => void
 }
 
 /** Wire background events into the app. Returns an unsubscribe function. */
@@ -87,7 +97,7 @@ export function initBrowserEvents(handlers: BrowserEventHandlers): () => void {
 				handlers.onPageAdd()
 				break
 			case 'selection.add':
-				handlers.onSelection(event.text)
+				handlers.onSelection(event.text, event.tabId)
 				break
 		}
 	})

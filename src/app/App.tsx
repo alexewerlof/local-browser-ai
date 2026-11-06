@@ -100,7 +100,7 @@ export function App() {
 					<span>
 						{run.error.message}
 						{run.error.kind === 'permission' && (
-							<em> Right-click the page, choose “Add this page to chat”, then try again.</em>
+							<em> Right-click the page, choose “Add to chat”, then try again.</em>
 						)}
 					</span>
 					<span className="spacer" />

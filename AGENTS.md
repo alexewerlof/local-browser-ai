@@ -44,12 +44,17 @@ Area files narrow this down: `src/app/AGENTS.md`, `src/core/AGENTS.md`, `src/bro
 
 ## Pages
 
-A page joins a chat **only** from the context menu ("Add this page to chat"). The toolbar button just shows and hides
-the panel; nothing else adds a page. The menu handler in the worker opens the panel first (a gesture), queues the tab id
-in session storage and broadcasts `page.add`; the panel drains the queue with `page.pending`, so an add that arrived
-before the panel loaded is not lost and several adds are drained in order. The broadcast is only a **nudge**: both it
-and the boot drain call `drainPendingPages()`, because adding from the event as well would add the same page twice when
-the two paths land together.
+A page joins a chat **only** from the context menu, through a single "Add to chat" item. One item, not two: Chrome
+collapses two visible items from one extension into a parent submenu, and an item cannot be retitled as the menu opens
+because Chrome has no `contextMenus.onShown`. The page is always captured, so the label is literally true, and a
+selection only adds a quote on top of it. The toolbar button just shows and hides the panel; nothing else adds a page,
+and there is no "Open chat" item because the toolbar button already does that. The menu handler in the worker opens the
+panel first (a gesture), queues the tab id in session storage and broadcasts `page.add`; the panel drains the queue with
+`page.pending`, so an add that arrived before the panel loaded is not lost and several adds are drained in order. The
+broadcast is only a **nudge**: both it and the boot drain call `drainPendingPages()`, because adding from the event as
+well would add the same page twice when the two paths land together. A selection quotes the text into the draft **and**
+captures its page, so the model gets the title, URL and outline of where the passage came from; a document already in
+the chat is not captured twice (`findAttachedPage`).
 
 Capture happens once. Extraction runs in the page (`src/browser/extract/inject.ts`) and returns cleaned HTML, the page's
 own text and an accessibility skeleton; `pipeline.ts` picks a representation (Readability for articles, the skeleton for

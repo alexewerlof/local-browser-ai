@@ -11,9 +11,7 @@ import {
 } from './protocol'
 
 const PENDING_PAGES_KEY = 'pendingPageTabs'
-const MENU_ADD_PAGE = 'lbai-add-page'
-const MENU_SELECTION = 'lbai-add-selection'
-const MENU_OPEN = 'lbai-open-panel'
+const MENU_ADD = 'lbai-add'
 
 const RESTRICTED_URL =
 	/^(chrome|edge|brave|opera|vivaldi|about|devtools|view-source|chrome-extension|moz-extension|file):/i
@@ -116,12 +114,23 @@ function openPanel(windowId: number | undefined): void {
 	})
 }
 
-/** Add a page from a gesture: open the panel, queue the tab, tell open panels. */
-function addPageFromMenu(tabId: number, windowId: number | undefined): void {
+/**
+ * Add from a gesture: open the panel, queue the tab, tell open panels.
+ *
+ * A selection is sent *alongside* the page, never instead of it: the panel quotes the
+ * text into the draft and captures the page it came from, so the model knows the title
+ * and URL and can read the rest of the page with the page tools.
+ */
+function addFromMenu(
+	tabId: number,
+	windowId: number | undefined,
+	selection?: { text: string; url: string; title: string },
+): void {
 	log('add page requested for tab', tabId)
 	openPanel(windowId)
 	queuePageTab(tabId)
 	broadcast({ type: 'page.add', tabId })
+	if (selection) broadcast({ type: 'selection.add', tabId, ...selection })
 }
 
 /* ------------------------------------------------------------------ extraction */
@@ -318,19 +327,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 /* ---------------------------------------------------------------- action + menus */
 
+/**
+ * One item on purpose. Chrome collapses two visible items from one extension into a
+ * parent submenu, and an item cannot be retitled as the menu opens: Chrome has no
+ * `contextMenus.onShown` (that event exists only in Firefox). So the label stays the same
+ * in both cases and the click decides from `selectionText` what to do.
+ *
+ * There is no "Open chat" item: the toolbar button already shows and hides the panel.
+ */
 function createMenus(): void {
 	chrome.contextMenus.removeAll(() => {
-		chrome.contextMenus.create({
-			id: MENU_ADD_PAGE,
-			title: 'Add this page to chat',
-			contexts: ['page', 'selection'],
-		})
-		chrome.contextMenus.create({
-			id: MENU_SELECTION,
-			title: 'Add selection to chat',
-			contexts: ['selection'],
-		})
-		chrome.contextMenus.create({ id: MENU_OPEN, title: 'Open chat', contexts: ['page', 'selection'] })
+		chrome.contextMenus.create({ id: MENU_ADD, title: 'Add to chat', contexts: ['page', 'selection'] })
 	})
 }
 
@@ -347,25 +354,16 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
 	log('menu click', info.menuItemId, tab?.id)
-	if (tab?.id === undefined) return
-	if (info.menuItemId === MENU_SELECTION) {
-		const text = info.selectionText?.trim()
-		if (!text) return
-		openPanel(tab.windowId)
-		broadcast({
-			type: 'selection.add',
-			text,
-			tabId: tab.id,
-			url: info.pageUrl ?? tab.url ?? '',
-			title: tab.title ?? '',
-		})
-		return
-	}
-	if (info.menuItemId === MENU_ADD_PAGE) {
-		addPageFromMenu(tab.id, tab.windowId)
-		return
-	}
-	if (info.menuItemId === MENU_OPEN) openPanel(tab.windowId)
+	if (tab?.id === undefined || info.menuItemId !== MENU_ADD) return
+
+	// The page is always added, so the item's title is literally true; a selection only
+	// adds a quote of the passage on top of it.
+	const text = info.selectionText?.trim() ?? ''
+	addFromMenu(
+		tab.id,
+		tab.windowId,
+		text ? { text, url: info.pageUrl ?? tab.url ?? '', title: tab.title ?? '' } : undefined,
+	)
 })
 
 /* ------------------------------------------------------------------- bootstrap */

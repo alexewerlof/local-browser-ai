@@ -95,7 +95,7 @@ function EmptyState({ hasPages }: { hasPages: boolean }) {
 			<p className="empty__subtitle">
 				{hasPages
 					? 'The pages are in your context. Ask anything, or pick a starting point.'
-					: 'Right-click any page and choose “Add this page to chat”, then ask. You can also just chat.'}
+					: 'Right-click any page and choose “Add to chat”, then ask. You can also just chat.'}
 			</p>
 
 			{needsDownload && (

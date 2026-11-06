@@ -23,7 +23,7 @@ export async function run(ctx) {
 	assert.match(await page.locator('.chip--model').textContent(), /fake-model/)
 
 	// No page is in the chat, so the strip above the prompt says how to add one.
-	assert.match(await page.locator('.page-list').textContent(), /Add this page to chat/i)
+	assert.match(await page.locator('.page-list').textContent(), /Add to chat/i)
 
 	// The context meter is present even before a page is added.
 	assert.equal(await page.locator('.meter').isVisible(), true)

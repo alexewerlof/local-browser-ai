@@ -9,10 +9,11 @@ machine, or a hosted API.
 - **Any provider, one interface.** Built-in Prompt API, local servers (llama.cpp, Ollama, LM Studio, vLLM) and hosted
   APIs (OpenAI, Anthropic, DeepSeek) are adapters over the Vercel AI SDK. Add as many as you like and switch models per
   chat.
-- **Several pages in one chat.** Right-click any page and choose **Add this page to chat**. Add as many as you need and
-  they stay side by side: compare a product across two shops, pull the FAQ answers of three documentation pages into one
-  answer, draft something new from several sources, or ground a conversation in more than one page. Each page appears in
-  the chat with its title and URL; click it to bring that tab back (the page is reopened if the tab is gone).
+- **Several pages in one chat.** Right-click any page and choose **Add to chat**; with text selected, the same item also
+  quotes the passage and brings its page along. Add as many as you need and they stay side by side: compare a product
+  across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
+  sources, or ground a conversation in more than one page. Each page appears in the chat with its title and URL; click
+  it to bring that tab back (the page is reopened if the tab is gone).
 - **Page text stays out of the way.** Adding a page captures it once, in full, and puts only a small block in the
   conversation: the page's title, URL, size and outline, with a short handle (`p1`, `p2`) the model uses to read the
   parts it needs. The rest is fetched on demand, so a two-hundred-section page costs about a hundred tokens until the

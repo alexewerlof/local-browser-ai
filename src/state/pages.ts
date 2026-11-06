@@ -25,3 +25,26 @@ export function pendingPages(pages: PageSnapshot[] = pagesStore.get()): PageSnap
 export function nextPageHandle(pages: PageSnapshot[] = pagesStore.get()): string {
 	return pageHandle(pages.length)
 }
+
+/** Two spellings of the same document: the hash never reaches the server, and a
+ * trailing slash is optional. */
+function documentKey(url: string): string {
+	try {
+		const parsed = new URL(url)
+		return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}${parsed.search}`
+	} catch {
+		return url
+	}
+}
+
+/**
+ * The page of this chat already showing `url`, if any.
+ *
+ * Adding is idempotent per document: a second add of the page on screen skips the capture
+ * instead of freezing a `p2` that duplicates `p1`. A selection added twice therefore
+ * quotes twice but captures once.
+ */
+export function findAttachedPage(url: string, pages: PageSnapshot[] = pagesStore.get()): PageSnapshot | undefined {
+	const key = documentKey(url)
+	return pages.find((page) => documentKey(page.url) === key)
+}
