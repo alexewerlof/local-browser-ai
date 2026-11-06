@@ -14,6 +14,8 @@ machine, or a hosted API.
   across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
   sources, or ground a conversation in more than one page. Each page appears in the chat with its title and URL; click
   it to bring that tab back (the page is reopened if the tab is gone).
+- **Ask from the address bar.** Type `lbai` and a question in the address bar and press Enter: a new chat opens with the
+  page you were reading already attached, and the question is sent. Alt+Enter opens it in a tab instead of the sidebar.
 - **The same page, several versions.** Adding a page you already added captures it again as a new version with its own
   handle (`p1`, then `p2`), leaving the earlier one exactly as it was. Ask _what changed since last week_ and the model
   can compare the two captures — prices, changelogs, release notes, a news article as it develops — because both blocks

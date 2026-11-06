@@ -23,6 +23,9 @@
 		"service_worker": "background.js",
 		"type": "module"
 	},
+	"omnibox": {
+		"keyword": "lbai"
+	},
 	"side_panel": {
 		"default_path": "side-panel.html"
 	},

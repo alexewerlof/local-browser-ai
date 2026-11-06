@@ -1,4 +1,6 @@
 import { AppError, toAppError } from '../providers/errors'
+import { readPendingOmniboxPrompt, normalizeOmniboxPrompt, OMNIBOX_SUGGESTION } from '../core/omnibox'
+import type { OmniboxPrompt } from '../core/omnibox'
 import { extractPageInPageContext, type InjectResult } from './extract/inject'
 import {
 	EVENT_FLAG,
@@ -11,6 +13,7 @@ import {
 } from './protocol'
 
 const PENDING_PAGES_KEY = 'pendingPageTabs'
+const PENDING_PROMPT_KEY = 'pendingOmniboxPrompt'
 const MENU_ADD = 'lbai-add'
 
 const RESTRICTED_URL =
@@ -73,15 +76,61 @@ async function takePendingPageTabs(): Promise<number[]> {
 	}
 }
 
-function broadcast(event: BackgroundEvent): void {
-	chrome.runtime.sendMessage({ [EVENT_FLAG]: true, event }).catch(() => {
+/**
+ * Tell open panels what happened. Resolves `true` only when a panel answered: with no
+ * receiver at all `sendMessage` rejects, which is the only way to tell "the panel is
+ * closed" from "the panel already has it".
+ */
+async function broadcast(event: BackgroundEvent): Promise<boolean> {
+	try {
+		await chrome.runtime.sendMessage({ [EVENT_FLAG]: true, event })
+		return true
+	} catch {
 		// No panel is listening; that is normal when the panel is closed.
-	})
+		return false
+	}
+}
+
+/** The panel as a tab: the same UI when the sidebar cannot be shown. */
+async function openPanelTab(): Promise<void> {
+	const url = chrome.runtime.getURL('side-panel.html')
+	try {
+		// Matching by URL is best effort: without the `tabs` permission some URLs are
+		// hidden, and a failed query must not prevent the fallback.
+		const tabs = await chrome.tabs.query({}).catch(() => [])
+		const existing = tabs.find((tab) => tab.url === url)
+		if (existing?.id !== undefined) {
+			await chrome.tabs.update(existing.id, { active: true })
+			return
+		}
+	} catch {
+		// Fall through to creating a tab.
+	}
+	try {
+		await chrome.tabs.create({ url })
+	} catch (fallbackError) {
+		console.error('[lbai] could not open a fallback tab', fallbackError)
+	}
 }
 
 /**
- * Open the side panel. Must be called synchronously inside a user gesture handler, so
- * this returns nothing and never awaits.
+ * Show the side panel. Call it synchronously inside a gesture handler and keep the
+ * promise: awaiting anything first, even a `tabs.query`, loses the gesture.
+ *
+ * Never throws, so a caller can start it before its own async work: a missing API or a
+ * missing window is reported as a rejection and handled like a refusal.
+ */
+function openSidePanel(windowId: number | undefined): Promise<void> {
+	if (windowId === undefined) return Promise.reject(new Error('No window to open the panel in.'))
+	try {
+		return chrome.sidePanel.open({ windowId })
+	} catch (error) {
+		return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+	}
+}
+
+/**
+ * Open the panel from the context menu.
  *
  * If the API is missing or refuses to open (older Chrome, no gesture, panel disabled),
  * fall back to the same UI in a tab so the click still does something.
@@ -91,26 +140,9 @@ function openPanel(windowId: number | undefined): void {
 		console.warn('[lbai] cannot open the panel without a window id')
 		return
 	}
-	chrome.sidePanel.open({ windowId }).catch(async (error) => {
+	openSidePanel(windowId).catch((error) => {
 		console.error('[lbai] sidePanel.open failed, opening a tab instead', error)
-		const url = chrome.runtime.getURL('side-panel.html')
-		try {
-			// Matching by URL is best effort: without the `tabs` permission some URLs are
-			// hidden, and a failed query must not prevent the fallback.
-			const tabs = await chrome.tabs.query({}).catch(() => [])
-			const existing = tabs.find((tab) => tab.url === url)
-			if (existing?.id !== undefined) {
-				await chrome.tabs.update(existing.id, { active: true })
-				return
-			}
-		} catch {
-			// Fall through to creating a tab.
-		}
-		try {
-			await chrome.tabs.create({ url })
-		} catch (fallbackError) {
-			console.error('[lbai] could not open a fallback tab', fallbackError)
-		}
+		void openPanelTab()
 	})
 }
 
@@ -129,9 +161,142 @@ function addFromMenu(
 	log('add page requested for tab', tabId)
 	openPanel(windowId)
 	queuePageTab(tabId)
-	broadcast({ type: 'page.add', tabId })
-	if (selection) broadcast({ type: 'selection.add', tabId, ...selection })
+	void broadcast({ type: 'page.add', tabId })
+	if (selection) void broadcast({ type: 'selection.add', tabId, ...selection })
 }
+
+/* -------------------------------------------------------------------- omnibox */
+
+/**
+ * The window the address bar belonged to, remembered so the panel can be opened *before*
+ * the handler awaits anything. A cold worker learns it on start; both paths are best
+ * effort, and the tab fallback covers the case where neither is ready.
+ */
+let focusedWindowId: number | undefined
+
+chrome.windows.onFocusChanged.addListener((windowId) => {
+	if (windowId === chrome.windows.WINDOW_ID_NONE) return
+	focusedWindowId = windowId
+})
+
+void chrome.windows
+	.getLastFocused({ populate: false })
+	.then((window) => {
+		if (window.id !== undefined) focusedWindowId = window.id
+	})
+	.catch(() => {
+		// Without a window id the handler opens nothing and the fallback takes over.
+	})
+
+/**
+ * The prompt accepted in the address bar, newest wins.
+ *
+ * One slot rather than a queue: two lines typed in a row mean the second one, and a
+ * queue would start one chat per line.
+ */
+let pendingOmniboxPrompt: OmniboxPrompt | null = null
+
+/** Serializes taking, so the boot drain and an event nudge cannot both take one entry. */
+let promptChain: Promise<unknown> = Promise.resolve()
+
+function queueOmniboxPrompt(prompt: OmniboxPrompt): void {
+	pendingOmniboxPrompt = prompt
+	// Fire and forget: the in-memory copy is read first, and `storage.session` only has to
+	// survive a worker restart.
+	chrome.storage.session.set({ [PENDING_PROMPT_KEY]: prompt }).catch(() => {
+		// `storage.session` is unavailable in some forks; memory still works.
+	})
+}
+
+async function readAndClearPrompt(): Promise<OmniboxPrompt | null> {
+	const fromMemory = readPendingOmniboxPrompt(pendingOmniboxPrompt)
+	if (fromMemory) {
+		pendingOmniboxPrompt = null
+		chrome.storage.session.remove(PENDING_PROMPT_KEY).catch(() => {})
+		return fromMemory
+	}
+	try {
+		const stored = await chrome.storage.session.get(PENDING_PROMPT_KEY)
+		// A submit that landed while the read was in flight is newer than the stored one.
+		const arrived = readPendingOmniboxPrompt(pendingOmniboxPrompt)
+		const prompt = arrived ?? readPendingOmniboxPrompt(stored[PENDING_PROMPT_KEY])
+		if (arrived) pendingOmniboxPrompt = null
+		await chrome.storage.session.remove(PENDING_PROMPT_KEY)
+		return prompt
+	} catch {
+		return null
+	}
+}
+
+function takePendingOmniboxPrompt(): Promise<OmniboxPrompt | null> {
+	const take = promptChain.then(readAndClearPrompt, readAndClearPrompt)
+	promptChain = take.catch(() => undefined)
+	return take
+}
+
+/** The active tab, without the scriptability checks the extraction path makes. */
+async function activeTabId(): Promise<number | undefined> {
+	try {
+		const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+		return tab?.id
+	} catch {
+		return undefined
+	}
+}
+
+/**
+ * A prompt accepted in the address bar: a new chat on the current page.
+ *
+ * Same handoff as "Add to chat" — store the entry, nudge the panel — because an open
+ * panel and one that boots from this click must take the same single entry. Accepting a
+ * suggestion is a user gesture, so the sidebar is attempted first and the panel-as-a-tab
+ * fallback runs only when neither the sidebar nor an open panel took the prompt.
+ */
+function enterOmniboxPrompt(text: string, disposition: chrome.omnibox.OnInputEnteredDisposition): void {
+	const content = normalizeOmniboxPrompt(text)
+	if (!content) return
+	log('omnibox prompt', disposition)
+
+	// Start the open before anything is awaited, so the gesture is still alive.
+	const opening = openSidePanel(focusedWindowId).then(
+		() => true,
+		(error: unknown) => {
+			console.warn('[lbai] sidePanel.open from the omnibox failed', error)
+			return false
+		},
+	)
+
+	void (async () => {
+		const tabId = await activeTabId()
+		const prompt: OmniboxPrompt = { text: content, createdAt: Date.now() }
+		if (tabId !== undefined) prompt.tabId = tabId
+		queueOmniboxPrompt(prompt)
+
+		// Alt+Enter asks for a tab, which is also the way out when the sidebar refuses.
+		if (disposition === 'newForegroundTab') {
+			await openPanelTab()
+			return
+		}
+		const delivered = await broadcast({ type: 'prompt.add' })
+		if (!(await opening) && !delivered) await openPanelTab()
+	})()
+}
+
+/**
+ * The keyword itself lives in the manifest, which is the only place Chrome reads it;
+ * the description row does not survive a worker restart, so it is set on every start.
+ */
+function ensureOmniboxSuggestion(): void {
+	try {
+		void chrome.omnibox.setDefaultSuggestion({ description: OMNIBOX_SUGGESTION }).catch(() => {
+			// The omnibox API is missing in some forks; the keyword still works without it.
+		})
+	} catch {
+		// Same: no suggestion row is a cosmetic loss.
+	}
+}
+
+chrome.omnibox.onInputEntered.addListener(enterOmniboxPrompt)
 
 /* ------------------------------------------------------------------ extraction */
 
@@ -282,6 +447,8 @@ async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 	switch (request.type) {
 		case 'page.pending':
 			return { tabIds: await takePendingPageTabs() }
+		case 'prompt.pending':
+			return { prompt: await takePendingOmniboxPrompt() }
 		case 'page.focus':
 			return focusPage(request.tabId, request.url)
 		case 'tab.info':
@@ -372,3 +539,4 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // repaired even before the next install/startup event.
 log('worker started')
 void ensureToolbarTogglesPanel()
+ensureOmniboxSuggestion()

@@ -1,5 +1,6 @@
 import { AppError, toAppError } from '../providers/errors'
 import { getChrome } from '../platform/chrome'
+import type { OmniboxPrompt } from '../core/omnibox'
 import { extractPageInPageContext } from './extract/inject'
 import { EVENT_FLAG, RPC_FLAG, type BackgroundRequest, type TabInfo } from './protocol'
 
@@ -73,6 +74,25 @@ export async function takePendingPages(attempts = 3, delayMs = 120): Promise<num
 		}
 	}
 	return []
+}
+
+/**
+ * Take the prompt accepted in the address bar, if the worker still holds one.
+ *
+ * Retried like the page tabs: this panel may be the one the omnibox just opened, and it
+ * can reach this point a few milliseconds before the worker has stored the entry. A
+ * panel that was already open gets an event instead, which is only a nudge — whichever
+ * path lands first takes the entry and the other finds it gone.
+ */
+export async function takePendingOmniboxPrompt(attempts = 3, delayMs = 120): Promise<OmniboxPrompt | null> {
+	for (let attempt = 0; attempt < attempts; attempt += 1) {
+		const value = (await callBackground({ type: 'prompt.pending' })) as { prompt: OmniboxPrompt | null }
+		if (value.prompt) return value.prompt
+		if (attempt < attempts - 1) {
+			await new Promise((resolve) => setTimeout(resolve, delayMs))
+		}
+	}
+	return null
 }
 
 /** Bring the page behind a card back on screen, reopening it when its tab is gone. */

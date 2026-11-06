@@ -1,8 +1,9 @@
 Local Browser AI does not collect, use or share any user data.
 
 All settings, API keys and conversations are stored locally in your browser profile.
-Page content is only read when you explicitly attach the current tab, and it is only
-sent to the model provider you configured (a server you run yourself, a remote API you
+Page content is only read when you explicitly attach the current tab (from the
+right-click menu, or with a question typed in the address bar), and it is only sent
+to the model provider you configured (a server you run yourself, a remote API you
 hold an account with, or the model built into your browser).
 
 The web search tool sends its query to your default search engine, exactly as if you

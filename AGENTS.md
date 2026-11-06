@@ -7,16 +7,16 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 
 ## Architecture
 
-| Layer       | Location           | Responsibility                                                                                 |
-| ----------- | ------------------ | ---------------------------------------------------------------------------------------------- |
-| UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.        |
-| Settings UI | `src/settings/`    | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.         |
-| Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction. |
-| Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.       |
-| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                      |
-| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, built-in tools.               |
-| State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, pages, IndexedDB persistence.         |
-| Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                                |
+| Layer       | Location           | Responsibility                                                                                                 |
+| ----------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.                        |
+| Settings UI | `src/settings/`    | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.                         |
+| Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction, omnibox prompt. |
+| Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.                       |
+| MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                                      |
+| Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, built-in tools, omnibox entry.                |
+| State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, pages, IndexedDB persistence.                         |
+| Platform    | `src/platform/`    | `chrome.*` availability, storage abstraction, host permissions.                                                |
 
 Entry points: `side-panel.html` + `src/app/main.tsx`, `settings.html` + `src/settings/main.tsx`, and the service worker
 `src/browser/background.ts` (built separately to keep React and the AI SDK out of it).
@@ -98,6 +98,35 @@ guessing across pages answers from the wrong source. `find_in_page` without a ha
 match, which is how two pages get compared in one call. Adding a page is refused when the model cannot call tools or
 none of the page tools are enabled — a block without tools is an outline nobody can read. `npm run bench` prints the
 block's cost per page shape; run it before changing the layout.
+
+Page adds are serialized through one chain in `bootstrap.ts` (`queuePageAdd`): `addPage` returns early while a capture
+is running, and the boot drain, the context-menu nudge and an omnibox prompt can all ask for one in the same tick.
+
+## Omnibox
+
+`lbai <prompt>` in the address bar, accepted, is the one-gesture version of "open the panel, add this page, type the
+prompt": a **new chat**, the current page attached, and the prompt **sent**. The keyword lives only in the manifest
+(`omnibox.keyword`), which is the single place Chrome reads; the suggestion row is set on every worker start because
+nothing persists it. No permission is involved: accepting a suggestion is one of the gestures that grants `activeTab`,
+so the page is captured exactly as it is from the context menu.
+
+The handoff is the context menu's, one level up: `omnibox.onInputEntered` resolves the active tab (`tabs.query`, the
+omnibox hands over no tab), stores **one** pending entry (`OmniboxPrompt` in memory plus `storage.session`, newest
+submit wins, 2-minute TTL) and nudges the panel with `prompt.add`. Both paths take the entry once — the boot drain and
+the nudge — and the entry is gone the moment either takes it, so a reload cannot replay it. That is why `prompt.add`
+carries no text: the worker owns the prompt, and sending it in the event as well would run it twice.
+
+Opening the sidebar is best effort, because `sidePanel.open()` needs a user gesture and it is not documented that an
+omnibox event carries one: the handler starts the open _before_ its first `await` (using a window id cached from
+`windows.onFocusChanged`), and the panel-as-a-tab fallback runs only when the open failed **and** no open panel took the
+nudge. Alt+Enter (`newForegroundTab`) asks for a tab outright. If a Chrome release refuses the gesture, that fallback is
+the feature, not a bug.
+
+`startOmniboxChat` lives in `src/state/bootstrap.ts` rather than `chat.ts` because it needs `addPage`, which is there:
+`newChat()`, then the page (so `startTurn` claims it into the first user message and the request carries its frozen
+block), then `submitPrompt`. With no model configured nothing can run, so the prompt is put in the composer instead of
+being lost to a failed turn. A prompt accepted in the omnibox wins over a page still queued from the context menu — it
+asks for a new chat, and adding the page first would capture it only to throw it away.
 
 ## Memory
 
@@ -212,9 +241,10 @@ confirmation modal) and `controls` keeps only the code copy button.
   provider by extending the registry, catalog and settings presets.
 - **The AI SDK does not know context windows.** Window sizes come from `src/providers/catalog.ts` plus per-provider
   overrides; provider-reported usage is the source of truth once a request completes.
-- **Tab access is `activeTab`, and only for adding a page.** A context-menu click grants it, so extraction works for
-  that tab and no install-time host permission is needed for page content. The `tabs` permission is requested only for
-  tab _URLs_ — `openSettings` and `page.focus` use them — and it grants no page content.
+- **Tab access is `activeTab`, and only for adding a page.** A context-menu click grants it — and so does accepting an
+  omnibox suggestion — so extraction works for that tab and no install-time host permission is needed for page content.
+  The `tabs` permission is requested only for tab _URLs_ — `openSettings`, `page.focus` and resolving the omnibox's
+  active tab use them — and it grants no page content.
 - **The toolbar button is only a panel toggle.** `openPanelOnActionClick: true` is what makes Chrome show and hide the
   panel itself, so the worker **sets** that flag on every start (`ensureToolbarTogglesPanel`) and there is deliberately
   no `action.onClicked` handler. Version 2 did the opposite and had to reset the flag; do not reintroduce that. Adding a

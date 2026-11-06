@@ -1,10 +1,12 @@
 import type { CapturedPage } from '../core/types'
+import type { OmniboxPrompt } from '../core/omnibox'
 import { Store } from '../core/store'
 import {
 	extractTab,
 	focusPage as focusPageInBrowser,
 	getTabInfo,
 	onBackgroundEvent,
+	takePendingOmniboxPrompt,
 	takePendingPages,
 } from '../browser/client'
 import { processExtraction } from '../browser/extract/pipeline'
@@ -68,6 +70,11 @@ export function takePendingPageTabs(): Promise<number[]> {
 	return takePendingPages()
 }
 
+/** The prompt accepted in the address bar, if the worker still holds one. */
+export function takeOmniboxPrompt(attempts?: number): Promise<OmniboxPrompt | null> {
+	return takePendingOmniboxPrompt(attempts)
+}
+
 /** Tab metadata (title, URL, favicon) without extracting the page. */
 export function readTabInfo(tabId?: number): Promise<TabInfo> {
 	return getTabInfo(tabId)
@@ -87,6 +94,12 @@ export interface BrowserEventHandlers {
 	onPageAdd: () => void
 	/** Selected text, and the tab it came from, because the page is captured too. */
 	onSelection: (text: string, tabId: number) => void
+	/**
+	 * A nudge too: the prompt lives in the worker, and an open panel drains it with
+	 * `takeOmniboxPrompt`. Sending it in the event would deliver it twice when the boot
+	 * drain lands at the same moment.
+	 */
+	onPromptAdd: () => void
 }
 
 /** Wire background events into the app. Returns an unsubscribe function. */
@@ -95,6 +108,9 @@ export function initBrowserEvents(handlers: BrowserEventHandlers): () => void {
 		switch (event.type) {
 			case 'page.add':
 				handlers.onPageAdd()
+				break
+			case 'prompt.add':
+				handlers.onPromptAdd()
 				break
 			case 'selection.add':
 				handlers.onSelection(event.text, event.tabId)

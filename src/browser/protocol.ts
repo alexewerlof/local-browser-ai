@@ -1,4 +1,5 @@
 import type { ErrorKind } from '../core/types'
+import type { OmniboxPrompt } from '../core/omnibox'
 
 export interface TabInfo {
 	id: number
@@ -13,6 +14,7 @@ export type SearchDisposition = 'CURRENT_TAB' | 'NEW_TAB' | 'NEW_WINDOW'
 
 export type BackgroundRequest =
 	| { type: 'page.pending' }
+	| { type: 'prompt.pending' }
 	| { type: 'page.focus'; tabId?: number; url: string }
 	| { type: 'tab.info'; tabId?: number }
 	| { type: 'tab.extract'; tabId?: number }
@@ -22,6 +24,7 @@ export type BackgroundRequest =
 
 export interface RequestResults {
 	'page.pending': { tabIds: number[] }
+	'prompt.pending': { prompt: OmniboxPrompt | null }
 	'page.focus': { tabId?: number }
 	'tab.info': TabInfo
 	'tab.extract': import('./extract/inject').InjectResult
@@ -31,10 +34,12 @@ export interface RequestResults {
 }
 
 export type BackgroundResponse =
-	{ ok: true; value: unknown } | { ok: false; error: { kind: ErrorKind; message: string } }
+	| { ok: true; value: unknown }
+	| { ok: false; error: { kind: ErrorKind; message: string } }
 
 export type BackgroundEvent =
 	| { type: 'page.add'; tabId: number }
+	| { type: 'prompt.add' }
 	| { type: 'selection.add'; text: string; tabId: number; url: string; title: string }
 
 export const RPC_FLAG = '__lbai_rpc__'

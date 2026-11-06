@@ -7,6 +7,7 @@ const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', impo
 	host_permissions: string[]
 	optional_host_permissions: string[]
 	background: { service_worker: string; type: string }
+	omnibox: { keyword: string }
 	side_panel: { default_path: string }
 	options_ui: { page: string; open_in_tab: boolean }
 	content_security_policy: { extension_pages: string }
@@ -40,6 +41,12 @@ describe('manifest', () => {
 
 	it('loads the service worker as an ES module', () => {
 		expect(manifest.background).toEqual({ service_worker: 'background.js', type: 'module' })
+	})
+
+	it('answers the lbai keyword in the address bar without a new permission', () => {
+		expect(manifest.omnibox.keyword).toBe('lbai')
+		// One lowercase word: Chrome matches the keyword exactly and rejects spaces.
+		expect(manifest.omnibox.keyword).toMatch(/^[a-z]+$/)
 	})
 
 	it('has a side panel and a Settings page', () => {

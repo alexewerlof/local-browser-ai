@@ -14,6 +14,7 @@
  */
 export function chromeShim(config = {}) {
 	const STORAGE_KEY = '__lb_ai_storage__'
+	const DELETED_KEY = '__lb_ai_deleted__'
 	let persisted
 	try {
 		persisted = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '{}')
@@ -21,8 +22,21 @@ export function chromeShim(config = {}) {
 		persisted = {}
 	}
 
+	/**
+	 * Keys the app removed. Without them a reload would revive every seeded key, because
+	 * the scenario config is applied again on each navigation — so "taken once" would be
+	 * untestable.
+	 */
+	let deleted
+	try {
+		deleted = new Set(JSON.parse(sessionStorage.getItem(DELETED_KEY) ?? '[]'))
+	} catch {
+		deleted = new Set()
+	}
+
 	const seeded = { ...(config.storage ?? {}) }
 	if (config.settings) seeded['settings.v1'] = config.settings
+	for (const key of deleted) delete seeded[key]
 	// Persisted values win on reload; the scenario config only seeds a fresh page.
 	const storage = new Map(Object.entries({ ...seeded, ...persisted }))
 
@@ -32,6 +46,7 @@ export function chromeShim(config = {}) {
 	function flushStorage() {
 		try {
 			sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(storage)))
+			sessionStorage.setItem(DELETED_KEY, JSON.stringify([...deleted]))
 		} catch {
 			// Storage can be unavailable; tests still work within one page load.
 		}
@@ -46,6 +61,12 @@ export function chromeShim(config = {}) {
 				// ignore
 			}
 		}
+	}
+
+	/** Delete a value and remember the deletion, so the next page load cannot revive it. */
+	function deleteStored(key) {
+		storage.delete(key)
+		deleted.add(key)
 	}
 
 	const inertEvent = () => {
@@ -131,6 +152,17 @@ export function chromeShim(config = {}) {
 				const tabIds = pendingTabs
 				pendingTabs = []
 				return { ok: true, value: { tabIds } }
+			}
+			case 'prompt.pending': {
+				// Same take-once contract as the worker: the entry is gone the moment a panel
+				// takes it, so a reload cannot replay it.
+				const key = 'session:pendingOmniboxPrompt'
+				const prompt = storage.get(key) ?? null
+				if (prompt) {
+					deleteStored(key)
+					flushStorage()
+				}
+				return { ok: true, value: { prompt } }
 			}
 			case 'page.focus': {
 				focusedPages.push({ tabId: request.tabId ?? null, url: request.url })
@@ -233,6 +265,7 @@ export function chromeShim(config = {}) {
 					for (const [key, value] of Object.entries(items)) {
 						const oldValue = storage.get(key)
 						storage.set(key, value)
+						deleted.delete(key)
 						notify(key, value, oldValue)
 					}
 					flushStorage()
@@ -240,12 +273,13 @@ export function chromeShim(config = {}) {
 				async remove(keys) {
 					for (const key of Array.isArray(keys) ? keys : [keys]) {
 						const oldValue = storage.get(key)
-						storage.delete(key)
+						deleteStored(key)
 						notify(key, undefined, oldValue)
 					}
 					flushStorage()
 				},
 				async clear() {
+					for (const key of Object.keys(seeded)) deleted.add(key)
 					storage.clear()
 					flushStorage()
 				},
@@ -258,10 +292,15 @@ export function chromeShim(config = {}) {
 					return {}
 				},
 				async set(items) {
-					for (const [key, value] of Object.entries(items)) storage.set(`session:${key}`, value)
+					for (const [key, value] of Object.entries(items)) {
+						storage.set(`session:${key}`, value)
+						deleted.delete(`session:${key}`)
+					}
+					flushStorage()
 				},
 				async remove(keys) {
-					for (const key of Array.isArray(keys) ? keys : [keys]) storage.delete(`session:${key}`)
+					for (const key of Array.isArray(keys) ? keys : [keys]) deleteStored(`session:${key}`)
+					flushStorage()
 				},
 			},
 			onChanged: {
@@ -363,6 +402,20 @@ export function chromeShim(config = {}) {
 			if (nextExtraction) extractionByTab.set(descriptor.id, nextExtraction)
 			if (!pendingTabs.includes(descriptor.id)) pendingTabs.push(descriptor.id)
 			globalThis.__LB_AI_TEST__.emit({ type: 'page.add', tabId: descriptor.id })
+		},
+		/**
+		 * Simulate a prompt accepted in the address bar on the tab on screen.
+		 *
+		 * The worker stores one entry and nudges the panel; the panel takes it with
+		 * `prompt.pending`. Seeding `session:pendingOmniboxPrompt` before load covers the
+		 * panel-that-boots case, and this covers the panel-already-open one.
+		 */
+		omniboxPrompt(text, nextTab = tab.id) {
+			const key = 'session:pendingOmniboxPrompt'
+			storage.set(key, { text, tabId: nextTab, createdAt: Date.now() })
+			deleted.delete(key)
+			flushStorage()
+			globalThis.__LB_AI_TEST__.emit({ type: 'prompt.add' })
 		},
 		setSettings(settings) {
 			const oldValue = storage.get('settings.v1')

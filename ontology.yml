@@ -34,6 +34,8 @@ harness:
     queue-pause: the state Stop or a restored chat sets so the queue stays put; code queuePausedStore, resumeQueue, restoreLastConversation; ui Continue, Continue queued prompts; not hold, suspend
     aborted: stopped by the user before it finished; code MessageStatus.aborted, ErrorKind.aborted; ui stopped, Stopped.; not cancelled, interrupted, failed
     prompt-api: Chrome's built-in on-device model API; code prompt-api, promptStatusStore; ui Built-in browser model; not browser API, local model
+    omnibox: the address bar, where the lbai keyword starts a prompt; code manifest omnibox keyword, enterOmniboxPrompt, OMNIBOX_SUGGESTION; ui lbai, Ask Local Browser AI about this page; not search bar, url bar, address bar command
+    omnibox-prompt: a prompt accepted in the address bar, which opens a new chat on the current page and sends it; code OmniboxPrompt, prompt.pending, prompt.add, startOmniboxChat; ui Ask Local Browser AI about this page; not quick chat, address chat, one-shot prompt
 
 # The assembled prompt and the token accounting around it.
 context:
