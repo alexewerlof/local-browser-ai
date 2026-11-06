@@ -68,3 +68,37 @@ export async function openSettings(section?: SettingsSectionId): Promise<void> {
 	}
 	await chromeApi.tabs.create({ url })
 }
+
+/** Chrome's per-extension page, which owns the controls no extension can reproduce. */
+const PLATFORM_SETTINGS_BASE = 'chrome://extensions/?id='
+
+/**
+ * The URL of this extension's entry in Chrome's Extensions page — shortcuts, site access,
+ * allow-in-incognito and update controls all live there.
+ *
+ * `null` outside an extension: the plain-web dev page has no `runtime.id`, so there is no id to
+ * name. This is a `chrome://` URL, so it can only be opened with `tabs.create`; rendering it as an
+ * `<a href>` would be a renderer-initiated navigation to a privileged scheme, which Chrome blocks.
+ */
+export function platformSettingsUrl(): string | null {
+	const chromeApi = getChrome()
+	return chromeApi ? `${PLATFORM_SETTINGS_BASE}${chromeApi.runtime.id}` : null
+}
+
+/**
+ * Open Chrome's Extensions page at this extension's entry.
+ *
+ * Always a new tab. `chrome://extensions` is Chrome's own page, so it takes no part in the
+ * one-Settings-tab rule `openSettings` enforces, and reusing a tab would mean navigating one
+ * Chrome already owns.
+ */
+export async function openPlatformSettings(): Promise<void> {
+	const chromeApi = getChrome()
+	const url = platformSettingsUrl()
+	if (!chromeApi?.tabs || url === null) return
+	try {
+		await chromeApi.tabs.create({ url })
+	} catch (error) {
+		console.warn('[lbai] could not open the Extensions page', error)
+	}
+}

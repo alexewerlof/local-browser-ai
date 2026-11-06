@@ -209,6 +209,32 @@ async function main() {
 			`chrome-extension://${extensionId}/images/icon-32.png`,
 		)
 		assert.match(await settingsPage.locator('.settings__brand-label').textContent(), /Local Browser AI/)
+
+		// 4a. The rail footer really opens Chrome's Extensions page. A `chrome://` URL is only
+		//     reachable from `tabs.create`, so this is the one place the real browser can prove it.
+		const platformAction = settingsPage.locator('.settings__nav-action')
+		assert.equal(await platformAction.textContent(), 'Platform Settings…')
+		assert.equal(await platformAction.isDisabled(), false)
+		await platformAction.click()
+		await settingsPage.waitForFunction(
+			async () => (await chrome.tabs.query({})).some((tab) => tab.url?.startsWith('chrome://extensions/?id=')),
+			undefined,
+			{ timeout: 10000 },
+		)
+		const extensionSettingsUrl = `chrome://extensions/?id=${extensionId}`
+		assert.equal(
+			await settingsPage.evaluate(async () => {
+				const tabs = await chrome.tabs.query({})
+				return tabs.find((tab) => tab.url?.startsWith('chrome://extensions/?id='))?.url ?? null
+			}),
+			extensionSettingsUrl,
+		)
+		// Close what this probe opened, so the reused profile does not accumulate tabs.
+		await settingsPage.evaluate(async () => {
+			const tabs = await chrome.tabs.query({})
+			const opened = tabs.find((tab) => tab.url?.startsWith('chrome://extensions/?id='))
+			if (opened?.id !== undefined) await chrome.tabs.remove(opened.id)
+		})
 		await settingsPage.close()
 
 		// 5a. Settings stays a single tab. The header gear finds the tab that is already open

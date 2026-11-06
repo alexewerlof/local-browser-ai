@@ -22,6 +22,12 @@ Local rules:
   requests `tabs`; never open a second Settings tab.
 - A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
   skills"), not a sentence. The Tools menu carries one gear per group: built-in tools and MCP.
+- The rail footer holds actions that leave Settings, and it is not a section: `Platform Settings…` has no entry in
+  `SETTINGS_SECTIONS` and no hash, so it lives in `.settings__footer` and is styled with `.settings__nav-action` rather
+  than `.settings__nav-item`. It opens `chrome://extensions/?id=<runtime id>` through `openPlatformSettings`, because
+  Chrome owns shortcuts, site access and the update button, and because a `chrome://` URL cannot be an `<a href>` (a
+  renderer-initiated navigation to a privileged scheme is blocked) — `chrome.tabs.create` is the only way. Outside an
+  extension there is no id, so the action renders disabled.
 - Card title is sentence case (`Built-in tools`, `MCP servers`, `Memory settings`); the rail label alone is title case
   (`Built-in Tools`).
 - One control per `.field`, label first, hint second. Reuse `Switch`, `SwitchField`, `RangeField` and `SelectField` from

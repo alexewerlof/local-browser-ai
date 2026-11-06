@@ -69,7 +69,9 @@ body {
 	text-overflow: ellipsis;
 }
 
-.settings__nav-item {
+/* A section row and the footer action are the same control; the action is never `--active`. */
+.settings__nav-item,
+.settings__nav-action {
 	display: flex;
 	align-items: center;
 	gap: var(--space-6);
@@ -85,17 +87,20 @@ body {
 	transition: background-color var(--duration-fast);
 }
 
-.settings__nav-item svg {
+.settings__nav-item svg,
+.settings__nav-action svg {
 	flex: none;
 	color: var(--nav-icon);
 }
 
-.settings__nav-item:hover {
+.settings__nav-item:hover,
+.settings__nav-action:hover:not(:disabled) {
 	background: var(--nav-bg-hover);
 	color: var(--nav-fg-hover);
 }
 
-.settings__nav-item:hover svg {
+.settings__nav-item:hover svg,
+.settings__nav-action:hover:not(:disabled) svg {
 	color: var(--nav-fg-hover);
 }
 
@@ -110,9 +115,37 @@ body {
 	color: var(--nav-icon-selected);
 }
 
-.settings__nav-item:focus-visible {
+.settings__nav-item:focus-visible,
+.settings__nav-action:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: -2px;
+}
+
+/* The footer sits below the sections and above the fold: `margin-top: auto` pins it to the
+ * bottom while there is free space, and degrades to "after the last row" when the rail scrolls. */
+.settings__footer {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin-top: auto;
+	padding-top: var(--space-6);
+}
+
+.settings__footer-hint {
+	padding-inline: var(--space-6);
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--fg-muted);
+}
+
+/* Outside an extension there is no id to name, so the action is inert but still visible. */
+.settings__nav-action:disabled {
+	color: var(--fg-faint);
+	cursor: default;
+}
+
+.settings__nav-action:disabled svg {
+	color: var(--fg-faint);
 }
 
 .settings__content {
@@ -140,11 +173,13 @@ body {
 	}
 
 	.settings__brand-label,
-	.settings__nav-label {
+	.settings__nav-label,
+	.settings__footer-hint {
 		display: none;
 	}
 
-	.settings__nav-item {
+	.settings__nav-item,
+	.settings__nav-action {
 		justify-content: center;
 		gap: 0;
 		padding-inline: 0;

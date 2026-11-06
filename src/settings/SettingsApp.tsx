@@ -5,6 +5,7 @@ import {
 	GraduationCap,
 	MemoryStick,
 	PocketKnife,
+	Puzzle,
 	Settings,
 	Sparkles,
 	Wrench,
@@ -16,7 +17,7 @@ import {
 	settingsSectionHash,
 	type SettingsSectionId,
 } from '../core/settings-routes'
-import { extensionUrl, getManifest } from '../platform/chrome'
+import { extensionUrl, getManifest, openPlatformSettings, platformSettingsUrl } from '../platform/chrome'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
@@ -40,11 +41,20 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	context: Brain,
 }
 
+/* The rail footer points at Chrome's own page for this extension: shortcuts, site access and
+ * updates live there and cannot be reproduced here. It is not a section — no hash, no
+ * `SETTINGS_SECTIONS` entry — so it is labelled and rendered on its own. */
+const PLATFORM_SETTINGS_LABEL = 'Platform Settings…'
+const PLATFORM_SETTINGS_HINT = 'Keyboard shortcuts, site access and updates live in Chrome.'
+const PLATFORM_SETTINGS_UNAVAILABLE = 'Available in the installed extension.'
+
 export function SettingsApp() {
 	const status = useStore(settingsStatusStore)
 	const settings = useStore(settingsStore)
 	const [section, setSection] = useState<SettingsSectionId>(() => parseSettingsHash(window.location.hash))
 	const manifest = getManifest()
+	// `null` on the plain-web dev page, which has no extension id to open.
+	const platformSettings = platformSettingsUrl()
 
 	useEffect(() => {
 		// Rewrite a hand-typed or stale fragment so the URL always names the open section.
@@ -103,6 +113,22 @@ export function SettingsApp() {
 						</button>
 					)
 				})}
+				<div className="settings__footer">
+					<button
+						type="button"
+						className="settings__nav-action"
+						title={platformSettings === null ? PLATFORM_SETTINGS_UNAVAILABLE : PLATFORM_SETTINGS_LABEL}
+						aria-label={PLATFORM_SETTINGS_LABEL}
+						disabled={platformSettings === null}
+						onClick={() => void openPlatformSettings()}
+					>
+						<Puzzle size={20} />
+						<span className="settings__nav-label">{PLATFORM_SETTINGS_LABEL}</span>
+					</button>
+					<p className="settings__footer-hint">
+						{platformSettings === null ? PLATFORM_SETTINGS_UNAVAILABLE : PLATFORM_SETTINGS_HINT}
+					</p>
+				</div>
 			</nav>
 
 			<main className="settings__content">
