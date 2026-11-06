@@ -1,66 +1,75 @@
-import {
-	refreshContext,
-	conversationStore,
-	flushPersistence,
-	setAttachment,
-	markAttachmentStale,
-	setModel,
-} from './chat'
-import { attachBusyStore, attachErrorStore, quoteSelection } from './composer'
-import { claimClickedTab, extractFromTab, initBrowserEvents, clearTab, tabIdStore } from './browser'
+import { appendPage, conversationStore, flushPersistence, refreshContext, setModel } from './chat'
+import { addPageBusyStore, addPageErrorStore, quoteSelection } from './composer'
+import { extractPage, initBrowserEvents, takePendingPageTabs } from './browser'
+import { bindPages, nextPageHandle, pagesStore } from './pages'
 import { initSettings, settingsStore } from './settings'
 import { initMemory, memoryStore } from './memory'
 import { refreshPromptStatus } from './prompt'
+import { enabledBuiltInTools, normalizeSettings } from '../core/settings'
+import { freezePage } from '../core/context/page-block'
+import { hasPageTools } from '../browser/tools'
+import { getModelInfo } from '../providers/catalog'
 import { toAppError } from '../providers/errors'
 
-/** Attach the tab the user invoked the extension on, or the active tab. */
-export async function attachTab(tabId?: number): Promise<void> {
-	if (attachBusyStore.get()) return
-	attachBusyStore.set(true)
-	attachErrorStore.set(null)
+/**
+ * Pages are only useful to a model that can read them on demand: the block carries the
+ * outline and the handle, and the text stays behind the page tools. A model without
+ * them would answer from an outline it cannot expand, so the add is refused instead of
+ * silently producing a chat that cannot be grounded.
+ */
+function pageReadable(): { ok: true } | { ok: false; message: string } {
+	const settings = normalizeSettings(settingsStore.get())
+	const ref = conversationStore.get().model ?? settings.defaultModel
+	if (!ref) return { ok: false, message: 'Choose a model in Settings before adding a page.' }
+
+	const provider = settings.providers.find((entry) => entry.id === ref.providerId)
+	if (!provider) {
+		return { ok: false, message: 'The selected provider was removed. Pick another model in Settings.' }
+	}
+
+	const info = getModelInfo(provider.kind, provider.kind === 'prompt-api' ? 'text' : ref.modelId)
+	if (!info.capabilities.tools) {
+		return {
+			ok: false,
+			message: 'This model cannot call tools, so it could not read a page. Pick a model with tool support.',
+		}
+	}
+	if (!hasPageTools(enabledBuiltInTools(settings))) {
+		return {
+			ok: false,
+			message: 'The page tools are turned off. Enable them in Settings → Built-in Tools to add pages.',
+		}
+	}
+	return { ok: true }
+}
+
+/** Capture one tab and append it to the chat on screen. */
+export async function addPage(tabId?: number): Promise<void> {
+	if (addPageBusyStore.get()) return
+	addPageBusyStore.set(true)
+	addPageErrorStore.set(null)
 	try {
-		if (tabId !== undefined) {
-			const result = await extractFromTab(tabId)
-			setAttachment(result.attachment)
+		const readable = pageReadable()
+		if (!readable.ok) {
+			addPageErrorStore.set(readable.message)
 			return
 		}
 
-		const claimed = await claimClickedTab()
-		if (claimed) {
-			setAttachment(claimed.attachment)
-			return
-		}
-
-		// No pending click. Try the active tab: this works when the extension already has
-		// access to it (an earlier toolbar click, or a localhost/host grant).
-		const result = await extractFromTab()
-		setAttachment(result.attachment)
+		const { page, info } = await extractPage(tabId)
+		const conversation = conversationStore.get()
+		const snapshot = freezePage({ ...page, tabIdHint: info.id }, conversation.id, nextPageHandle(pagesStore.get()))
+		await appendPage(snapshot)
 	} catch (error) {
-		attachErrorStore.set(toAppError(error).message)
+		addPageErrorStore.set(toAppError(error).message)
 	} finally {
-		attachBusyStore.set(false)
+		addPageBusyStore.set(false)
 	}
 }
 
-/** Re-read the page behind the current attachment. */
-export async function refreshAttachment(): Promise<void> {
-	const tabId = tabIdStore.get()
-	if (tabId === null) {
-		await attachTab()
-		return
-	}
-	await attachTab(tabId)
-}
-
-/** Attach the tab the user just clicked the extension icon on. */
-export async function attachClickedTab(): Promise<void> {
-	await attachTab()
-}
-
-export function detachAttachment(): void {
-	setAttachment(null)
-	clearTab()
-	attachErrorStore.set(null)
+/** Add every page the user asked for while the panel was not listening. */
+async function drainPendingPages(): Promise<void> {
+	const tabIds = await takePendingPageTabs()
+	for (const tabId of tabIds) await addPage(tabId)
 }
 
 export async function bootstrap(): Promise<void> {
@@ -72,11 +81,8 @@ export async function bootstrap(): Promise<void> {
 	if (!conversation.model && settings.defaultModel) setModel(settings.defaultModel)
 
 	initBrowserEvents({
-		onAttachRequested: () => void attachTab(),
+		onPageAdd: (tabId) => void addPage(tabId),
 		onSelection: (text) => quoteSelection(text),
-		onTabChanged: () => {
-			markAttachmentStale()
-		},
 	})
 
 	settingsStore.subscribe(() => {
@@ -92,20 +98,15 @@ export async function bootstrap(): Promise<void> {
 	// and the outgoing prompt must be recomputed.
 	memoryStore.subscribe(() => refreshContext())
 
+	// A fresh panel always opens a new chat, which owns no pages.
+	bindPages([])
 	refreshContext()
 
 	const activeModel = conversationStore.get().model
 	if (activeModel?.providerId === 'prompt-api') void refreshPromptStatus()
 
-	// A toolbar or context-menu click that happened before the panel finished loading.
-	void (async () => {
-		try {
-			const claimed = await claimClickedTab()
-			if (claimed) setAttachment(claimed.attachment)
-		} catch {
-			// No pending tab: the panel opened on its own.
-		}
-	})()
+	// A context-menu click that happened before the panel finished loading.
+	void drainPendingPages()
 
 	window.addEventListener('pagehide', () => void flushPersistence())
 	document.addEventListener('visibilitychange', () => {

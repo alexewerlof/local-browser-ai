@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it'
-import type { OutlineEntry, PageAttachment, PageChunk } from '../../core/types'
+import type { OutlineEntry, PageSnapshot, PageChunk } from '../../core/types'
 import { createId } from '../../core/util'
 
 const parser = new MarkdownIt()
@@ -109,7 +109,7 @@ export function splitIntoSections(markdown: string): SectionSplit {
 }
 
 /** Read a section by outline id, heading text, or a fuzzy match. */
-export function readSection(attachment: PageAttachment, reference: string): { heading: string; text: string } | null {
+export function readSection(attachment: PageSnapshot, reference: string): { heading: string; text: string } | null {
 	const needle = reference.trim().toLowerCase()
 	if (!needle) return null
 
@@ -132,7 +132,7 @@ export function readSection(attachment: PageAttachment, reference: string): { he
 
 /** Substring search with a little context, grouped by section. */
 export function findInAttachment(
-	attachment: PageAttachment,
+	attachment: PageSnapshot,
 	query: string,
 	limit = 5,
 ): Array<{ heading: string; snippet: string }> {

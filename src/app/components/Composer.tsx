@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	ArrowUp,
-	FileText,
 	GraduationCap,
 	ListOrdered,
 	PanelBottomClose,
 	PanelBottomOpen,
 	Play,
-	RefreshCw,
 	Square,
 	Trash2,
 	TriangleAlert,
 } from 'lucide-react'
-import type { AppSettings, Conversation, ModelRef, QueuedPrompt, ThinkingSelection } from '../../core/types'
+import type {
+	AppSettings,
+	Conversation,
+	ModelRef,
+	PageSnapshot,
+	QueuedPrompt,
+	ThinkingSelection,
+} from '../../core/types'
 import type { ContextSnapshot, RunState } from '../../state/chat'
 import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
 import { queueStore, removeQueuedPrompt } from '../../state/queue'
@@ -20,8 +25,8 @@ import { updateSettings } from '../../state/settings'
 import { estimateTokens } from '../../core/context/tokens'
 import { formatTokens } from '../../core/util'
 import { getModelInfo } from '../../providers/catalog'
-import { AttachmentCard } from './AttachmentCard'
 import { ContextMeter } from './ContextMeter'
+import { PageList } from './PageList'
 import { SkillMenu, ToolsMenu } from './ComposerMenus'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
@@ -30,34 +35,33 @@ import { useStore } from '../useStore'
 export function Composer({
 	settings,
 	conversation,
+	pages,
 	run,
 	context,
-	attachBusy,
-	attachError,
+	addPageBusy,
+	addPageError,
 	queuePaused,
 	onSubmit,
 	onStop,
 	onContinue,
-	onAttach,
-	onRefreshAttachment,
-	onRemoveAttachment,
+	onOpenPage,
 	onCompact,
 	onModelChange,
 }: {
 	settings: AppSettings
 	conversation: Conversation
+	/** Pages in this chat, in the order they were added. */
+	pages: PageSnapshot[]
 	run: RunState
 	context: ContextSnapshot
-	attachBusy: boolean
-	attachError: string | null
+	addPageBusy: boolean
+	addPageError: string | null
 	/** True when the user stopped the loop with prompts still queued. */
 	queuePaused: boolean
 	onSubmit: (text: string, skillId?: string) => void
 	onStop: () => void
 	onContinue: () => void
-	onAttach: () => void
-	onRefreshAttachment: () => void
-	onRemoveAttachment: () => void
+	onOpenPage: (page: PageSnapshot) => void
 	onCompact: () => void
 	onModelChange: (ref: ModelRef) => void
 }) {
@@ -73,8 +77,7 @@ export function Composer({
 	 */
 	const [expanded, setExpanded] = useState(false)
 
-	const attachment = conversation.attachments[0]
-	const attachLabel = attachment ? 'Re-read the page' : 'Attach the current tab'
+	const hasPages = pages.length > 0
 	const streaming = run.status === 'streaming'
 	const busy = run.status !== 'idle'
 	const modelRef = conversation.model ?? settings.defaultModel
@@ -161,19 +164,10 @@ export function Composer({
 
 	return (
 		<div className={`composer${expanded ? ' composer--expanded' : ''}`}>
-			{attachment && (
-				<AttachmentCard
-					attachment={attachment}
-					busy={attachBusy}
-					onRefresh={onRefreshAttachment}
-					onRemove={onRemoveAttachment}
-				/>
-			)}
-
-			{attachError && (
+			{addPageError && (
 				<div className="composer__error">
 					<TriangleAlert size={14} />
-					<span>{attachError}</span>
+					<span>{addPageError}</span>
 				</div>
 			)}
 
@@ -208,8 +202,7 @@ export function Composer({
 
 			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
 				<div className="composer__topbar">
-					{/* Reserved for attachments and other per-prompt context. */}
-					<span className="spacer" />
+					<PageList pages={pages} busy={addPageBusy} onOpen={onOpenPage} />
 					<button
 						type="button"
 						className="button button--ghost button--icon button--sm"
@@ -248,8 +241,8 @@ export function Composer({
 					placeholder={
 						busy
 							? 'Queue another message…'
-							: attachment
-								? 'Ask about this page…'
+							: hasPages
+								? 'Ask about these pages…'
 								: 'Ask anything, or type / for a skill'
 					}
 					value={draft}
@@ -263,17 +256,6 @@ export function Composer({
 				/>
 
 				<div className="composer__toolbar">
-					<button
-						type="button"
-						className="chip chip--icon"
-						onClick={attachment ? onRefreshAttachment : onAttach}
-						disabled={attachBusy}
-						title={attachLabel}
-						aria-label={attachLabel}
-					>
-						{attachment ? <RefreshCw size={13} /> : <FileText size={13} />}
-					</button>
-
 					<SkillMenu
 						skills={settings.skills}
 						onSelect={(skill) => {

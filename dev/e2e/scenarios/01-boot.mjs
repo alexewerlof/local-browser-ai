@@ -17,12 +17,15 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.header__title').textContent(), 'New chat')
 
 	assert.equal(await page.locator('.empty__title').isVisible(), true)
-	assert.match(await page.locator('.empty__subtitle').textContent(), /click the extension icon/i)
+	assert.match(await page.locator('.empty__subtitle').textContent(), /Right-click any page/i)
 
 	// The model chip reflects the configured model.
 	assert.match(await page.locator('.chip--model').textContent(), /fake-model/)
 
-	// The context meter is present even before a page is attached.
+	// No page is in the chat, so the strip above the prompt says how to add one.
+	assert.match(await page.locator('.page-list').textContent(), /Add this page to chat/i)
+
+	// The context meter is present even before a page is added.
 	assert.equal(await page.locator('.meter').isVisible(), true)
 	assert.match(await page.locator('.meter__label').textContent(), /\/ 32k/)
 }

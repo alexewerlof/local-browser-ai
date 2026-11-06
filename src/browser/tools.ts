@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
-import type { MemoryItem, PageAttachment } from '../core/types'
+import type { MemoryItem, PageSnapshot } from '../core/types'
 import { describeClock } from '../core/clock'
 import { openUrl, getTabSelection, searchWeb } from './client'
 import type { SearchDisposition } from './protocol'
@@ -9,8 +9,8 @@ import { clipToolText, MAX_TOOL_CHARS } from '../core/tool-text'
 import { MEMORY_MAX_TEXT, MEMORY_MAX_TITLE, recallMemories, type MemoryAccess } from '../core/memory'
 
 export interface ToolContext {
-	getAttachment(): PageAttachment | null
-	getTabId(): number | null
+	/** Pages added to the chat on screen, in the order they were added. */
+	getPages(): PageSnapshot[]
 	/** Conversation the turn belongs to, recorded as the origin of a saved memory. */
 	getConversationId(): string
 	/** Saved memories: `remember` writes, `recall` reads. */
@@ -31,29 +31,32 @@ export interface ToolDefinition {
 	autoApproveHint?: string
 }
 
+/** One wording for the `page` argument, so every page tool asks for it the same way. */
+const PAGE_HANDLE_HINT = 'Handle of the page, e.g. "p1". Omit it when the chat holds one page.'
+
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	{
 		id: 'read_attached_page',
-		label: 'Read attached page',
-		description: 'Read the cleaned markdown of the page the user attached.',
+		label: 'Read page',
+		description: 'Read the text of a page the user added, whole or by section.',
 		requiresApproval: false,
 	},
 	{
 		id: 'get_page_outline',
 		label: 'Page outline',
-		description: 'List the headings of the attached page, with their size.',
+		description: 'List the headings of an added page, or of every page in the chat.',
 		requiresApproval: false,
 	},
 	{
 		id: 'read_page_section',
 		label: 'Read page section',
-		description: 'Read one or more sections of the attached page by heading.',
+		description: 'Read one or more sections of an added page by heading.',
 		requiresApproval: false,
 	},
 	{
 		id: 'find_in_page',
 		label: 'Find in page',
-		description: 'Search the attached page for a phrase and return matching snippets.',
+		description: 'Search added pages for a phrase and return matching snippets.',
 		requiresApproval: false,
 	},
 	{
@@ -96,12 +99,47 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 	},
 ]
 
-function requireAttachment(context: ToolContext): PageAttachment {
-	const attachment = context.getAttachment()
-	if (!attachment) {
-		throw new Error('No page is attached. Ask the user to attach the current tab first.')
+/**
+ * Tools that read an added page. A page block is only an outline plus a handle, so a
+ * chat with none of these enabled cannot ground an answer in the page at all.
+ */
+export const PAGE_TOOL_IDS = ['read_attached_page', 'get_page_outline', 'read_page_section', 'find_in_page']
+
+export function hasPageTools(enabledIds: string[]): boolean {
+	return enabledIds.some((id) => PAGE_TOOL_IDS.includes(id))
+}
+
+function requirePages(context: ToolContext): PageSnapshot[] {
+	const pages = context.getPages()
+	if (pages.length === 0) {
+		throw new Error('No page is in this chat. Ask the user to add one from the page context menu.')
 	}
-	return attachment
+	return pages
+}
+
+function pageList(pages: PageSnapshot[]): string {
+	return pages.map((page) => `${page.handle} ("${page.title}")`).join(', ')
+}
+
+/**
+ * Resolve the page a call names. The handle may be omitted only when the chat holds a
+ * single page: guessing on a multi-page chat would silently answer from a wrong source,
+ * which is worse than one extra tool call.
+ */
+function resolvePage(pages: PageSnapshot[], handle?: string): PageSnapshot {
+	if (!handle) {
+		const [only] = pages
+		if (only && pages.length === 1) return only
+		throw new Error(`Pass \`page\`: this chat has ${pages.length} pages — ${pageList(pages)}.`)
+	}
+	const page = pages.find((candidate) => candidate.handle === handle)
+	if (!page) throw new Error(`No page "${handle}" in this chat. Pages: ${pageList(pages)}.`)
+	return page
+}
+
+/** Pages a read covers: the one named, or every page when none is named. */
+function targetsOf(pages: PageSnapshot[], handle?: string): PageSnapshot[] {
+	return handle ? [resolvePage(pages, handle)] : pages
 }
 
 /** Build the tool set the model may call for this turn. */
@@ -118,18 +156,20 @@ export function buildTools(
 	if (enabled.has('read_attached_page')) {
 		tools.read_attached_page = tool({
 			description:
-				'Read the attached page as markdown, limited to 4000 characters by default. Prefer `get_page_outline` plus `read_page_section`; only read the whole page when the question spans all of it. Pass a section heading to read one section.',
+				'Read the text of an added page as markdown, limited to 4000 characters by default. Prefer `get_page_outline` plus `read_page_section`; read the whole page only when the question spans all of it.',
 			inputSchema: z.object({
+				page: z.string().optional().describe(PAGE_HANDLE_HINT),
 				section: z.string().optional().describe('Optional heading to read instead of the whole page.'),
 				maxChars: z.number().int().min(500).max(20_000).optional(),
 			}),
-			execute: async ({ section, maxChars }) => {
-				const attachment = requireAttachment(context)
+			execute: async ({ page: handle, section, maxChars }) => {
+				const attachment = resolvePage(requirePages(context), handle)
 				const body = section
 					? (readSection(attachment, section)?.text ?? `No section matching "${section}" was found.`)
 					: attachment.markdown
 				const limited = clipToolText(body, maxChars ?? MAX_TOOL_CHARS)
 				return {
+					page: attachment.handle,
 					url: attachment.url,
 					title: attachment.title,
 					text: limited.text,
@@ -142,23 +182,30 @@ export function buildTools(
 	if (enabled.has('get_page_outline')) {
 		tools.get_page_outline = tool({
 			description:
-				'List the headings of the attached page with their level, id and approximate token size. Use the id or heading with `read_page_section`.',
-			inputSchema: z.object({}),
-			execute: async () => {
-				const attachment = requireAttachment(context)
-				const sizes = new Map<string, number>()
-				for (const chunk of attachment.chunks) {
-					sizes.set(chunk.heading, (sizes.get(chunk.heading) ?? 0) + chunk.text.length)
-				}
+				'List the headings of an added page with their level, id and token size. Without `page` it lists every page in the chat. Use the id or heading with `read_page_section`.',
+			inputSchema: z.object({
+				page: z.string().optional().describe(PAGE_HANDLE_HINT),
+			}),
+			execute: async ({ page: handle }) => {
+				const pages = targetsOf(requirePages(context), handle)
 				return {
-					title: attachment.title,
-					url: attachment.url,
-					outline: attachment.outline.map((entry) => ({
-						id: entry.id,
-						level: entry.level,
-						heading: entry.text,
-						chars: sizes.get(entry.text) ?? 0,
-					})),
+					pages: pages.map((attachment) => {
+						const sizes = new Map<string, number>()
+						for (const chunk of attachment.chunks) {
+							sizes.set(chunk.heading, (sizes.get(chunk.heading) ?? 0) + chunk.text.length)
+						}
+						return {
+							page: attachment.handle,
+							title: attachment.title,
+							url: attachment.url,
+							outline: attachment.outline.map((entry) => ({
+								id: entry.id,
+								level: entry.level,
+								heading: entry.text,
+								chars: sizes.get(entry.text) ?? 0,
+							})),
+						}
+					}),
 				}
 			},
 		})
@@ -167,8 +214,9 @@ export function buildTools(
 	if (enabled.has('read_page_section')) {
 		tools.read_page_section = tool({
 			description:
-				'Read one or more sections of the attached page. Pass headings or outline ids. Results are capped, so read the sections you need rather than the whole page.',
+				'Read one or more sections of an added page. Pass headings or outline ids. Results are capped, so read the sections you need rather than the whole page.',
 			inputSchema: z.object({
+				page: z.string().optional().describe(PAGE_HANDLE_HINT),
 				heading: z.string().optional().describe('Heading text or outline id of the section to read.'),
 				headings: z
 					.array(z.string())
@@ -177,8 +225,7 @@ export function buildTools(
 					.describe('Several headings or ids to read in one call.'),
 				maxChars: z.number().int().min(500).max(20_000).optional(),
 			}),
-			execute: async ({ heading, headings, maxChars }) => {
-				const attachment = requireAttachment(context)
+			execute: async ({ page: handle, heading, headings, maxChars }) => {
 				const requested = [...(heading ? [heading] : []), ...(headings ?? [])]
 				if (requested.length === 0) {
 					return {
@@ -187,6 +234,7 @@ export function buildTools(
 					}
 				}
 
+				const attachment = resolvePage(requirePages(context), handle)
 				const limit = maxChars ?? MAX_TOOL_CHARS
 				const found: Array<{ id: string; heading: string; text: string }> = []
 				const missing: string[] = []
@@ -216,6 +264,7 @@ export function buildTools(
 				)
 				return {
 					found: true,
+					page: attachment.handle,
 					heading: found[0]?.heading ?? '',
 					// Only metadata: the text is in `text`, which is capped above. Returning the
 					// full text here as well would silently double the tool result.
@@ -234,15 +283,24 @@ export function buildTools(
 
 	if (enabled.has('find_in_page')) {
 		tools.find_in_page = tool({
-			description: 'Search the attached page for a literal phrase. Returns short snippets with their section.',
+			description:
+				'Search added pages for a literal phrase. Without `page` it searches every page in the chat and tags each match with its handle, which is how two pages get compared.',
 			inputSchema: z.object({
 				query: z.string().min(1).describe('Text to find on the page.'),
+				page: z.string().optional().describe(PAGE_HANDLE_HINT),
 				limit: z.number().int().min(1).max(10).optional(),
 			}),
-			execute: async ({ query, limit }) => {
-				const attachment = requireAttachment(context)
-				const matches = findInAttachment(attachment, query, limit ?? 5)
-				return { query, count: matches.length, matches }
+			execute: async ({ query, page: handle, limit }) => {
+				const pages = targetsOf(requirePages(context), handle)
+				const total = limit ?? 5
+				const matches: Array<{ page: string; title: string; heading: string; snippet: string }> = []
+				for (const attachment of pages) {
+					for (const match of findInAttachment(attachment, query, total)) {
+						matches.push({ page: attachment.handle, title: attachment.title, ...match })
+					}
+					if (matches.length >= total) break
+				}
+				return { query, count: matches.length, matches: matches.slice(0, total) }
 			},
 		})
 	}
@@ -250,10 +308,19 @@ export function buildTools(
 	if (enabled.has('get_selection')) {
 		tools.get_selection = tool({
 			description: 'Read the text the user has selected in the browser tab right now.',
-			inputSchema: z.object({}),
-			execute: async () => {
-				const tabId = context.getTabId()
-				if (tabId === null) return { text: '', message: 'No tab is attached.' }
+			inputSchema: z.object({
+				page: z.string().optional().describe(PAGE_HANDLE_HINT),
+			}),
+			execute: async ({ page: handle }) => {
+				const pages = requirePages(context)
+				const attachment = handle ? resolvePage(pages, handle) : pages.length === 1 ? pages[0] : null
+				const tabId = attachment?.tabIdHint
+				if (tabId === undefined) {
+					return {
+						text: '',
+						message: 'No tab is known for that page. Ask the user to select the text again.',
+					}
+				}
 				try {
 					const text = await getTabSelection(tabId)
 					return { text: text || '', message: text ? undefined : 'Nothing is selected.' }
@@ -290,7 +357,7 @@ export function buildTools(
 	if (enabled.has('search_web')) {
 		tools.search_web = tool({
 			description:
-				"Search the web with the user's default search engine. Use it for current information the attached page does not contain. The results open in a browser tab that you cannot read: say what you searched for and ask the user to attach the results tab if you need its content. Never invent results.",
+				"Search the web with the user's default search engine. Use it for current information the added pages do not contain. The results open in a browser tab that you cannot read: say what you searched for and ask the user to add that page if you need its content. Never invent results.",
 			inputSchema: z.object({
 				query: z
 					.string()

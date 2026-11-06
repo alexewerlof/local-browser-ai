@@ -19,7 +19,7 @@ export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'open_url' &&
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 8,
+		version: 9,
 		providers: [
 			{
 				id: 'local',
@@ -38,23 +38,20 @@ export function localSettings(endpoint, overrides = {}) {
 			keepRecentTurns: 4,
 			outputReserveRatio: 0.2,
 			maxToolSteps: 4,
-			pageContext: 'always',
-			strategy: 'tiered',
-			pageShare: 0.35,
 		},
 		tools: { enabled: ALL_TOOLS, autoApprove: AUTO_APPROVED_TOOLS, mcp: [] },
 		skills: [],
 		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
 		rendering: { math: true, codeHighlighting: false },
 		ui: { theme: 'light', submitKey: 'enter', fontSize: 'medium' },
-		systemPrompt: 'You are a test assistant. Answer from the attached page.',
+		systemPrompt: 'You are a test assistant. Answer from the added pages.',
 		...overrides,
 	}
 }
 
 export function promptApiOnlySettings() {
 	return {
-		version: 8,
+		version: 9,
 		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
 		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
 		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
@@ -63,9 +60,6 @@ export function promptApiOnlySettings() {
 			keepRecentTurns: 4,
 			outputReserveRatio: 0.2,
 			maxToolSteps: 4,
-			pageContext: 'auto',
-			strategy: 'tiered',
-			pageShare: 0.35,
 		},
 		tools: { enabled: [], autoApprove: [], mcp: [] },
 		skills: [],

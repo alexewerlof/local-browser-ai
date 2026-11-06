@@ -64,12 +64,17 @@ export interface ErrorPart {
 	retryable: boolean
 }
 
-export interface AttachmentRefPart {
-	type: 'attachment-ref'
-	attachmentId: string
+/**
+ * Marks the point in the conversation where a page was added. The page's frozen
+ * prompt block rides the message that carries this part, so the prompt only ever
+ * grows at the end and earlier turns stay byte-identical for the KV cache.
+ */
+export interface PageRefPart {
+	type: 'page-ref'
+	pageId: string
 }
 
-export type MessagePart = TextPart | ReasoningPart | ToolCallPart | ErrorPart | AttachmentRefPart
+export type MessagePart = TextPart | ReasoningPart | ToolCallPart | ErrorPart | PageRefPart
 
 export type MessageStatus = 'streaming' | 'complete' | 'aborted' | 'error'
 export type Role = 'user' | 'assistant' | 'system'
@@ -104,19 +109,35 @@ export interface PageChunk {
 }
 
 /**
- * How the attachment text was produced. `article` is cleaned prose, `app` is the
+ * How the page text was produced. `article` is cleaned prose, `app` is the
  * accessibility skeleton of a UI-shaped page, `text` is a plain fallback.
  */
 export type PageRepresentation = 'article' | 'app' | 'text'
 
-export interface PageAttachment {
+/**
+ * One page the user added to a chat. Captured once and immutable afterwards: the full
+ * text lives here, outside the conversation, and the model pulls what it needs with
+ * the page tools.
+ */
+export interface PageSnapshot {
 	id: string
+	/**
+	 * The chat this page was added to. Pages outlive no chat: deleting the chat deletes
+	 * them. It lives here rather than on `Conversation` because `runTurn` rewrites the
+	 * conversation for every token, which would drop a page added while it streams.
+	 */
+	conversationId: string
+	/**
+	 * The handle the model names this page by, e.g. `p1`. Deliberately not a URL: a
+	 * future fetch tool must not be able to confuse a captured page with the open web.
+	 */
+	handle: string
 	url: string
 	title: string
 	faviconUrl?: string
 	/** Extracted, cleaned markdown. */
 	markdown: string
-	/** Which extractor produced `markdown`. Missing on attachments stored before it existed. */
+	/** Which extractor produced `markdown`. Missing on snapshots stored before it existed. */
 	representation?: PageRepresentation
 	/** The page's own `lang` attribute, e.g. `de-DE`. Missing when the page declares none. */
 	lang?: string
@@ -124,11 +145,24 @@ export interface PageAttachment {
 	outline: OutlineEntry[]
 	chunks: PageChunk[]
 	capturedAt: number
-	/** Set when the tab has navigated or lost its activeTab grant since capture. */
-	stale: boolean
 	truncated: boolean
 	totalChars: number
+	/**
+	 * The prompt text for this page, rendered once at capture and stored verbatim. It is
+	 * never regenerated, so adding a page cannot rewrite an earlier turn.
+	 */
+	block: string
+	/** The message that carries the block; unset while the page waits for the next turn. */
+	messageId?: string
+	/** The tab it came from, used only to re-focus that tab when its card is clicked. */
+	tabIdHint?: number
 }
+
+/**
+ * What extraction produces: everything a snapshot has except the three things decided
+ * when the page joins a conversation — its chat, its handle and its frozen prompt block.
+ */
+export type CapturedPage = Omit<PageSnapshot, 'conversationId' | 'handle' | 'block' | 'messageId'>
 
 /* ------------------------------------------------------------- conversations */
 
@@ -147,7 +181,6 @@ export interface Conversation {
 	updatedAt: number
 	model: ModelRef | null
 	messages: ChatMessage[]
-	attachments: PageAttachment[]
 	summary: ConversationSummary | null
 	/** Last known token usage of the assembled context (not persisted for long). */
 	contextTokens: number
@@ -273,17 +306,7 @@ export interface ContextSettings {
 	/** Fraction of the window reserved for the model's output. */
 	outputReserveRatio: number
 	maxToolSteps: number
-	pageContext: 'auto' | 'always' | 'never'
-	strategy: PageContextStrategy
-	/** Share of the usable window the attached page may occupy (0.1 - 0.9). */
-	pageShare: number
 }
-
-/**
- * `index` is the default: send an outline the model can navigate. `tiered` sends the
- * whole page only when it is smaller than `pageShare`, otherwise the index.
- */
-export type PageContextStrategy = 'index' | 'tiered' | 'full' | 'outline'
 
 export interface ToolSettings {
 	/** Tool ids that are enabled; unknown ids are ignored. */
@@ -343,7 +366,7 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 8
+	version: 9
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults

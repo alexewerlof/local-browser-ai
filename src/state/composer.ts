@@ -2,9 +2,9 @@ import { Store } from '../core/store'
 
 export const draftStore = new Store('')
 export const skillStore = new Store<string | null>(null)
-/** Set while a page is being attached, so the UI can show progress. */
-export const attachBusyStore = new Store(false)
-export const attachErrorStore = new Store<string | null>(null)
+/** Set while a page is being captured, so the UI can show progress. */
+export const addPageBusyStore = new Store(false)
+export const addPageErrorStore = new Store<string | null>(null)
 
 export function setDraft(value: string): void {
 	draftStore.set(value)

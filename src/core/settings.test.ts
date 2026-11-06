@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultSettings, enabledBuiltInTools, hasEnabledTools, normalizeSettings } from './settings'
+import { SETTINGS_VERSION, defaultSettings, enabledBuiltInTools, hasEnabledTools, normalizeSettings } from './settings'
 
 const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 	id: 'mcp_1',
@@ -16,7 +16,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 		expect(settings.providers[0]?.models).toEqual(['text'])
 	})
@@ -70,7 +70,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -88,7 +88,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.tools.enabled).toEqual([
 			'find_in_page',
 			'get_current_datetime',
@@ -133,7 +133,7 @@ describe('normalizeSettings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.tools.mcp).toEqual([])
 	})
 
@@ -145,7 +145,7 @@ describe('normalizeSettings', () => {
 			ui: { ...legacyUi, sendKey: 'mod+enter' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.ui.submitKey).toBe('mod+enter')
 	})
 
@@ -158,7 +158,7 @@ describe('normalizeSettings', () => {
 	it('adds the rendering flags to a store written before they existed', () => {
 		const stored = { ...defaultSettings(), version: 6 }
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.rendering).toEqual({ math: true, codeHighlighting: false })
 	})
 
@@ -273,7 +273,7 @@ describe('memory settings', () => {
 			tools: { enabled: ['find_in_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.version).toBe(8)
+		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.memory.enabled).toBe(true)
 		expect(settings.tools.enabled).toEqual(['find_in_page', 'remember', 'recall'])
 		expect(settings.tools.autoApprove).toEqual(['recall'])

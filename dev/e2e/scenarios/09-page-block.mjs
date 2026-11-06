@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { exampleTab, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
-export const name = '09-page-index'
+export const name = '09-page-block'
 
 /** A page long enough that sending it whole would be wasteful. */
 const LONG = Array.from(
@@ -38,6 +38,10 @@ const extraction = {
 	].join(''),
 }
 
+/**
+ * A long page costs only its outline in the conversation, and the model reads the
+ * section it needs through the page tools.
+ */
 export async function run(ctx) {
 	const server = await startFakeModelServer({
 		chunks: ['The', ' key', ' is', ' olshausen', '.'],
@@ -47,34 +51,32 @@ export async function run(ctx) {
 	})
 
 	try {
-		const settings = localSettings(server.endpoint, { model: 'llama-3.2-3b-instruct' })
-		settings.context = { ...settings.context, pageContext: 'auto', strategy: 'index', pageShare: 0.35 }
-
-		await ctx.open({ settings, tab: exampleTab, extraction })
+		await ctx.open({
+			settings: localSettings(server.endpoint, { model: 'llama-3.2-3b-instruct' }),
+			tab: exampleTab,
+			extraction,
+		})
 		const { page } = ctx
 
-		await page.waitForSelector('.attachment')
+		await page.waitForSelector('.page-chip')
 		await page.locator('.composer__input').fill('Which key does authentication use?')
-		await page.locator('button[aria-label="Submit"]').click()
+		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('olshausen.'))
 
-		// The prompt carried an index, not the page.
-		const system = server.requests[0].messages[0].content
-		assert.match(system, /At a glance/)
-		assert.match(system, /Outline/)
-		assert.match(system, /read_page_section/)
-		assert.doesNotMatch(system, /Filler paragraph 30/)
-		assert.ok(system.length < 4000, `system prompt should be small, was ${system.length} chars`)
+		// The prompt carried an outline, not the page.
+		const body = server.requests[0]
+		const userTurn = body.messages.at(-1)
+		assert.match(userTurn.content, /## Page p1 — Transport guide/)
+		assert.match(userTurn.content, /Outline \(id, heading, reading size\)/)
+		assert.match(userTurn.content, /read_page_section/)
+		assert.doesNotMatch(userTurn.content, /Filler paragraph 30/)
+		assert.ok(userTurn.content.length < 2500, `page block should be small, was ${userTurn.content.length} chars`)
 
 		// The model could still reach the section it needed.
 		const second = server.requests[1]
 		const toolMessage = second.messages.find((message) => message.role === 'tool')
 		assert.ok(toolMessage, 'the tool result should be sent back to the model')
 		assert.match(String(toolMessage.content), /olshausen/)
-
-		// The meter names the mode.
-		await page.locator('.meter').click()
-		assert.match(await page.locator('.popover').textContent(), /page index/)
 	} finally {
 		await server.close()
 	}

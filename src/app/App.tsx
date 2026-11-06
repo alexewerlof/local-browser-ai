@@ -16,12 +16,13 @@ import {
 	newChat,
 	openConversation,
 } from '../state/chat'
-import { attachBusyStore, attachErrorStore } from '../state/composer'
+import { addPageBusyStore, addPageErrorStore } from '../state/composer'
 import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
 import { promptStatusStore } from '../state/prompt'
 import { settingsStatusStore, settingsStore, updateSettings } from '../state/settings'
 import { openSettings } from '../platform/chrome'
-import { attachClickedTab, detachAttachment, refreshAttachment } from '../state/bootstrap'
+import { focusPage } from '../state/browser'
+import { pagesStore } from '../state/pages'
 import { Composer } from './components/Composer'
 import { Header } from './components/Header'
 import { HistoryPanel } from './components/HistoryPanel'
@@ -35,8 +36,9 @@ export function App() {
 	const run = useStore(runStore)
 	const context = useStore(contextStore)
 	const queuePaused = useStore(queuePausedStore)
-	const attachBusy = useStore(attachBusyStore)
-	const attachError = useStore(attachErrorStore)
+	const addPageBusy = useStore(addPageBusyStore)
+	const addPageError = useStore(addPageErrorStore)
+	const pages = useStore(pagesStore)
 	const mcpWarnings = useStore(mcpWarningsStore)
 	const promptStatus = useStore(promptStatusStore)
 	const [historyOpen, setHistoryOpen] = useState(false)
@@ -85,8 +87,10 @@ export function App() {
 			<Transcript
 				conversation={conversation}
 				settings={settings}
+				pages={pages}
 				run={run}
 				onRegenerate={() => void regenerate()}
+				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}
 			/>
 
 			{run.error && (
@@ -95,7 +99,7 @@ export function App() {
 					<span>
 						{run.error.message}
 						{run.error.kind === 'permission' && (
-							<em> Click the extension icon on the page, then try again.</em>
+							<em> Right-click the page, choose “Add this page to chat”, then try again.</em>
 						)}
 					</span>
 					<span className="spacer" />
@@ -132,17 +136,16 @@ export function App() {
 			<Composer
 				settings={settings}
 				conversation={conversation}
+				pages={pages}
 				run={run}
 				context={context}
-				attachBusy={attachBusy}
-				attachError={attachError}
+				addPageBusy={addPageBusy}
+				addPageError={addPageError}
 				queuePaused={queuePaused}
 				onSubmit={(text, skillId) => void submitPrompt(text, skillId)}
 				onStop={stopGeneration}
 				onContinue={resumeQueue}
-				onAttach={() => void attachClickedTab()}
-				onRefreshAttachment={() => void refreshAttachment()}
-				onRemoveAttachment={detachAttachment}
+				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}
 				onCompact={() => void compactNow()}
 				onModelChange={(ref) => {
 					setModel(ref)

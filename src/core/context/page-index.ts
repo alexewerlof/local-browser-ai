@@ -1,4 +1,4 @@
-import type { PageAttachment } from '../types'
+import type { PageSnapshot } from '../types'
 import { bm25Rank } from './lexical'
 import { estimateTokens } from './tokens'
 
@@ -35,7 +35,7 @@ const MAX_PREVIEW_CHARS = 200
 const DEFAULT_LEAD_CHARS = 600
 const DEFAULT_PREVIEWS = 3
 
-export function pageStats(attachment: PageAttachment): PageStats {
+export function pageStats(attachment: PageSnapshot): PageStats {
 	const markdown = attachment.markdown
 	const words = (markdown.match(/\S+/g) ?? []).length
 	const fences = (markdown.match(/^```/gm) ?? []).length
@@ -76,7 +76,7 @@ function clip(text: string, limit: number): string {
 }
 
 /** Estimated token cost per section heading, so sizes are visible at a glance. */
-function sectionCosts(attachment: PageAttachment): Map<string, number> {
+function sectionCosts(attachment: PageSnapshot): Map<string, number> {
 	const costs = new Map<string, number>()
 	for (const chunk of attachment.chunks) {
 		costs.set(chunk.heading, (costs.get(chunk.heading) ?? 0) + estimateTokens(chunk.text))
@@ -85,7 +85,7 @@ function sectionCosts(attachment: PageAttachment): Map<string, number> {
 }
 
 /** Headings worth quoting because they answer the current question. */
-function previewBlocks(attachment: PageAttachment, query: string, count: number): string[] {
+function previewBlocks(attachment: PageSnapshot, query: string, count: number): string[] {
 	if (count <= 0) return []
 	const ranked = bm25Rank(
 		attachment.chunks.map((chunk) => ({ id: chunk.id, text: `${chunk.heading}\n${chunk.text}` })),
@@ -109,7 +109,7 @@ function previewBlocks(attachment: PageAttachment, query: string, count: number)
 }
 
 /** Mark headings that the current question points at. */
-function highlightedHeadings(attachment: PageAttachment, query: string): Set<string> {
+function highlightedHeadings(attachment: PageSnapshot, query: string): Set<string> {
 	const headings = new Set<string>()
 	if (!query.trim()) return headings
 	const ranked = bm25Rank(
@@ -124,7 +124,7 @@ function highlightedHeadings(attachment: PageAttachment, query: string): Set<str
 	return headings
 }
 
-function renderOutlineLines(attachment: PageAttachment, options: PageIndexOptions): string[] {
+function renderOutlineLines(attachment: PageSnapshot, options: PageIndexOptions): string[] {
 	const costs = sectionCosts(attachment)
 	const highlighted = highlightedHeadings(attachment, options.query ?? '')
 	const entries = attachment.outline
@@ -145,7 +145,7 @@ function renderOutlineLines(attachment: PageAttachment, options: PageIndexOption
 }
 
 /** Keep only the leading prose of the page, cut at a paragraph or word boundary. */
-function renderLead(attachment: PageAttachment, leadChars: number): string {
+function renderLead(attachment: PageSnapshot, leadChars: number): string {
 	const markdown = attachment.markdown.trim()
 	if (!markdown || leadChars <= 0) return ''
 	// Skip the title line so the lead is not just a repeated heading.
@@ -162,7 +162,7 @@ function renderLead(attachment: PageAttachment, leadChars: number): string {
  * Output is deliberately terse: roughly a few hundred tokens for a page with
  * dozens of sections, against thousands of tokens for the cleaned markdown.
  */
-export function renderPageIndex(attachment: PageAttachment, options: PageIndexOptions = {}): string {
+export function renderPageIndex(attachment: PageSnapshot, options: PageIndexOptions = {}): string {
 	const stats = pageStats(attachment)
 	const leadChars = options.leadChars ?? DEFAULT_LEAD_CHARS
 	const previews = options.previews ?? DEFAULT_PREVIEWS

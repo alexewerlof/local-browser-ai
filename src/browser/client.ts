@@ -59,20 +59,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 /**
- * Claim the tab the user invoked the extension on.
+ * Take the tabs the user asked to add from the context menu.
  *
  * The background answers from memory, but a panel opened by a fresh worker can start
- * before the click handler has finished, so give it a few short retries.
+ * before the menu handler has finished, so give it a few short retries.
  */
-export async function claimTab(attempts = 3, delayMs = 120): Promise<number | null> {
+export async function takePendingPages(attempts = 3, delayMs = 120): Promise<number[]> {
 	for (let attempt = 0; attempt < attempts; attempt += 1) {
-		const value = (await callBackground({ type: 'panel.claim' })) as { tabId: number | null }
-		if (value.tabId !== null) return value.tabId
+		const value = (await callBackground({ type: 'page.pending' })) as { tabIds: number[] }
+		if (value.tabIds.length > 0) return value.tabIds
 		if (attempt < attempts - 1) {
 			await new Promise((resolve) => setTimeout(resolve, delayMs))
 		}
 	}
-	return null
+	return []
+}
+
+/** Bring the page behind a card back on screen, reopening it when its tab is gone. */
+export async function focusPage(tabId: number | undefined, url: string): Promise<void> {
+	await callBackground({ type: 'page.focus', tabId, url })
 }
 
 export async function getTabInfo(tabId?: number): Promise<TabInfo> {
@@ -106,7 +111,7 @@ export async function searchWeb(
 	return value.disposition
 }
 
-/** Subscribe to background events (action clicks, tab changes, context-menu selections). */
+/** Subscribe to background events (page adds, context-menu selections). */
 export function onBackgroundEvent(listener: (event: import('./protocol').BackgroundEvent) => void): () => void {
 	const chromeApi = getChrome()
 	if (!chromeApi?.runtime?.onMessage) return () => {}

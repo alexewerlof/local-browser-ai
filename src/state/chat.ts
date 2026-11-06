@@ -7,14 +7,15 @@ import type {
 	ConversationSummary,
 	MessagePart,
 	ModelRef,
-	PageAttachment,
+	PageRefPart,
+	PageSnapshot,
 	ProviderSettings,
 	Usage,
 } from '../core/types'
 import { Store } from '../core/store'
 import { createId, now } from '../core/util'
 import { enabledBuiltInTools, getProvider, hasEnabledTools, normalizeSettings } from '../core/settings'
-import { buildContext, messageText, type ContextPart, type PageContextMode } from '../core/context/assembly'
+import { buildContext, messageText, type ContextPart } from '../core/context/assembly'
 import { buildSummaryPrompt, microCompact, planCompaction, usageRatio } from '../core/context/compaction'
 import { createBudget, estimateTokens, type TokenBudget } from '../core/context/tokens'
 import { buildTools, type ToolContext } from '../browser/tools'
@@ -23,10 +24,11 @@ import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
 import { getPromptApiStatus } from '../providers/prompt-status'
 import { settingsStore } from './settings'
-import { attachmentStore, requestApproval, tabIdStore } from './browser'
+import { requestApproval } from './browser'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
-import { deleteConversation, loadConversation, saveConversation } from './database'
+import { deleteConversation, loadConversation, loadPages, saveConversation, savePage } from './database'
+import { bindPages, pagesStore, pendingPages } from './pages'
 import {
 	bindQueue,
 	enqueuePrompt,
@@ -58,8 +60,6 @@ export interface ContextSnapshot {
 	contextWindow: number
 	compactionAt: number
 	ratio: number
-	pageMode: PageContextMode
-	pageTruncated: boolean
 	budget: TokenBudget | null
 }
 
@@ -72,7 +72,6 @@ export function createConversation(model: ModelRef | null): Conversation {
 		updatedAt: timestamp,
 		model,
 		messages: [],
-		attachments: [],
 		summary: null,
 		contextTokens: 0,
 	}
@@ -88,8 +87,6 @@ export const contextStore = new Store<ContextSnapshot>({
 	contextWindow: 0,
 	compactionAt: 0,
 	ratio: 0,
-	pageMode: 'none',
-	pageTruncated: false,
 	budget: null,
 })
 
@@ -129,10 +126,9 @@ export async function flushPersistence(): Promise<void> {
 	await Promise.all([saveConversation(conversationStore.get()), flushQueuePersistence()])
 }
 
-/** Set the store and keep the tool mirror in sync. */
+/** Set the store; persistence is scheduled rather than awaited. */
 export function commit(conversation: Conversation): void {
 	conversationStore.set(conversation)
-	attachmentStore.set(conversation.attachments[0] ?? null)
 	scheduleSave()
 }
 
@@ -207,9 +203,10 @@ function publishContext(
 		conversation,
 		settings,
 		budget,
+		pages: pagesStore.get(),
 		query,
 		// Must match the submit path: a model that supports tools but has none enabled
-		// cannot act on a page index either.
+		// cannot act on a page outline either.
 		toolsEnabled: toolsEnabledOverride ?? (Boolean(resolved?.info.capabilities.tools) && hasEnabledTools(settings)),
 		mcpServers: enabledMcpServers(settings.tools.mcp).map((server) => server.label),
 		memories: memoryStore.get().items,
@@ -222,8 +219,6 @@ function publishContext(
 		contextWindow,
 		compactionAt: budget.compactionAt,
 		ratio: usageRatio(assembled.totalTokens, contextWindow),
-		pageMode: assembled.pageMode,
-		pageTruncated: assembled.pageTruncated,
 		budget,
 	})
 
@@ -260,9 +255,9 @@ export function newChat(): void {
 	const settings = settingsStore.get()
 	const previous = conversationStore.get()
 	const conversation = createConversation(previous.model ?? settings.defaultModel)
-	// The page you are reading is the context of the sidebar, not of one transcript.
-	conversation.attachments = previous.attachments
 	commit(conversation)
+	// Pages belong to the chat that added them, so a new chat starts empty.
+	bindPages([])
 	// The outgoing chat keeps its own persisted queue; the new one starts empty.
 	bindQueue(conversation.id)
 	queuePausedStore.set(false)
@@ -288,13 +283,11 @@ export async function openConversation(id: string): Promise<void> {
 		const stored = await loadConversation(id)
 		if (!stored) return
 		commit(stored)
+		bindPages(await loadPages(id))
 		await loadQueueFor(id)
 		// A pause belongs to the run the user stopped, not to a chat they open later.
 		queuePausedStore.set(false)
 		runStore.set({ status: 'idle' })
-		// The live tab may belong to a different conversation; page tools still work from
-		// the attachment, but `get_selection` must not read an unrelated page.
-		tabIdStore.set(null)
 		refreshContext()
 	} finally {
 		switchingConversation = false
@@ -315,22 +308,14 @@ export function setModel(ref: ModelRef): void {
 	refreshContext()
 }
 
-export function setAttachment(attachment: PageAttachment | null): void {
-	const conversation = conversationStore.get()
-	const attachments = attachment ? [attachment] : []
-	commit({ ...conversation, attachments, updatedAt: now() })
+/**
+ * Add a captured page to the chat. Its block waits for the next turn: the page list
+ * shows it immediately, but the prompt only grows when a user message carries it.
+ */
+export async function appendPage(page: PageSnapshot): Promise<void> {
+	await savePage(page)
+	bindPages([...pagesStore.get(), page])
 	refreshContext()
-}
-
-export function markAttachmentStale(): void {
-	const conversation = conversationStore.get()
-	const attachment = conversation.attachments[0]
-	if (!attachment || attachment.stale) return
-	commit({
-		...conversation,
-		attachments: [{ ...attachment, stale: true }],
-		updatedAt: now(),
-	})
 }
 
 export function stopGeneration(): void {
@@ -350,8 +335,7 @@ export function resumeQueue(): void {
 /* --------------------------------------------------------------- the model run */
 
 const toolContext: ToolContext = {
-	getAttachment: () => conversationStore.get().attachments[0] ?? null,
-	getTabId: () => tabIdStore.get(),
+	getPages: () => pagesStore.get(),
 	getConversationId: () => conversationStore.get().id,
 	memory: memoryAccess,
 	requestApproval,
@@ -692,13 +676,31 @@ function withTitle(conversation: Conversation): Conversation {
 
 /* ------------------------------------------------------------------- prompts */
 
+/** Bind the pages that are waiting to the turn that is about to start. */
+async function claimPendingPages(messageId: string): Promise<PageSnapshot[]> {
+	const waiting = pendingPages()
+	if (waiting.length === 0) return []
+	const claimed = waiting.map((page) => ({ ...page, messageId }))
+	await Promise.all(claimed.map(savePage))
+	const byId = new Map(claimed.map((page) => [page.id, page]))
+	bindPages(pagesStore.get().map((page) => byId.get(page.id) ?? page))
+	return claimed
+}
+
 /** Append a user turn plus its empty assistant answer and run it. Assumes idle. */
 async function startTurn(content: string, skillId?: string): Promise<void> {
 	const conversation = conversationStore.get()
+	const userMessageId = createId('msg')
+	// Pages added since the last turn join this one. The block is written into the prompt
+	// here, once, and never rewritten — that is what keeps the earlier turns cacheable.
+	const claimed = await claimPendingPages(userMessageId)
 	const userMessage: ChatMessage = {
-		id: createId('msg'),
+		id: userMessageId,
 		role: 'user',
-		parts: [{ type: 'text', text: content }],
+		parts: [
+			...claimed.map((page): PageRefPart => ({ type: 'page-ref', pageId: page.id })),
+			{ type: 'text', text: content },
+		],
 		createdAt: now(),
 		status: 'complete',
 		skillId,

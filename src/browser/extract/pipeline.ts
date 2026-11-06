@@ -1,5 +1,5 @@
 import { Readability } from '@mozilla/readability'
-import type { PageAttachment, PageRepresentation } from '../../core/types'
+import type { CapturedPage, PageRepresentation } from '../../core/types'
 import { createId, now } from '../../core/util'
 import type { InjectResult } from './inject'
 import { htmlToMarkdown } from './markdown'
@@ -36,15 +36,18 @@ function titleFromMarkdown(markdown: string): string {
 }
 
 /**
- * Turn a raw in-page extraction into the attachment the model and UI work with.
+ * Turn a raw in-page extraction into a captured page.
  *
  * Readability is the primary path because it strips navigation and keeps article
  * structure. When it fails (app shells, dashboards, forms) the accessibility skeleton
  * is a far better description than the page's markup, so it wins over the markdown
  * fallback on control-heavy pages. Plain cleaned markdown and then the page's own
  * innerText are the last resorts.
+ *
+ * The result has no handle and no prompt block: both are assigned when the user adds it
+ * to a chat, because they depend on what the conversation already holds.
  */
-export function processExtraction(result: InjectResult): PageAttachment {
+export function processExtraction(result: InjectResult): CapturedPage {
 	const article = readabilityMarkdown(result.html)
 	let markdown = article?.markdown ?? ''
 	let representation: PageRepresentation = 'article'
@@ -81,7 +84,6 @@ export function processExtraction(result: InjectResult): PageAttachment {
 		outline,
 		chunks,
 		capturedAt: now(),
-		stale: false,
 		truncated: result.truncated,
 		totalChars: markdown.length,
 	}

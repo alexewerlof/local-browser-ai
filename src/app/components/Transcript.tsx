@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Download, Sparkles } from 'lucide-react'
-import type { AppSettings, Conversation } from '../../core/types'
+import type { AppSettings, Conversation, PageSnapshot } from '../../core/types'
 import { setDraft } from '../../state/composer'
 import { preparePromptModel, downloadProgressStore, promptStatusStore } from '../../state/prompt'
 import { useStore } from '../useStore'
@@ -11,13 +11,17 @@ import type { RunState } from '../../state/chat'
 export function Transcript({
 	conversation,
 	settings,
+	pages,
 	run,
 	onRegenerate,
+	onOpenPage,
 }: {
 	conversation: Conversation
 	settings: AppSettings
+	pages: PageSnapshot[]
 	run: RunState
 	onRegenerate: () => void
+	onOpenPage: (page: PageSnapshot) => void
 }) {
 	const scrollerRef = useRef<HTMLDivElement>(null)
 	const stickRef = useRef(true)
@@ -40,7 +44,7 @@ export function Transcript({
 	return (
 		<div ref={scrollerRef} className="transcript" onScroll={handleScroll}>
 			{conversation.messages.length === 0 ? (
-				<EmptyState hasAttachment={conversation.attachments.length > 0} />
+				<EmptyState hasPages={pages.length > 0} />
 			) : (
 				conversation.messages.map((message, index) => (
 					<MessageItem
@@ -48,6 +52,7 @@ export function Transcript({
 						message={message}
 						settings={settings}
 						conversationId={conversation.id}
+						pages={pages}
 						isLast={index === conversation.messages.length - 1}
 						canRegenerate={
 							index === lastAssistantIndex &&
@@ -56,6 +61,7 @@ export function Transcript({
 							index > 0
 						}
 						onRegenerate={onRegenerate}
+						onOpenPage={onOpenPage}
 					/>
 				))
 			)}
@@ -75,7 +81,7 @@ export function Transcript({
 	)
 }
 
-function EmptyState({ hasAttachment }: { hasAttachment: boolean }) {
+function EmptyState({ hasPages }: { hasPages: boolean }) {
 	const promptStatus = useStore(promptStatusStore)
 	const downloadProgress = useStore(downloadProgressStore)
 	const needsDownload = promptStatus?.availability === 'downloadable'
@@ -85,11 +91,11 @@ function EmptyState({ hasAttachment }: { hasAttachment: boolean }) {
 			<div className="empty__mark">
 				<Sparkles size={22} />
 			</div>
-			<h1 className="empty__title">{hasAttachment ? 'Ask about this page' : 'What are you reading?'}</h1>
+			<h1 className="empty__title">{hasPages ? 'Ask about these pages' : 'What are you reading?'}</h1>
 			<p className="empty__subtitle">
-				{hasAttachment
-					? 'The page is attached and in your context. Ask anything, or pick a starting point.'
-					: 'Open a page, click the extension icon to attach it, then ask. You can also just chat.'}
+				{hasPages
+					? 'The pages are in your context. Ask anything, or pick a starting point.'
+					: 'Right-click any page and choose “Add this page to chat”, then ask. You can also just chat.'}
 			</p>
 
 			{needsDownload && (

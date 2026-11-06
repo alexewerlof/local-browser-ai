@@ -1,13 +1,15 @@
-import type { PageAttachment } from '../core/types'
+import type { CapturedPage } from '../core/types'
 import { Store } from '../core/store'
-import { claimTab, extractTab, getTabInfo, onBackgroundEvent } from '../browser/client'
+import {
+	extractTab,
+	focusPage as focusPageInBrowser,
+	getTabInfo,
+	onBackgroundEvent,
+	takePendingPages,
+} from '../browser/client'
 import { processExtraction } from '../browser/extract/pipeline'
 import type { TabInfo } from '../browser/protocol'
 
-/** The tab the current attachment came from. */
-export const tabIdStore = new Store<number | null>(null)
-/** Mirror of the conversation's attachment, so tools can read it without importing chat state. */
-export const attachmentStore = new Store<PageAttachment | null>(null)
 export const tabInfoStore = new Store<TabInfo | null>(null)
 
 export interface PendingApproval {
@@ -44,58 +46,44 @@ export function resolveApproval(toolCallId: string, approved: boolean): void {
 	entry?.resolve(approved)
 }
 
-/** Extract a tab into a page attachment, throwing a typed error on failure. */
-export async function extractFromTab(tabId?: number): Promise<{ attachment: PageAttachment; info: TabInfo }> {
+/** Extract a tab into a page, throwing a typed error on failure. */
+export async function extractPage(tabId?: number): Promise<{ page: CapturedPage; info: TabInfo }> {
 	const info = await getTabInfo(tabId)
 	const result = await extractTab(info.id)
-	const attachment = processExtraction(result)
-	if (!attachment.faviconUrl) attachment.faviconUrl = info.faviconUrl
-	if (!attachment.title) attachment.title = info.title
-	tabIdStore.set(info.id)
+	const page = processExtraction(result)
+	// The worker's tab metadata is fresher than the page's own: a page may carry no
+	// favicon link, and a title-less tab still has one.
+	if (!page.faviconUrl) page.faviconUrl = info.faviconUrl
+	if (!page.title) page.title = info.title
 	tabInfoStore.set(info)
-	attachmentStore.set(attachment)
-	return { attachment, info }
+	return { page, info }
 }
 
-/** Claim the tab the user invoked the extension on (toolbar click or context menu). */
-export async function claimClickedTab(): Promise<{ attachment: PageAttachment; info: TabInfo } | null> {
-	const tabId = await claimTab()
-	if (tabId === null) return null
-	return extractFromTab(tabId)
+/** Tabs the user added from the context menu while the panel was not listening. */
+export function takePendingPageTabs(): Promise<number[]> {
+	return takePendingPages()
 }
 
-export function clearTab(): void {
-	tabIdStore.set(null)
-	tabInfoStore.set(null)
-	attachmentStore.set(null)
+/** Bring the page behind a card back on screen, reopening it when its tab is gone. */
+export function focusPage(tabId: number | undefined, url: string): Promise<void> {
+	return focusPageInBrowser(tabId, url)
 }
 
 export interface BrowserEventHandlers {
-	onAttachRequested: () => void
+	onPageAdd: (tabId: number) => void
 	onSelection: (text: string) => void
-	onTabChanged: (reason: 'activated' | 'updated') => void
 }
 
 /** Wire background events into the app. Returns an unsubscribe function. */
 export function initBrowserEvents(handlers: BrowserEventHandlers): () => void {
 	return onBackgroundEvent((event) => {
 		switch (event.type) {
-			case 'action.clicked':
-				handlers.onAttachRequested()
+			case 'page.add':
+				handlers.onPageAdd(event.tabId)
 				break
 			case 'selection.add':
 				handlers.onSelection(event.text)
 				break
-			case 'tab.changed': {
-				const attached = tabIdStore.get()
-				if (attached === null) return
-				if (event.tabId !== null && event.tabId !== attached) {
-					handlers.onTabChanged('activated')
-					return
-				}
-				if (event.reason === 'updated') handlers.onTabChanged('updated')
-				break
-			}
 		}
 	})
 }

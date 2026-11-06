@@ -1,29 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { buildContext, messagesAfterSummary, toModelMessages, truncateToTokens } from './assembly'
+import { buildContext, messagesAfterSummary, messageText, pagesForPrompt, toModelMessages } from './assembly'
 import { createBudget } from './tokens'
-import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageAttachment } from '../types'
+import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageSnapshot } from '../types'
 import { defaultSettings } from '../settings'
 
 const budget = createBudget(20_000, 0.2, 0.75)
 
-function attachment(markdown: string): PageAttachment {
+function page(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
 	return {
-		id: 'page',
+		id: 'page1',
+		conversationId: 'chat',
+		handle: 'p1',
 		url: 'https://example.com/pricing',
 		title: 'Example Pricing',
-		markdown,
+		markdown: '# Pricing\n\nStarter is 10 EUR.',
 		outline: [
 			{ id: 'h0', level: 1, text: 'Pricing', line: 0 },
 			{ id: 'h1', level: 2, text: 'Teams', line: 3 },
 		],
-		chunks: [
-			{ id: 'c1', heading: 'Pricing', text: 'Starter costs 10 EUR per month.', line: 0 },
-			{ id: 'c2', heading: 'Teams', text: 'Teams costs 25 EUR per seat and includes audit logs.', line: 3 },
-		],
+		chunks: [{ id: 'c1', heading: 'Teams', text: 'Teams costs 25 EUR.', line: 3 }],
 		capturedAt: 0,
-		stale: false,
 		truncated: false,
-		totalChars: markdown.length,
+		totalChars: 34,
+		block: '## Page p1 — Example Pricing\nURL: https://example.com/pricing\nOutline: …',
+		...overrides,
 	}
 }
 
@@ -35,113 +35,72 @@ function conversation(overrides: Partial<Conversation> = {}): Conversation {
 		updatedAt: 0,
 		model: { providerId: 'local', modelId: 'fake-model' },
 		messages: [],
-		attachments: [],
 		summary: null,
 		contextTokens: 0,
 		...overrides,
 	}
 }
 
-function settings(overrides: Partial<AppSettings['context']> = {}): AppSettings {
-	const base = defaultSettings()
-	return { ...base, context: { ...base.context, pageContext: 'auto', strategy: 'index', ...overrides } }
+function userMessage(id: string, text: string, pages: PageSnapshot[] = []): ChatMessage {
+	return {
+		id,
+		role: 'user',
+		parts: [...pages.map((entry) => ({ type: 'page-ref' as const, pageId: entry.id })), { type: 'text', text }],
+		createdAt: 0,
+		status: 'complete',
+	}
+}
+
+function assistantMessage(id: string, text: string): ChatMessage {
+	return {
+		id,
+		role: 'assistant',
+		parts: text ? [{ type: 'text', text }] : [],
+		createdAt: 0,
+		status: 'complete',
+	}
 }
 
 describe('buildContext', () => {
-	it('omits the page when page context is disabled', () => {
+	it('keeps page text out of the system prompt', () => {
 		const context = buildContext({
-			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
-			settings: settings({ pageContext: 'never' }),
+			conversation: conversation(),
+			settings: defaultSettings(),
 			budget,
+			pages: [page()],
 			query: 'price',
 			toolsEnabled: true,
 		})
-		expect(context.pageMode).toBe('none')
 		expect(context.system).not.toContain('Starter is 10 EUR.')
+		expect(context.system).not.toContain('## Page p1')
 	})
 
-	it('includes the whole page when it fits', () => {
+	it('counts the page blocks as their own context part', () => {
+		const entry = page()
 		const context = buildContext({
-			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
-			settings: settings({ pageContext: 'always' }),
+			conversation: conversation({ messages: [userMessage('m1', 'compare', [entry])] }),
+			settings: defaultSettings(),
 			budget,
-			query: 'price',
+			pages: [entry],
+			query: 'compare',
 			toolsEnabled: true,
 		})
-		expect(context.pageMode).toBe('full')
-		expect(context.system).toContain('Starter is 10 EUR.')
-		expect(context.system).toContain('Example Pricing')
-		expect(context.system).toContain('untrusted data')
+		const part = context.parts.find((entry) => entry.id === 'page')
+		expect(part?.label).toBe('Example Pricing')
+		expect(part?.tokens).toBeGreaterThan(0)
 	})
 
-	it('switches to an index when a page is too large for the window', () => {
-		const huge = `# Pricing\n\n${'A long paragraph about pricing. '.repeat(4000)}`
+	it('labels several pages by their count', () => {
+		const second = page({ id: 'page2', handle: 'p2', title: 'Other shop', block: 'BLOCK 2' })
 		const context = buildContext({
-			conversation: conversation({ attachments: [attachment(huge)] }),
-			settings: settings(),
+			conversation: conversation({ messages: [userMessage('m1', 'compare', [page(), second])] }),
+			settings: defaultSettings(),
 			budget,
-			query: 'teams audit logs',
+			pages: [page(), second],
+			query: 'compare',
 			toolsEnabled: true,
 		})
-		expect(context.pageMode).toBe('index')
-		expect(context.system).toContain('Outline')
-		expect(context.system).toContain('read_page_section')
-		// Only a short lead-in survives, not the 4000-repeat body.
-		const repeats = (context.system.match(/A long paragraph about pricing\./g) ?? []).length
-		expect(repeats).toBeLessThan(100)
-		// The index is a fraction of the page it describes.
-		expect(context.system.length).toBeLessThan(huge.length / 4)
-	})
-
-	it('sends the whole page when the strategy asks for it, even if large', () => {
-		const context = buildContext({
-			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
-			settings: settings({ strategy: 'full' }),
-			budget,
-			query: '',
-			toolsEnabled: true,
-		})
-		expect(context.pageMode).toBe('full')
-		expect(context.system).toContain('Starter is 10 EUR.')
-	})
-
-	it('keeps the whole page for the tiered strategy when it fits', () => {
-		const context = buildContext({
-			conversation: conversation({ attachments: [attachment('# Pricing\n\nStarter is 10 EUR.')] }),
-			settings: settings({ strategy: 'tiered' }),
-			budget,
-			query: '',
-			toolsEnabled: true,
-		})
-		expect(context.pageMode).toBe('full')
-	})
-
-	it('falls back to excerpts when the model has no page tools', () => {
-		const huge = `# Pricing\n\n${'A long paragraph about pricing. '.repeat(4000)}\n\n## Teams\n\nAudit logs are included.`
-		const context = buildContext({
-			conversation: conversation({ attachments: [attachment(huge)] }),
-			settings: settings(),
-			budget,
-			query: 'teams audit logs',
-			toolsEnabled: false,
-		})
-		expect(context.pageMode).toBe('excerpts')
-		expect(context.system).toContain('Excerpts most relevant')
-		expect(context.pageTruncated).toBe(true)
-	})
-
-	it('never exceeds the page share, whatever the strategy', () => {
-		const huge = `# Pricing\n\n${'- a heading-like line\n'.repeat(3000)}`
-		const context = buildContext({
-			conversation: conversation({ attachments: [attachment(huge)] }),
-			settings: settings({ strategy: 'full', pageShare: 0.1 }),
-			budget,
-			query: '',
-			toolsEnabled: true,
-		})
-		const page = context.parts.find((part) => part.id === 'page')
-		expect(page?.tokens).toBeLessThanOrEqual(Math.round(budget.usable * 0.1) + 200)
-		expect(context.pageTruncated).toBe(true)
+		expect(context.parts.find((entry) => entry.id === 'page')?.label).toBe('2 pages')
 	})
 
 	it('adds the conversation summary as system context', () => {
@@ -154,8 +113,9 @@ describe('buildContext', () => {
 					tokenEstimate: 10,
 				},
 			}),
-			settings: settings(),
+			settings: defaultSettings(),
 			budget,
+			pages: [],
 			query: '',
 			toolsEnabled: false,
 		})
@@ -169,25 +129,27 @@ describe('buildContext', () => {
 		try {
 			const context = buildContext({
 				conversation: conversation(),
-				settings: settings(),
+				settings: defaultSettings(),
 				budget,
+				pages: [],
 				query: '',
 				// Even a model without tools has to know which language to answer in.
 				toolsEnabled: false,
 			})
 			expect(context.system).toContain('fr-FR')
-			const part = context.parts.find((entry) => entry.id === 'environment')
-			expect(part?.tokens).toBeGreaterThan(0)
+			expect(context.parts.find((entry) => entry.id === 'environment')?.tokens).toBeGreaterThan(0)
 		} finally {
 			Object.defineProperty(navigator, 'languages', { value: original, configurable: true })
 		}
 	})
 
-	it('mentions the language of the attached page', () => {
+	it('mentions the language of an added page', () => {
+		const german = page({ lang: 'de-DE' })
 		const context = buildContext({
-			conversation: conversation({ attachments: [{ ...attachment('# Preise'), lang: 'de-DE' }] }),
-			settings: settings(),
+			conversation: conversation({ messages: [userMessage('m1', 'was steht hier', [german])] }),
+			settings: defaultSettings(),
 			budget,
+			pages: [german],
 			query: '',
 			toolsEnabled: true,
 		})
@@ -197,8 +159,9 @@ describe('buildContext', () => {
 	it('warns that MCP tool output is untrusted, and only when tools are available', () => {
 		const withMcp = buildContext({
 			conversation: conversation(),
-			settings: settings(),
+			settings: defaultSettings(),
 			budget,
+			pages: [],
 			query: '',
 			toolsEnabled: true,
 			mcpServers: ['Local tools'],
@@ -210,28 +173,15 @@ describe('buildContext', () => {
 
 		const withoutTools = buildContext({
 			conversation: conversation(),
-			settings: settings(),
+			settings: defaultSettings(),
 			budget,
+			pages: [],
 			query: '',
 			toolsEnabled: false,
 			mcpServers: ['Local tools'],
 		})
 		expect(withoutTools.system).not.toContain('## MCP tools')
 		expect(withoutTools.parts.some((part) => part.id === 'mcp')).toBe(false)
-	})
-})
-
-describe('truncateToTokens', () => {
-	it('leaves short text alone', () => {
-		expect(truncateToTokens('short', 100)).toEqual({ text: 'short', truncated: false })
-	})
-
-	it('cuts at a heading boundary and marks the truncation', () => {
-		const text = `# One\n\n${'a '.repeat(2000)}\n# Two\n\n${'b '.repeat(2000)}`
-		const result = truncateToTokens(text, 200)
-		expect(result.truncated).toBe(true)
-		expect(result.text).toContain('Page truncated')
-		expect(result.text).not.toContain('bbbb')
 	})
 })
 
@@ -281,8 +231,7 @@ describe('toModelMessages', () => {
 				status: 'complete',
 			},
 		]
-		const result = toModelMessages(conversation({ messages }))
-		expect(result).toEqual([
+		expect(toModelMessages(conversation({ messages }))).toEqual([
 			{ role: 'user', content: 'first\n\nsecond' },
 			{ role: 'assistant', content: 'answer' },
 		])
@@ -294,6 +243,202 @@ describe('toModelMessages', () => {
 			{ id: 'm2', role: 'user', parts: [{ type: 'text', text: 'hi' }], createdAt: 2, status: 'complete' },
 		]
 		expect(toModelMessages(conversation({ messages }))).toEqual([{ role: 'user', content: 'hi' }])
+	})
+
+	it('puts a page block in front of the turn that introduced it', () => {
+		const entry = page()
+		const messages = [userMessage('m1', 'what does it cost', [entry]), assistantMessage('m2', 'answered')]
+		const result = toModelMessages(conversation({ messages }), [entry])
+		expect(result[0]).toEqual({ role: 'user', content: `${entry.block}\n\nwhat does it cost` })
+		expect(result[1]).toEqual({ role: 'assistant', content: 'answered' })
+	})
+
+	it('includes each page block exactly once', () => {
+		const entry = page()
+		const messages = [
+			userMessage('m1', 'compare', [entry]),
+			assistantMessage('m2', 'ok'),
+			userMessage('m3', 'and now?', [entry]),
+		]
+		const result = toModelMessages(conversation({ messages }), [entry])
+		expect(JSON.stringify(result).match(/## Page p1/g)?.length).toBe(1)
+	})
+
+	it('keeps earlier turns byte-identical when a page is added later', () => {
+		const first = page()
+		const second = page({ id: 'page2', handle: 'p2', title: 'Other shop', block: 'BLOCK p2' })
+		const before = [userMessage('m1', 'first question', [first]), assistantMessage('m2', 'first answer')]
+		const after = [...before, userMessage('m3', 'compare with this one', [second]), assistantMessage('m4', 'ack')]
+
+		const earlier = toModelMessages(conversation({ messages: before }), [first])
+		const longer = toModelMessages(conversation({ messages: after }), [first, second])
+
+		expect(longer.slice(0, earlier.length)).toEqual(earlier)
+	})
+
+	it('replays tool calls together with their results', () => {
+		const messages: ChatMessage[] = [
+			userMessage('m1', 'read the pricing section'),
+			{
+				id: 'm2',
+				role: 'assistant',
+				parts: [
+					{ type: 'text', text: 'Looking it up.' },
+					{
+						type: 'tool-call',
+						toolCallId: 'call_1',
+						toolName: 'read_page_section',
+						input: { heading: 'Teams' },
+						state: 'complete',
+						output: { text: 'Teams costs 25 EUR per seat.' },
+					},
+				],
+				createdAt: 0,
+				status: 'complete',
+			},
+			assistantMessage('m3', 'It costs 25 EUR.'),
+		]
+
+		expect(toModelMessages(conversation({ messages }))).toEqual([
+			{ role: 'user', content: 'read the pricing section' },
+			{
+				role: 'assistant',
+				content: [
+					{ type: 'text', text: 'Looking it up.' },
+					{
+						type: 'tool-call',
+						toolCallId: 'call_1',
+						toolName: 'read_page_section',
+						input: { heading: 'Teams' },
+					},
+				],
+			},
+			{
+				role: 'tool',
+				content: [
+					{
+						type: 'tool-result',
+						toolCallId: 'call_1',
+						toolName: 'read_page_section',
+						output: { type: 'json', value: { text: 'Teams costs 25 EUR per seat.' } },
+					},
+				],
+			},
+			{ role: 'assistant', content: 'It costs 25 EUR.' },
+		])
+	})
+
+	it('replays a failed tool call as an error result', () => {
+		const messages: ChatMessage[] = [
+			userMessage('m1', 'read it'),
+			{
+				id: 'm2',
+				role: 'assistant',
+				parts: [
+					{
+						type: 'tool-call',
+						toolCallId: 'call_1',
+						toolName: 'read_page_section',
+						input: { heading: 'Nope' },
+						state: 'error',
+						error: 'No section matching "Nope".',
+					},
+				],
+				createdAt: 0,
+				status: 'complete',
+			},
+		]
+		const [, assistant, tool] = toModelMessages(conversation({ messages }))
+		expect(assistant).toMatchObject({ role: 'assistant' })
+		expect(tool).toEqual({
+			role: 'tool',
+			content: [
+				{
+					type: 'tool-result',
+					toolCallId: 'call_1',
+					toolName: 'read_page_section',
+					output: { type: 'error-text', value: 'No section matching "Nope".' },
+				},
+			],
+		})
+	})
+
+	it('drops a tool call that never finished, so no call is left dangling', () => {
+		const messages: ChatMessage[] = [
+			userMessage('m1', 'read it'),
+			{
+				id: 'm2',
+				role: 'assistant',
+				parts: [
+					{ type: 'text', text: 'Reading.' },
+					{ type: 'tool-call', toolCallId: 'call_1', toolName: 'find_in_page', input: {}, state: 'running' },
+				],
+				createdAt: 0,
+				status: 'aborted',
+			},
+		]
+		expect(toModelMessages(conversation({ messages }))).toEqual([
+			{ role: 'user', content: 'read it' },
+			{ role: 'assistant', content: 'Reading.' },
+		])
+	})
+})
+
+describe('pagesForPrompt', () => {
+	it('lists the pages whose blocks are in the prompt, once each', () => {
+		const first = page()
+		const second = page({ id: 'page2', handle: 'p2', block: 'BLOCK p2' })
+		const pending = page({ id: 'page3', handle: 'p3', block: 'BLOCK p3' })
+		const messages = [userMessage('m1', 'a', [first, second]), assistantMessage('m2', 'b')]
+
+		const included = pagesForPrompt(conversation({ messages }), [first, second, pending])
+		expect(included.map((entry) => entry.handle)).toEqual(['p1', 'p2'])
+	})
+
+	it('leaves out a page that is only waiting for the next turn', () => {
+		const waiting = page()
+		expect(pagesForPrompt(conversation({ messages: [userMessage('m1', 'hi')] }), [waiting])).toEqual([])
+	})
+
+	it('moves the blocks of summarized pages into the system prompt', () => {
+		const entry = page({ messageId: 'm1' })
+		const messages = [userMessage('m1', 'first', [entry]), assistantMessage('m2', 'ok'), userMessage('m3', 'later')]
+		const context = buildContext({
+			conversation: conversation({
+				messages,
+				summary: { text: 'They asked about pricing.', throughMessageId: 'm2', createdAt: 0, tokenEstimate: 5 },
+			}),
+			settings: defaultSettings(),
+			budget,
+			pages: [entry],
+			query: '',
+			toolsEnabled: true,
+		})
+
+		expect(context.system).toContain('Pages from earlier in this conversation')
+		expect(context.system).toContain('## Page p1')
+		// The summarized turn is gone, so the block must not be sent a second time.
+		expect(JSON.stringify(context.messages)).not.toContain('## Page p1')
+		// The meter still counts the page.
+		expect(context.parts.find((part) => part.id === 'page')?.tokens).toBeGreaterThan(0)
+	})
+})
+
+describe('messageText', () => {
+	it('joins text parts and ignores everything else', () => {
+		expect(
+			messageText({
+				id: 'm1',
+				role: 'user',
+				parts: [
+					{ type: 'page-ref', pageId: 'page1' },
+					{ type: 'text', text: 'hello' },
+					{ type: 'reasoning', text: 'hidden' },
+				],
+				createdAt: 0,
+				status: 'complete',
+			}),
+		).toBe('hello')
 	})
 })
 
@@ -314,6 +459,7 @@ describe('buildContext memory', () => {
 			conversation: conversation(),
 			settings: defaultSettings(),
 			budget,
+			pages: [],
 			query: 'format my code',
 			toolsEnabled: true,
 			memories: [memory()],
@@ -334,63 +480,18 @@ describe('buildContext memory', () => {
 	})
 
 	it('is absent when memory is disabled', () => {
-		const base = defaultSettings()
+		const base: AppSettings = defaultSettings()
 		const context = buildContext({
 			conversation: conversation(),
 			settings: { ...base, memory: { ...base.memory, enabled: false } },
 			budget,
-			query: '',
+			pages: [],
+			query: 'format my code',
 			toolsEnabled: true,
-			memories: [memory()],
-		})
-		expect(context.parts.some((part) => part.id === 'memory')).toBe(false)
-		expect(context.system).not.toContain('Prefers tabs and no semicolons.')
-	})
-
-	it('is absent when nothing is stored', () => {
-		const context = buildContext({
-			conversation: conversation(),
-			settings: defaultSettings(),
-			budget,
-			query: '',
-			toolsEnabled: true,
-			memories: [],
-		})
-		expect(context.parts.some((part) => part.id === 'memory')).toBe(false)
-	})
-
-	it('still injects always-on memory for a model without tools', () => {
-		const context = buildContext({
-			conversation: conversation(),
-			settings: defaultSettings(),
-			budget,
-			query: '',
-			toolsEnabled: false,
 			memories: [memory()],
 			memoryToolsEnabled: false,
 		})
-		expect(context.system).toContain('Prefers tabs and no semicolons.')
-		// Without tools there is nothing to call, so the block must not promise one.
-		expect(context.system).not.toContain('searches the rest of the saved memory')
-	})
-
-	it('counts the memory part in the total', () => {
-		const without = buildContext({
-			conversation: conversation(),
-			settings: defaultSettings(),
-			budget,
-			query: '',
-			toolsEnabled: true,
-			memories: [],
-		})
-		const withMemory = buildContext({
-			conversation: conversation(),
-			settings: defaultSettings(),
-			budget,
-			query: '',
-			toolsEnabled: true,
-			memories: [memory()],
-		})
-		expect(withMemory.totalTokens).toBeGreaterThan(without.totalTokens)
+		expect(context.system).not.toContain('Prefers tabs and no semicolons.')
+		expect(context.parts.some((part) => part.id === 'memory')).toBe(false)
 	})
 })

@@ -19,7 +19,7 @@ export function BuiltInToolsSection({ settings }: { settings: AppSettings }) {
 	return (
 		<div className="section">
 			<p className="section__intro">
-				Tools that run inside the browser: they read the attached page, search it, search the web with your
+				Tools that run inside the browser: they read the pages you add, search them, search the web with your
 				default search engine, check the current date and time, save and search memories, and open links.
 				Read-only tools and web search run automatically; actions such as opening a link from the answer ask for
 				approval on the message itself.

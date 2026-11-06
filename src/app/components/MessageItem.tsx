@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Check, Copy, GraduationCap, MemoryStick, RefreshCw, TriangleAlert } from 'lucide-react'
-import type { ChatMessage } from '../../core/types'
+import type { ChatMessage, PageSnapshot } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
 import { formatDuration, formatTokens } from '../../core/util'
 import { MEMORY_MAX_TEXT } from '../../core/memory'
 import { saveMemory } from '../../state/memory'
 import { Markdown } from './Markdown'
+import { PageCard } from './PageCard'
 import { ReasoningBlock } from './ReasoningBlock'
 import { ToolCallCard } from './ToolCallCard'
 
@@ -14,16 +15,20 @@ export function MessageItem({
 	message,
 	settings,
 	conversationId,
+	pages,
 	isLast,
 	canRegenerate,
 	onRegenerate,
+	onOpenPage,
 }: {
 	message: ChatMessage
 	settings: AppSettings
 	conversationId: string
+	pages: PageSnapshot[]
 	isLast: boolean
 	canRegenerate: boolean
 	onRegenerate: () => void
+	onOpenPage: (page: PageSnapshot) => void
 }) {
 	const [copied, setCopied] = useState(false)
 	const streaming = message.status === 'streaming'
@@ -49,8 +54,21 @@ export function MessageItem({
 
 	if (message.role === 'user') {
 		const skill = message.skillId ? settings.skills.find((entry) => entry.id === message.skillId) : undefined
+		// The cards mark where the pages entered the chat; the block itself rides this turn.
+		const attached = message.parts.flatMap((part) => {
+			if (part.type !== 'page-ref') return []
+			const page = pages.find((candidate) => candidate.id === part.pageId)
+			return page ? [page] : []
+		})
 		return (
 			<article className="message message--user">
+				{attached.length > 0 && (
+					<div className="message__pages">
+						{attached.map((page) => (
+							<PageCard key={page.id} page={page} onOpen={onOpenPage} />
+						))}
+					</div>
+				)}
 				<div className="message__bubble">
 					{skill && (
 						<div className="message__skill">

@@ -103,9 +103,14 @@ export function chromeShim(config = {}) {
 	}
 
 	let extraction = config.extraction ?? defaultExtraction
-	let pendingTabId = config.tab ? tab.id : null
+	/** Extraction per tab id, for scenarios that add more than one page. */
+	const extractionByTab = new Map()
+	// `config.tab` means "the user added this page before the panel opened".
+	let pendingTabs = config.tab ? [config.tab.id ?? 42] : []
 	const opened = []
 	const searches = []
+	/** `page.focus` calls, in order: which page a card click asked to bring back. */
+	const focusedPages = []
 	// Tabs beyond the attached one, so a scenario can start with Settings already open.
 	const otherTabs = (config.openTabs ?? []).map((path, index) => ({
 		id: 500 + index,
@@ -114,19 +119,25 @@ export function chromeShim(config = {}) {
 		url: new URL(path, location.href).toString(),
 		title: 'Settings',
 	}))
+	/** The fixture tab first, then anything a scenario or the app opened. */
+	const tabsById = () => [tab, ...otherTabs]
 	let nextTabId = 600
 	const updatedTabs = []
 	const focusedWindows = []
 
 	async function handleRequest(request) {
 		switch (request.type) {
-			case 'panel.claim': {
-				const id = pendingTabId
-				pendingTabId = null
-				return { ok: true, value: { tabId: id } }
+			case 'page.pending': {
+				const tabIds = pendingTabs
+				pendingTabs = []
+				return { ok: true, value: { tabIds } }
+			}
+			case 'page.focus': {
+				focusedPages.push({ tabId: request.tabId ?? null, url: request.url })
+				return { ok: true, value: { tabId: request.tabId ?? 999 } }
 			}
 			case 'tab.info':
-				return { ok: true, value: tab }
+				return { ok: true, value: tabsById().find((entry) => entry.id === request.tabId) ?? tab }
 			case 'tab.extract': {
 				if (config.denyExtraction) {
 					return {
@@ -137,7 +148,7 @@ export function chromeShim(config = {}) {
 						},
 					}
 				}
-				return { ok: true, value: extraction }
+				return { ok: true, value: extractionByTab.get(request.tabId) ?? extraction }
 			}
 			case 'tab.selection':
 				return { ok: true, value: { text: config.selection ?? '' } }
@@ -300,10 +311,10 @@ export function chromeShim(config = {}) {
 		tabs: {
 			// The attached tab first, then whatever the scenario says is already open.
 			async query() {
-				return [tab, ...otherTabs]
+				return tabsById()
 			},
 			async get(id) {
-				return [tab, ...otherTabs].find((entry) => entry.id === id) ?? tab
+				return tabsById().find((entry) => entry.id === id) ?? tab
 			},
 			async create({ url }) {
 				opened.push(url)
@@ -312,7 +323,7 @@ export function chromeShim(config = {}) {
 				return created
 			},
 			async update(id, props) {
-				const target = [tab, ...otherTabs].find((entry) => entry.id === id)
+				const target = tabsById().find((entry) => entry.id === id)
 				if (target) {
 					if (props.url !== undefined) target.url = props.url
 					if (props.active !== undefined) target.active = props.active
@@ -336,11 +347,22 @@ export function chromeShim(config = {}) {
 	globalThis.__LB_AI_TEST__ = {
 		opened,
 		searches,
+		focusedPages,
 		/** `tabs.update` calls, in order: the tab the app activated (and navigated, if any). */
 		updatedTabs,
 		focusedWindows,
 		setExtraction(next) {
 			extraction = next
+		},
+		/** Simulate "Add this page to chat" from the context menu. */
+		addPage(nextTab = tab.id, nextExtraction) {
+			const descriptor = typeof nextTab === 'number' ? { id: nextTab } : nextTab
+			if (!tabsById().some((entry) => entry.id === descriptor.id)) {
+				otherTabs.push({ windowId: 2, active: false, title: 'Page', favIconUrl: '', ...descriptor })
+			}
+			if (nextExtraction) extractionByTab.set(descriptor.id, nextExtraction)
+			if (!pendingTabs.includes(descriptor.id)) pendingTabs.push(descriptor.id)
+			globalThis.__LB_AI_TEST__.emit({ type: 'page.add', tabId: descriptor.id })
 		},
 		setSettings(settings) {
 			const oldValue = storage.get('settings.v1')

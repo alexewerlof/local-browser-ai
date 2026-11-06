@@ -13,8 +13,8 @@ Local rules:
   except `Header`, `Transcript`, `HistoryPanel`.
 - Classes are BEM-ish with a block per component: `.composer__toolbar`, `.tool__head`, `.meter__segment`. Shared atoms
   are bare blocks: `.chip`, `.badge`, `.popover`, `.field`, `.button`.
-- `.composer__topbar` is not the panel `header`; it is the strip inside the composer box, reserved for per-prompt
-  context.
+- `.composer__topbar` is not the panel `header`; it is the strip inside the composer box holding the page list. It stays
+  one row: `PageList` scrolls horizontally, it never wraps, and the Expand toggle keeps its own space.
 - UI strings are quoted verbatim in the ontology. Change the string and the entry together.
 - `HistoryPanel` renders the **chats drawer**; the UI word is "Chats", never "History panel".
 

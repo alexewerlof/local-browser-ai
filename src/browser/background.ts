@@ -10,8 +10,8 @@ import {
 	type TabInfo,
 } from './protocol'
 
-const PENDING_TAB_KEY = 'pendingTabId'
-const MENU_ATTACH = 'lbai-attach-tab'
+const PENDING_PAGES_KEY = 'pendingPageTabs'
+const MENU_ADD_PAGE = 'lbai-add-page'
 const MENU_SELECTION = 'lbai-add-selection'
 const MENU_OPEN = 'lbai-open-panel'
 
@@ -26,52 +26,52 @@ function log(...args: unknown[]): void {
 /* --------------------------------------------------------------- panel wiring */
 
 /**
- * Chrome persists `openPanelOnActionClick` per extension/profile. Version 2 set it to
- * true, which makes the browser handle the toolbar click itself and **suppress**
- * `action.onClicked` — so the panel opened but the tab was never attached. Reset it so
- * the extension owns the click again.
+ * The toolbar button only shows and hides the panel: pages are added from the context
+ * menu. `openPanelOnActionClick: true` is exactly that, so the worker keeps it set
+ * rather than trying to take over `action.onClicked`.
  */
-async function ensureActionClicksReachUs(): Promise<void> {
+async function ensureToolbarTogglesPanel(): Promise<void> {
 	try {
 		const behavior = await chrome.sidePanel.getPanelBehavior?.()
-		if (behavior?.openPanelOnActionClick !== false) {
-			await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
-			console.info('[lbai] took over toolbar clicks (openPanelOnActionClick disabled)')
+		if (behavior?.openPanelOnActionClick !== true) {
+			await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+			console.info('[lbai] toolbar button toggles the panel')
 		}
 	} catch (error) {
-		console.warn('[lbai] could not reset the side panel behavior', error)
+		console.warn('[lbai] could not set the side panel behavior', error)
 	}
 }
 
 /**
- * Remember which tab the user invoked us on. Kept in memory so a panel that loads
- * immediately can claim it without racing the storage write; persisted to session
- * storage as well so a restarted worker can still answer.
+ * Tabs the user asked to add, drained by the panel as it opens. Kept in memory so a
+ * panel that loads immediately can take them without racing the storage write, and in
+ * session storage so a restarted worker can still answer.
  */
-let pendingTabId: number | null = null
+let pendingPageTabs: number[] = []
 
-function rememberPendingTab(tabId: number): void {
-	pendingTabId = tabId
+function queuePageTab(tabId: number): void {
+	// Adding the same tab twice is a no-op, not a duplicate page.
+	pendingPageTabs = [...pendingPageTabs.filter((id) => id !== tabId), tabId]
 	// Fire and forget: never await before opening the panel.
-	chrome.storage.session.set({ [PENDING_TAB_KEY]: tabId }).catch(() => {
+	chrome.storage.session.set({ [PENDING_PAGES_KEY]: pendingPageTabs }).catch(() => {
 		// `storage.session` is unavailable in some forks; memory still works.
 	})
 }
 
-async function takePendingTab(): Promise<number | null> {
-	const fromMemory = pendingTabId
-	pendingTabId = null
-	if (fromMemory !== null) {
-		chrome.storage.session.remove(PENDING_TAB_KEY).catch(() => {})
+async function takePendingPageTabs(): Promise<number[]> {
+	const fromMemory = pendingPageTabs
+	pendingPageTabs = []
+	if (fromMemory.length > 0) {
+		chrome.storage.session.remove(PENDING_PAGES_KEY).catch(() => {})
 		return fromMemory
 	}
 	try {
-		const stored = await chrome.storage.session.get(PENDING_TAB_KEY)
-		const tabId = stored[PENDING_TAB_KEY]
-		await chrome.storage.session.remove(PENDING_TAB_KEY)
-		return typeof tabId === 'number' ? tabId : null
+		const stored = await chrome.storage.session.get(PENDING_PAGES_KEY)
+		const tabIds = stored[PENDING_PAGES_KEY]
+		await chrome.storage.session.remove(PENDING_PAGES_KEY)
+		return Array.isArray(tabIds) ? tabIds.filter((id): id is number => typeof id === 'number') : []
 	} catch {
-		return null
+		return []
 	}
 }
 
@@ -116,12 +116,12 @@ function openPanel(windowId: number | undefined): void {
 	})
 }
 
-/** Attach a tab from a gesture: open the panel, remember the tab, tell open panels. */
-function attachTab(tabId: number, windowId: number | undefined): void {
-	log('attach requested for tab', tabId)
+/** Add a page from a gesture: open the panel, queue the tab, tell open panels. */
+function addPageFromMenu(tabId: number, windowId: number | undefined): void {
+	log('add page requested for tab', tabId)
 	openPanel(windowId)
-	rememberPendingTab(tabId)
-	broadcast({ type: 'action.clicked', tabId })
+	queuePageTab(tabId)
+	broadcast({ type: 'page.add', tabId })
 }
 
 /* ------------------------------------------------------------------ extraction */
@@ -130,7 +130,7 @@ function assertScriptable(url: string | undefined): asserts url is string {
 	if (!url) {
 		throw new AppError(
 			'permission',
-			'The extension has no access to this tab yet. Click the toolbar icon or use the right-click menu on the page.',
+			'The extension has no access to this tab yet. Use the right-click menu on the page to add it.',
 		)
 	}
 	if (RESTRICTED_URL.test(url)) {
@@ -208,10 +208,73 @@ async function runSearch(text: string, disposition: SearchDisposition): Promise<
 	return { disposition }
 }
 
+/** Same page, hash included. */
+function sameUrl(current: string | undefined, target: string): boolean {
+	return Boolean(current) && current === target
+}
+
+/** Same page, ignoring the fragment, so a card still finds the tab on another anchor. */
+function sameDocument(current: string | undefined, target: string): boolean {
+	if (!current) return false
+	try {
+		const left = new URL(current)
+		const right = new URL(target)
+		return left.origin === right.origin && left.pathname === right.pathname && left.search === right.search
+	} catch {
+		return false
+	}
+}
+
+async function activateTab(tab: chrome.tabs.Tab): Promise<void> {
+	if (tab.id === undefined) return
+	try {
+		await chrome.windows.update(tab.windowId, { focused: true })
+	} catch {
+		// The window may be gone; activating the tab still helps.
+	}
+	await chrome.tabs.update(tab.id, { active: true })
+}
+
+/**
+ * Bring the page a card stands for back on screen.
+ *
+ * The hint is the tab it was captured from, which is only useful while that tab still
+ * shows the page: Chrome reuses tab ids, and a page can be reached from any tab. Fall
+ * back to any open tab showing it, and only then open a new one.
+ */
+async function focusPage(tabId: number | undefined, url: string): Promise<{ tabId?: number }> {
+	if (!/^https?:\/\//i.test(url)) {
+		throw new AppError('invalid-request', 'Only http and https links can be opened.')
+	}
+	if (tabId !== undefined) {
+		try {
+			const tab = await chrome.tabs.get(tabId)
+			if (sameUrl(tab.url, url) || sameDocument(tab.url, url)) {
+				await activateTab(tab)
+				return { tabId: tab.id }
+			}
+		} catch {
+			// The tab was closed; look for another one.
+		}
+	}
+
+	const tabs = await chrome.tabs.query({}).catch(() => [])
+	const match = tabs.find((tab) => sameUrl(tab.url, url)) ?? tabs.find((tab) => sameDocument(tab.url, url))
+	if (match) {
+		await activateTab(match)
+		return { tabId: match.id }
+	}
+
+	const created = await chrome.tabs.create({ url })
+	return { tabId: created.id }
+}
+
 async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 	switch (request.type) {
-		case 'panel.claim':
-			return { tabId: await takePendingTab() }
+		case 'page.pending':
+			return { tabIds: await takePendingPageTabs() }
+		case 'page.focus':
+			return focusPage(request.tabId, request.url)
 		case 'tab.info':
 			return readTabInfo(request.tabId)
 		case 'tab.extract':
@@ -255,17 +318,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 /* ---------------------------------------------------------------- action + menus */
 
-chrome.action.onClicked.addListener((tab) => {
-	log('toolbar click', tab.id, tab.windowId)
-	if (tab.id === undefined) return
-	attachTab(tab.id, tab.windowId)
-})
-
 function createMenus(): void {
 	chrome.contextMenus.removeAll(() => {
 		chrome.contextMenus.create({
-			id: MENU_ATTACH,
-			title: 'Attach this tab to chat',
+			id: MENU_ADD_PAGE,
+			title: 'Add this page to chat',
 			contexts: ['page', 'selection'],
 		})
 		chrome.contextMenus.create({
@@ -280,12 +337,12 @@ function createMenus(): void {
 chrome.runtime.onInstalled.addListener((details) => {
 	log('installed', details.reason, chrome.runtime.getManifest().version)
 	createMenus()
-	void ensureActionClicksReachUs()
+	void ensureToolbarTogglesPanel()
 })
 chrome.runtime.onStartup.addListener(() => {
 	log('browser startup')
 	createMenus()
-	void ensureActionClicksReachUs()
+	void ensureToolbarTogglesPanel()
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -295,7 +352,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 		const text = info.selectionText?.trim()
 		if (!text) return
 		openPanel(tab.windowId)
-		rememberPendingTab(tab.id)
 		broadcast({
 			type: 'selection.add',
 			text,
@@ -305,20 +361,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 		})
 		return
 	}
-	if (info.menuItemId === MENU_ATTACH || info.menuItemId === MENU_OPEN) {
-		attachTab(tab.id, tab.windowId)
+	if (info.menuItemId === MENU_ADD_PAGE) {
+		addPageFromMenu(tab.id, tab.windowId)
+		return
 	}
-})
-
-/* -------------------------------------------------------------- tab lifecycle */
-
-chrome.tabs.onActivated.addListener((activeInfo) => {
-	broadcast({ type: 'tab.changed', tabId: activeInfo.tabId, reason: 'activated' })
-})
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-	if (changeInfo.status !== 'loading') return
-	broadcast({ type: 'tab.changed', tabId, reason: 'updated' })
+	if (info.menuItemId === MENU_OPEN) openPanel(tab.windowId)
 })
 
 /* ------------------------------------------------------------------- bootstrap */
@@ -326,4 +373,4 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 // Runs on every worker start, so a profile that still carries the old behavior is
 // repaired even before the next install/startup event.
 log('worker started')
-void ensureActionClicksReachUs()
+void ensureToolbarTogglesPanel()

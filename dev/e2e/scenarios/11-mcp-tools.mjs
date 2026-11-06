@@ -12,7 +12,7 @@ export async function run(ctx) {
 	const mcp = await startMockMcpServer()
 	const server = await startFakeModelServer({
 		chunks: ['The', ' server', ' said', ' hello.'],
-		toolScript: (body) => (body.messages.some((message) => message.role === 'tool') ? 'text' : 'tool-call'),
+		toolScript: (body) => (body.messages.at(-1)?.role === 'tool' ? 'text' : 'tool-call'),
 		toolCall: () => ({ name: TOOL_NAME, arguments: JSON.stringify({ message: 'hello' }) }),
 	})
 

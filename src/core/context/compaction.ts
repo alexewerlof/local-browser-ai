@@ -101,7 +101,7 @@ export function buildSummaryPrompt(messages: ChatMessage[], previousSummary?: st
 		'Preserve, in this order of importance:',
 		'1. What the user is trying to accomplish and any constraints they stated.',
 		'2. Decisions made and conclusions reached, with the reasoning that justifies them.',
-		'3. Concrete facts gathered from the attached page, including section names, numbers and URLs.',
+		'3. Concrete facts gathered from the pages added to the conversation, including page handles, section names, numbers and URLs.',
 		'4. Tool findings that are still relevant.',
 		'5. Open questions and the next step.',
 		'Drop pleasantries, repeated content and failed attempts that led nowhere.',

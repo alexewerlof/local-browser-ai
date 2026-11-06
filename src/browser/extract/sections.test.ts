@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findInAttachment, readSection, splitIntoSections } from './sections'
-import type { PageAttachment } from '../../core/types'
+import type { PageSnapshot } from '../../core/types'
 
 const markdown = [
 	'Intro paragraph before any heading.',
@@ -49,19 +49,21 @@ describe('splitIntoSections', () => {
 	})
 })
 
-function attachment(): PageAttachment {
+function attachment(): PageSnapshot {
 	const { outline, chunks } = splitIntoSections(markdown)
 	return {
 		id: 'p',
+		conversationId: 'chat',
+		handle: 'p1',
 		url: 'https://example.com',
 		title: 'Example',
 		markdown,
 		outline,
 		chunks,
 		capturedAt: 0,
-		stale: false,
 		truncated: false,
 		totalChars: markdown.length,
+		block: '',
 	}
 }
 

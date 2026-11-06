@@ -135,25 +135,22 @@ async function main() {
 		assert.equal(await page.locator('.header__name').count(), 0)
 		assert.equal(await page.locator('.header__logo').count(), 0)
 
-		// 1. Toolbar clicks must reach the extension. Chrome persists the old
-		//    `openPanelOnActionClick: true` behavior, which silently swallows onClicked.
+		// 1. The toolbar button only shows and hides the panel, so the extension must leave
+		//    Chrome's own `openPanelOnActionClick` behavior on. Adding a page is a context
+		//    menu action instead.
 		const behavior = await page.evaluate(() => chrome.sidePanel.getPanelBehavior())
-		assert.equal(
-			behavior.openPanelOnActionClick,
-			false,
-			'side panel behavior must let chrome.action.onClicked reach the extension',
-		)
+		assert.equal(behavior.openPanelOnActionClick, true, 'the worker should let the toolbar button toggle the panel')
 
 		// 2. Static assets resolve from the extension root.
 		const iconOk = await page.evaluate(async () => (await fetch('./images/icon-32.png')).ok)
 		assert.equal(iconOk, true, 'extension image asset did not resolve')
 
 		// 3. The background answers the typed RPC protocol.
-		const claimed = await page.evaluate(() =>
-			chrome.runtime.sendMessage({ __lbai_rpc__: true, request: { type: 'panel.claim' } }),
+		const pending = await page.evaluate(() =>
+			chrome.runtime.sendMessage({ __lbai_rpc__: true, request: { type: 'page.pending' } }),
 		)
-		assert.equal(claimed.ok, true)
-		assert.ok(claimed.value.tabId === null || typeof claimed.value.tabId === 'number')
+		assert.equal(pending.ok, true)
+		assert.ok(Array.isArray(pending.value.tabIds))
 
 		const invalid = await page.evaluate(() =>
 			chrome.runtime.sendMessage({ __lbai_rpc__: true, request: { type: 'nope' } }),
@@ -335,13 +332,14 @@ async function main() {
 		assert.deepEqual(failures, [])
 		await context.close()
 
-		// 6. Migration: a profile left with the old behavior must be repaired on start.
+		// 6. Migration: a profile left with the old behavior must be brought to the current
+		//    one on start, whatever it was set to.
 		console.log('simulating a legacy profile…')
 		;({ context, extensionId } = await launch(profile))
 		const legacy = await context.newPage()
 		await legacy.goto(`chrome-extension://${extensionId}/side-panel.html`)
 		await legacy.waitForSelector('.app', { timeout: 20000 })
-		await legacy.evaluate(() => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }))
+		await legacy.evaluate(() => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }))
 		await context.close()
 		;({ context, extensionId } = await launch(profile))
 		const repaired = await context.newPage()
@@ -349,11 +347,11 @@ async function main() {
 		await repaired.waitForSelector('.settings', { timeout: 20000 })
 		const deadline = Date.now() + 8000
 		let current = await repaired.evaluate(() => chrome.sidePanel.getPanelBehavior())
-		while (current.openPanelOnActionClick && Date.now() < deadline) {
+		while (!current.openPanelOnActionClick && Date.now() < deadline) {
 			await new Promise((done) => setTimeout(done, 200))
 			current = await repaired.evaluate(() => chrome.sidePanel.getPanelBehavior())
 		}
-		assert.equal(current.openPanelOnActionClick, false, 'the worker should reset a legacy panel behavior')
+		assert.equal(current.openPanelOnActionClick, true, 'the worker should restore the toolbar toggle')
 		await context.close()
 
 		console.log('✔ extension: service worker, RPC, panel, Settings, extraction, behavior migration')

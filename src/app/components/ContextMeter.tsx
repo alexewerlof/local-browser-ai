@@ -83,20 +83,6 @@ export function ContextMeter({
 					<span className="context-row__label muted">Compacts at</span>
 					<span className="badge">{formatTokens(snapshot.compactionAt)}</span>
 				</div>
-				<div className="context-row">
-					<span className="context-row__label muted">Page</span>
-					<span className="badge">
-						{snapshot.pageMode === 'none'
-							? 'not attached'
-							: snapshot.pageMode === 'full'
-								? 'whole page'
-								: snapshot.pageMode === 'index'
-									? 'page index'
-									: snapshot.pageMode === 'excerpts'
-										? 'outline + excerpts'
-										: 'outline only'}
-					</span>
-				</div>
 			</div>
 
 			<div className="popover__footer row" style={{ gap: 'var(--space-3)' }}>

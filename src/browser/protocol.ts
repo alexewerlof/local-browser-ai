@@ -12,7 +12,8 @@ export interface TabInfo {
 export type SearchDisposition = 'CURRENT_TAB' | 'NEW_TAB' | 'NEW_WINDOW'
 
 export type BackgroundRequest =
-	| { type: 'panel.claim' }
+	| { type: 'page.pending' }
+	| { type: 'page.focus'; tabId?: number; url: string }
 	| { type: 'tab.info'; tabId?: number }
 	| { type: 'tab.extract'; tabId?: number }
 	| { type: 'tab.selection'; tabId?: number }
@@ -20,7 +21,8 @@ export type BackgroundRequest =
 	| { type: 'search.query'; text: string; disposition: SearchDisposition }
 
 export interface RequestResults {
-	'panel.claim': { tabId: number | null }
+	'page.pending': { tabIds: number[] }
+	'page.focus': { tabId?: number }
 	'tab.info': TabInfo
 	'tab.extract': import('./extract/inject').InjectResult
 	'tab.selection': { text: string }
@@ -29,11 +31,11 @@ export interface RequestResults {
 }
 
 export type BackgroundResponse =
-	{ ok: true; value: unknown } | { ok: false; error: { kind: ErrorKind; message: string } }
+	| { ok: true; value: unknown }
+	| { ok: false; error: { kind: ErrorKind; message: string } }
 
 export type BackgroundEvent =
-	| { type: 'action.clicked'; tabId: number }
-	| { type: 'tab.changed'; tabId: number | null; reason: 'activated' | 'updated' }
+	| { type: 'page.add'; tabId: number }
 	| { type: 'selection.add'; text: string; tabId: number; url: string; title: string }
 
 export const RPC_FLAG = '__lbai_rpc__'

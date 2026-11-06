@@ -11,7 +11,7 @@ export async function run(ctx) {
 	const mcp = await startMockMcpServer()
 	const server = await startFakeModelServer({
 		chunks: ['Done.'],
-		toolScript: (body) => (body.messages.some((message) => message.role === 'tool') ? 'text' : 'tool-call'),
+		toolScript: (body) => (body.messages.at(-1)?.role === 'tool' ? 'text' : 'tool-call'),
 		toolCall: () => ({ name: TOOL_NAME, arguments: JSON.stringify({ message: 'hi' }) }),
 	})
 
@@ -59,7 +59,8 @@ export async function run(ctx) {
 
 		assert.equal(mcp.calls.length, 1, 'a denied call must never reach the server')
 		const lastRequest = server.requests.at(-1)
-		const toolMessage = lastRequest.messages.find((message) => message.role === 'tool')
+		// Earlier turns replay their tool results too, so look at the newest one.
+		const toolMessage = lastRequest.messages.filter((message) => message.role === 'tool').at(-1)
 		assert.match(JSON.stringify(toolMessage), /declined/)
 	} finally {
 		await server.close()

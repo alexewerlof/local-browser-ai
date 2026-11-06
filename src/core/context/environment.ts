@@ -9,7 +9,7 @@
 export interface EnvironmentInput {
 	/** Browser language preferences, most preferred first. Defaults to `navigator.languages`. */
 	languages?: readonly string[]
-	/** The `lang` of the attached page, when one is attached. */
+	/** The `lang` of an added page, when one declares it. */
 	pageLanguage?: string
 }
 
@@ -37,7 +37,7 @@ export function describeEnvironment(input: EnvironmentInput = {}): string {
 	// Only worth saying when the page is in a language the user does not already prefer.
 	const pageLanguage = input.pageLanguage?.trim()
 	if (pageLanguage && !speaks(languages, pageLanguage)) {
-		lines.push(`The attached page is marked as language "${pageLanguage}".`)
+		lines.push(`A page in this conversation is marked as language "${pageLanguage}".`)
 	}
 
 	return lines.join('\n')

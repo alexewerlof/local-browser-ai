@@ -1,6 +1,6 @@
 import { FileText, RefreshCw, X } from 'lucide-react'
 import { formatBytes } from '../../core/util'
-import type { PageAttachment } from '../../core/types'
+import type { PageSnapshot } from '../../core/types'
 
 export function AttachmentCard({
 	attachment,
@@ -8,7 +8,7 @@ export function AttachmentCard({
 	onRefresh,
 	onRemove,
 }: {
-	attachment: PageAttachment
+	attachment: PageSnapshot
 	busy: boolean
 	onRefresh: () => void
 	onRemove: () => void

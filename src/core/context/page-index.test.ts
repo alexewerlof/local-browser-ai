@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { PageAttachment } from '../types'
+import type { PageSnapshot } from '../types'
 import { describePageSize, pageStats, renderPageIndex } from './page-index'
 import { estimateTokens } from './tokens'
 
-function page(overrides: Partial<PageAttachment> = {}): PageAttachment {
+function page(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
 	const markdown = [
 		'# Example Pricing',
 		'',
