@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
-	Brain,
 	CpuAi,
 	GraduationCap,
 	MemoryStick,
+	Notebook,
+	Palette,
 	PocketKnife,
 	Puzzle,
 	Settings,
@@ -28,17 +29,19 @@ import { McpSection } from './McpSection'
 import { MemorySection } from './MemorySection'
 import { ContextSection } from './ContextSection'
 import { GeneralSection } from './GeneralSection'
+import { AppearanceSection } from './AppearanceSection'
 
 /** Every section needs an icon; a missing entry is a type error rather than a blank rail. */
 const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	general: Settings,
+	appearance: Palette,
 	providers: CpuAi,
 	models: Sparkles,
 	skills: GraduationCap,
 	tools: Wrench,
 	mcp: PocketKnife,
 	memory: MemoryStick,
-	context: Brain,
+	context: Notebook,
 }
 
 /* The rail footer points at Chrome's own page for this extension: shortcuts, site access and
@@ -134,6 +137,7 @@ export function SettingsApp() {
 			<main className="settings__content">
 				<div className="settings__column">
 					{section === 'general' && <GeneralSection settings={settings} />}
+					{section === 'appearance' && <AppearanceSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
 					{section === 'models' && <ModelsSection settings={settings} />}
 					{section === 'skills' && <SkillsSection settings={settings} />}

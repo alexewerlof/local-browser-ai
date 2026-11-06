@@ -34,8 +34,7 @@ export interface RequestResults {
 }
 
 export type BackgroundResponse =
-	| { ok: true; value: unknown }
-	| { ok: false; error: { kind: ErrorKind; message: string } }
+	{ ok: true; value: unknown } | { ok: false; error: { kind: ErrorKind; message: string } }
 
 export type BackgroundEvent =
 	| { type: 'page.add'; tabId: number }

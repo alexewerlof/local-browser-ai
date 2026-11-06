@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 6
+    version: 7
     updated: 2026-11-06
     status: contract
     shipped: false
@@ -176,9 +176,9 @@ ui:
 # The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
     settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Appearance, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
     settings-route: the fragment that names the open section, General at the root; code parseSettingsHash, settingsSectionHash, settings.html#/skills; ui hash, settings.html#/skills; not query string, path, tab
-    settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, Instructions, Tool Calls, Data, Compaction; not box, panel, widget
+    settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
     switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Run without asking, Enable memory, Send requests without an Origin header; not toggle, checkbox, slider
     settings-version: the schema version that migrates fields and tools once; code SETTINGS_VERSION, migrateSettings, TOOLS_ADDED_IN; not schema version, config version

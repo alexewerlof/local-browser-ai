@@ -40,7 +40,9 @@ body {
 	flex-direction: column;
 	gap: 2px;
 	height: 100vh;
-	padding: var(--space-4) var(--space-4) var(--space-5);
+	/* No inline-start padding: a hovered or selected row's fill runs to the window edge, the way
+	 * Chrome's own rails do. The rows carry that inset themselves; the right inset stays here. */
+	padding: var(--space-4) var(--space-4) var(--space-5) 0;
 	overflow-y: auto;
 }
 
@@ -49,7 +51,7 @@ body {
 	align-items: center;
 	gap: var(--space-4);
 	min-width: 0;
-	padding: var(--space-2) var(--space-6) var(--space-6);
+	padding: var(--space-2) var(--space-6) var(--space-6) var(--space-7);
 	font-size: var(--text-lg);
 	font-weight: 500;
 	line-height: 20px;
@@ -77,8 +79,11 @@ body {
 	gap: var(--space-6);
 	width: 100%;
 	min-height: 40px;
-	padding: 10px var(--space-6);
-	border-radius: var(--radius-pill);
+	/* Inline-start is the rail's old 8px padding plus 16px, so the icon and label keep the x
+	 * position they had before the fill went full-bleed. */
+	padding: 10px var(--space-6) 10px var(--space-7);
+	/* Flush left, rounded right: the row starts at the window edge. */
+	border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
 	color: var(--nav-fg);
 	font-size: 14px;
 	font-weight: 500;
@@ -132,7 +137,7 @@ body {
 }
 
 .settings__footer-hint {
-	padding-inline: var(--space-6);
+	padding-inline: var(--space-7) var(--space-6);
 	font-size: var(--text-md);
 	line-height: 1.5;
 	color: var(--fg-muted);

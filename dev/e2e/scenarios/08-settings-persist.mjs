@@ -9,14 +9,18 @@ export async function run(ctx) {
 	const { page } = ctx
 
 	await page.locator('.settings__nav-item:has-text("General")').click()
-	await page.waitForSelector('.settings__content >> text=Appearance')
+	await page.waitForSelector('.settings__content >> text=Tool Calls')
 
-	// General leads the rail and is the default section; it hosts the tool-step cap.
+	// General leads the rail, Appearance follows it, and General hosts the tool-step cap.
 	assert.equal(await page.locator('.settings__nav-item').first().textContent(), 'General')
+	assert.equal(await page.locator('.settings__nav-item').nth(1).textContent(), 'Appearance')
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'General')
 	assert.equal(await page.locator('.settings__content >> text=Maximum tool steps per answer').count(), 1)
 
-	// Change the theme and verify both the DOM and the persisted settings.
+	// The theme lives in Appearance; changing it still restyles the page and persists.
+	await page.locator('.settings__nav-item:has-text("Appearance")').click()
+	await page.waitForSelector('.settings__content >> text=Code highlighting')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Appearance')
 	await page.locator('select').first().selectOption('dark')
 	await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark')
 	// Settings are persisted with a short debounce; wait for the write, not just the render.
@@ -33,8 +37,10 @@ export async function run(ctx) {
 
 	await page.locator('.settings__nav-item:has-text("Context")').click()
 	await page.waitForSelector('.settings__content >> text=Compaction')
-	// The tool-step cap now lives in General, not Context.
+	// The tool-step cap stays in General and the system prompt moved here, above compaction.
+	// Match the card title, not the section intro, which also mentions the system prompt.
 	assert.equal(await page.locator('.settings__content >> text=Maximum tool steps per answer').count(), 0)
+	assert.equal(await page.locator('.group__title', { hasText: 'System prompt' }).count(), 1)
 
 	await page.locator('.settings__nav-item:has-text("Providers")').click()
 	await page.waitForSelector('.provider')

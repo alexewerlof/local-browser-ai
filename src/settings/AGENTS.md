@@ -10,9 +10,18 @@ settings-field, switch) plus the setting entries in their domain groups: `contex
 
 Local rules:
 
-- Rail order is fixed: General, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context. General is the landing
-  section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
-  `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
+- Rail order is fixed: General, Appearance, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context. General is
+  the landing section. A new section is a new rail item and a new ontology entry for each card title it adds. The order
+  lives in `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to
+  its icon.
+- Ownership follows the domain, not the page a card happened to start on. General keeps the tool-step cap, Data and
+  About; Appearance owns everything about how the app looks and renders (theme, submit key, font size, Math, Code
+  highlighting); Context owns the system prompt and compaction, because both are what the assembled prompt is made of.
+  The system prompt card sits above Compaction, since it is the first thing the budget is spent on.
+- A rail row is flush with the window edge: `.settings__nav` has no inline-start padding and the rows carry the inset
+  themselves (`padding-inline-start: var(--space-7)`, `border-radius: 0 var(--radius-pill) var(--radius-pill) 0`). That
+  is what makes a hovered or selected row's fill reach the edge, the way Chrome's own rails behave. Never re-add the
+  rail's inline-start padding; it clips the fill.
 - The open section is the URL fragment, Chrome-style: General is the root and every other section is `#/<id>`
   (`settings.html#/skills`). A path segment is impossible (the page is a static file), so the slash lives in the
   fragment. The page reads the fragment on mount, normalises an unknown or hand-typed one with `replaceState`, syncs on

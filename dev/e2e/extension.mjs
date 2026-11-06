@@ -201,7 +201,7 @@ async function main() {
 		settingsPage.on('pageerror', (error) => pageErrors.push(error.message))
 		await settingsPage.goto(`chrome-extension://${extensionId}/settings.html`)
 		await settingsPage.waitForSelector('.settings', { timeout: 20000 })
-		assert.equal(await settingsPage.locator('.settings__nav-item').count(), 8)
+		assert.equal(await settingsPage.locator('.settings__nav-item').count(), 9)
 		// The brand is the extension icon plus its manifest name, and General leads the rail.
 		assert.equal(await settingsPage.locator('.settings__nav-item').first().textContent(), 'General')
 		assert.equal(

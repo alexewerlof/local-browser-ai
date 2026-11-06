@@ -9,6 +9,7 @@
 
 export const SETTINGS_SECTIONS = [
 	{ id: 'general', label: 'General' },
+	{ id: 'appearance', label: 'Appearance' },
 	{ id: 'providers', label: 'Providers' },
 	{ id: 'models', label: 'Models' },
 	{ id: 'skills', label: 'Skills' },

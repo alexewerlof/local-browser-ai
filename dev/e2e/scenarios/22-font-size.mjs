@@ -36,7 +36,8 @@ export async function run(ctx) {
 		'16.25px',
 	)
 
-	// The Appearance card carries the control; picking a value applies it immediately.
+	// The Appearance section carries the control; picking a value applies it immediately.
+	await page.locator('.settings__nav-item:has-text("Appearance")').click()
 	const fontRow = page.locator('.field', { hasText: 'Font size' })
 	await fontRow.locator('select').selectOption('very-large')
 	await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--text-scale') === '1.5')

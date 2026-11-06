@@ -1,6 +1,7 @@
 import type { AppSettings } from '../core/types'
+import { defaultSystemPrompt } from '../core/settings'
 import { updateSettings } from '../state/settings'
-import { RangeField } from './fields'
+import { RangeField, TextAreaField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
 export function ContextSection({ settings }: { settings: AppSettings }) {
@@ -11,6 +12,26 @@ export function ContextSection({ settings }: { settings: AppSettings }) {
 				The context window is shared by the system prompt, the added pages, earlier turns and the answer. When
 				usage passes the compaction threshold, the oldest turns are summarized so the conversation can continue.
 			</p>
+
+			<SettingsCard title="System prompt">
+				<TextAreaField
+					label="Instructions"
+					value={settings.systemPrompt}
+					rows={8}
+					onChange={(systemPrompt) => updateSettings((current) => ({ ...current, systemPrompt }))}
+					hint="Sent at the top of every request. Page content is added separately, with a note that it is untrusted data."
+				/>
+				<div className="row">
+					<button
+						type="button"
+						className="button button--sm"
+						disabled={settings.systemPrompt === defaultSystemPrompt}
+						onClick={() => updateSettings((current) => ({ ...current, systemPrompt: defaultSystemPrompt }))}
+					>
+						Reset to default
+					</button>
+				</div>
+			</SettingsCard>
 
 			<SettingsCard title="Compaction">
 				<RangeField
