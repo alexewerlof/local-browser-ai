@@ -205,7 +205,8 @@ bridge, so a `chrome.storage.sync` backend can be added without migrating data.
 
 The composer stays usable while a run streams: submitting during a run appends to a per-conversation FIFO queue shown
 above the input, and the run loop starts the next prompt when it goes idle (completion or error). Both buttons are
-visible while streaming — Stop aborts the current answer, Submit queues the next prompt.
+visible while streaming, once the draft has text — Stop aborts the current answer, Submit queues the next prompt. An
+empty draft renders no Submit button at all, so a busy composer shows Stop alone.
 
 **Stop parks the queue.** The user pressed Stop to get out of the loop, not to skip this answer and run everything else,
 so `stopGeneration` sets `queuePausedStore` (only when something is queued) and `runTurn`'s `finally` skips the drain. A

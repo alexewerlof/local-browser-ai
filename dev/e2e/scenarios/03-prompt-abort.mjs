@@ -27,9 +27,11 @@ export async function run(ctx) {
 		assert.doesNotMatch(text, /eight/)
 
 		// The partial answer is no longer streaming and the composer recovered: the Stop
-		// button goes away while Submit stays available.
+		// button goes away, and an empty draft renders no Submit button at all.
 		assert.equal(await page.locator('.composer__input').isEnabled(), true)
 		await page.waitForSelector('button[aria-label="Stop generating"]', { state: 'detached' })
+		assert.equal(await page.locator('button[aria-label="Submit"]').count(), 0)
+		await page.locator('.composer__input').fill('Next question')
 		assert.equal(await page.locator('button[aria-label="Submit"]').isVisible(), true)
 	} finally {
 		await server.close()

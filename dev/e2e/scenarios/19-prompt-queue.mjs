@@ -26,11 +26,13 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('First prompt')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		// While the answer streams the user can stop it *and* submit the next prompt.
+		// An empty draft renders no Submit button, so a busy composer shows Stop alone.
 		await page.waitForSelector('button[aria-label="Stop generating"]')
-		assert.equal(await page.locator('button[aria-label="Submit"]').isVisible(), true)
+		assert.equal(await page.locator('button[aria-label="Submit"]').count(), 0)
 
+		// While the answer streams the user can stop it *and* submit the next prompt.
 		await page.locator('.composer__input').fill('Second prompt')
+		assert.equal(await page.locator('button[aria-label="Submit"]').isVisible(), true)
 		await page.locator('button[aria-label="Submit"]').click()
 		await page.locator('.composer__input').fill('Third prompt')
 		await page.locator('button[aria-label="Submit"]').click()

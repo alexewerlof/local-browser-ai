@@ -348,17 +348,18 @@ export function Composer({
 						</button>
 					)}
 
-					{/* Always available: it sends when idle and queues while the agent works. */}
-					<button
-						type="button"
-						className="button button--primary button--icon composer__submit"
-						onClick={submit}
-						disabled={!draft.trim()}
-						title={busy ? 'Queue prompt' : 'Submit'}
-						aria-label="Submit"
-					>
-						<ArrowUp size={14} />
-					</button>
+					{/* Rendered once there is something to send: it sends when idle and queues while the agent works. */}
+					{draft.trim() !== '' && (
+						<button
+							type="button"
+							className="button button--primary button--icon composer__submit"
+							onClick={submit}
+							title={busy ? 'Queue prompt' : 'Submit'}
+							aria-label="Submit"
+						>
+							<ArrowUp size={14} />
+						</button>
+					)}
 				</div>
 			</div>
 
