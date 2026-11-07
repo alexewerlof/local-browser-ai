@@ -14,8 +14,8 @@ export function startFakeModelServer(options = {}) {
 		/** Optional: (body, callIndex) => 'tool-call' | 'text' */
 		toolScript = null,
 		toolCall = {
-			name: 'find_in_page',
-			arguments: JSON.stringify({ query: 'pricing' }),
+			name: 'read_page',
+			arguments: JSON.stringify({ mode: 'find', query: 'pricing' }),
 		},
 		usage = true,
 	} = options

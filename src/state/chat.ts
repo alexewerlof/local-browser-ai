@@ -24,12 +24,12 @@ import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
 import { getPromptApiStatus } from '../providers/prompt-status'
 import { settingsStore } from './settings'
-import { requestApproval } from './browser'
+import { requestApproval, recordToolTab, attachTabForTool } from './browser'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, loadPages, saveConversation, savePage } from './database'
 import { clearOpenChatId, readOpenChatId, writeOpenChatId } from './panel-state'
-import { bindPages, pagesStore, pendingPages } from './pages'
+import { bindPages, findAttachedPage, pagesStore, pendingPages } from './pages'
 import {
 	bindQueue,
 	enqueuePrompt,
@@ -82,6 +82,16 @@ export const conversationStore = new Store<Conversation>(createConversation(null
 // The panel opens on a fresh chat, so its queue starts empty.
 bindQueue(conversationStore.get().id)
 export const runStore = new Store<RunState>({ status: 'idle' })
+
+/**
+ * Set when a run stopped because it reached the tool-step cap, not because the model was
+ * done.
+ *
+ * The cap is per run, so continuing is a new run over the same answer: the counter starts
+ * again from zero, and the tool calls that already ran are replayed from the transcript
+ * rather than repeated.
+ */
+export const stepLimitStore = new Store<{ limit: number } | null>(null)
 export const contextStore = new Store<ContextSnapshot>({
 	parts: [],
 	usedTokens: 0,
@@ -271,6 +281,8 @@ export function newChat(): void {
 	// The outgoing chat keeps its own persisted queue; the new one starts empty.
 	bindQueue(conversation.id)
 	queuePausedStore.set(false)
+	// A cap offer belongs to the answer that hit it, not to a chat opened afterwards.
+	stepLimitStore.set(null)
 	runStore.set({ status: 'idle' })
 	refreshContext()
 }
@@ -297,6 +309,8 @@ export async function openConversation(id: string): Promise<void> {
 		await loadQueueFor(id)
 		// A pause belongs to the run the user stopped, not to a chat they open later.
 		queuePausedStore.set(false)
+		// Same for a cap offer: it names answer on another transcript.
+		stepLimitStore.set(null)
 		runStore.set({ status: 'idle' })
 		refreshContext()
 	} finally {
@@ -377,13 +391,21 @@ export function resumeQueue(): void {
 const toolContext: ToolContext = {
 	getPages: () => pagesStore.get(),
 	getConversationId: () => conversationStore.get().id,
+	findPageByUrl: (url) => findAttachedPage(url),
 	memory: memoryAccess,
 	requestApproval,
+	onToolTab: recordToolTab,
+	attachTab: attachTabForTool,
 }
 
 interface RunOptions {
 	/** True when retrying after a context overflow, so we do not loop forever. */
 	retried?: boolean
+	/**
+	 * True when continuing an answer that hit the tool-step cap: keep its parts and add to
+	 * the same message instead of starting a second bubble.
+	 */
+	resume?: boolean
 }
 
 async function runTurn(assistantId: string, options: RunOptions = {}): Promise<void> {
@@ -396,6 +418,8 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 	let usage: Usage = { inputTokens: 0, outputTokens: 0, exact: false }
 
 	runStore.set({ status: 'streaming', startedAt })
+	// A new run answers the old offer: the banner must not survive into this one.
+	stepLimitStore.set(null)
 
 	let working = conversationStore.get()
 	const assistantMessage = working.messages.find((message) => message.id === assistantId)
@@ -416,6 +440,13 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 	let delegated = false
 	/** Declared here so `finally` closes the clients even when the run throws early. */
 	let mcpBundle: McpToolBundle | null = null
+
+	// A continued answer keeps the tool calls it already ran: they are replayed from the
+	// transcript, so the new segment adds to the same bubble instead of repeating them.
+	if (options.resume) {
+		working = patchMessage(working, assistantId, (message) => ({ ...message, status: 'streaming' }))
+		commitRun(working)
+	}
 
 	try {
 		const selection = resolveSelection(settings, working)
@@ -472,7 +503,9 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			abortSignal: controller.signal,
 		})
 
-		const parts: MessagePart[] = []
+		const parts: MessagePart[] = options.resume ? [...assistantMessage.parts] : []
+		/** Parts that were already on screen when this run started. */
+		const seeded = parts.length
 
 		const updateParts = () => {
 			working = patchMessage(working, assistantId, (message) => ({
@@ -646,6 +679,30 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			tokensPerSecond: duration > 0 ? Math.round((usage.outputTokens / duration) * 1000) : undefined,
 			steps,
 		})
+
+		// "tool-calls" means the model asked for more tools and the cap stopped it there.
+		// Ending the run silently is what makes a truncated answer look like a hang, so the
+		// user is asked whether to spend another budget.
+		const finishReason = await Promise.resolve(result.finishReason).catch(() => undefined)
+		if (!aborted && finishReason === 'tool-calls') {
+			if (parts.length > seeded) {
+				stepLimitStore.set({ limit: settings.context.maxToolSteps })
+			} else {
+				// A continuation that added nothing would re-offer the same banner for ever,
+				// which reads as a button that does not work. Say what happened instead.
+				runStore.set({
+					status: 'idle',
+					error: {
+						kind: 'unsupported',
+						message:
+							'The model asked for tools again but returned nothing to run. Ask again, or raise the limit.',
+						// Retrying would regenerate the whole answer and repeat every tool call,
+						// so the message alone is the honest offer.
+						retryable: false,
+					},
+				})
+			}
+		}
 
 		if (isCurrentConversation()) {
 			publishContext(working, settings, selection)
@@ -841,6 +898,39 @@ export async function regenerate(): Promise<void> {
 	}
 	commit({ ...conversation, messages: [...messages, assistantMessage], updatedAt: now() })
 	await runTurn(assistantMessage.id)
+}
+
+/**
+ * Continue an answer that stopped at the tool-step cap.
+ *
+ * A new run over the same message, so the counter starts again: if the limit is 6, the
+ * user gets 6 more tool calls before being asked once more. The calls already made are
+ * replayed from the transcript, so continuing costs no repeated work.
+ */
+export async function continueRun(): Promise<void> {
+	stepLimitStore.set(null)
+	if (draining || runStore.get().status !== 'idle') {
+		// Only reachable if something else grabbed the run first. Say so rather than
+		// dropping the click on the floor.
+		runStore.set({
+			status: 'idle',
+			error: {
+				kind: 'invalid-request',
+				message: 'Another run is still finishing. Try again in a moment.',
+				retryable: false,
+			},
+		})
+		return
+	}
+	const conversation = conversationStore.get()
+	const last = [...conversation.messages].reverse().find((message) => message.role === 'assistant')
+	if (!last || last.status === 'aborted') return
+	await runTurn(last.id, { resume: true })
+}
+
+/** Leave the answer as it stopped: the cap stands, and the banner goes away. */
+export function cancelStepLimit(): void {
+	stepLimitStore.set(null)
 }
 
 /* ----------------------------------------------------------------- compaction */

@@ -56,56 +56,73 @@ describe('normalizeSettings', () => {
 	it('drops unknown tool ids', () => {
 		const stored = {
 			...defaultSettings(),
-			tools: { enabled: ['find_in_page', 'does_not_exist'], autoApprove: ['nope'] },
+			tools: { enabled: ['get_selection', 'does_not_exist'], autoApprove: ['nope'] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.tools.enabled).toEqual(['find_in_page'])
+		expect(settings.tools.enabled).toEqual(['get_selection'])
 		expect(settings.tools.autoApprove).toEqual([])
+	})
+
+	it('replaces the page tools merged in v10', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 9,
+			tools: {
+				enabled: ['read_attached_page', 'get_page_outline', 'read_page_section', 'find_in_page', 'open_url'],
+				autoApprove: ['read_attached_page', 'get_page_outline', 'find_in_page', 'open_url'],
+			},
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.tools.enabled).toEqual(['read_page'])
+		// Reading is still free; the URL form asks because it opens a tab.
+		expect(settings.tools.autoApprove).toEqual(['read_page'])
 	})
 
 	it('enables every tool introduced after the stored settings version', () => {
 		const stored = {
 			...defaultSettings(),
 			version: 1,
-			tools: { enabled: ['find_in_page'], autoApprove: [] },
+			tools: { enabled: ['get_selection'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.tools.enabled).toEqual([
-			'find_in_page',
+			'get_selection',
 			'get_current_datetime',
 			'search_web',
 			'remember',
 			'recall',
+			'read_page',
 		])
-		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall'])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall', 'read_page'])
 	})
 
 	it('adds only the tools newer than the stored version', () => {
 		const stored = {
 			...defaultSettings(),
 			version: 2,
-			tools: { enabled: ['find_in_page', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
+			tools: { enabled: ['get_selection', 'get_current_datetime'], autoApprove: ['get_current_datetime'] },
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.tools.enabled).toEqual([
-			'find_in_page',
+			'get_selection',
 			'get_current_datetime',
 			'search_web',
 			'remember',
 			'recall',
+			'read_page',
 		])
-		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall'])
+		expect(settings.tools.autoApprove).toEqual(['get_current_datetime', 'search_web', 'recall', 'read_page'])
 	})
 
 	it('respects disabling a migrated tool once the store is current', () => {
 		const stored = {
 			...defaultSettings(),
-			tools: { enabled: ['find_in_page'], autoApprove: [] },
+			tools: { enabled: ['get_selection'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.tools.enabled).toEqual(['find_in_page'])
+		expect(settings.tools.enabled).toEqual(['get_selection'])
 	})
 
 	it('resets the default model when its provider is gone', () => {
@@ -130,7 +147,7 @@ describe('normalizeSettings', () => {
 		const stored = {
 			...defaultSettings(),
 			version: 3,
-			tools: { enabled: ['find_in_page'], autoApprove: [] },
+			tools: { enabled: ['read_page'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.version).toBe(SETTINGS_VERSION)
@@ -229,7 +246,7 @@ describe('normalizeSettings', () => {
 		const stored = {
 			...defaultSettings(),
 			tools: {
-				enabled: ['find_in_page'],
+				enabled: ['get_selection'],
 				autoApprove: [],
 				mcp: [
 					mcpServer(),
@@ -240,7 +257,7 @@ describe('normalizeSettings', () => {
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.tools.mcp.map((server) => server.id)).toEqual(['mcp_1'])
-		expect(settings.tools.enabled).toEqual(['find_in_page'])
+		expect(settings.tools.enabled).toEqual(['get_selection'])
 		expect(settings.providers[0]?.kind).toBe('prompt-api')
 	})
 
@@ -270,13 +287,13 @@ describe('memory settings', () => {
 		const stored = {
 			...defaultSettings(),
 			version: 5,
-			tools: { enabled: ['find_in_page'], autoApprove: [] },
+			tools: { enabled: ['get_selection'], autoApprove: [] },
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.version).toBe(SETTINGS_VERSION)
 		expect(settings.memory.enabled).toBe(true)
-		expect(settings.tools.enabled).toEqual(['find_in_page', 'remember', 'recall'])
-		expect(settings.tools.autoApprove).toEqual(['recall'])
+		expect(settings.tools.enabled).toEqual(['get_selection', 'remember', 'recall', 'read_page'])
+		expect(settings.tools.autoApprove).toEqual(['recall', 'read_page'])
 	})
 
 	it('keeps providers when the stored memory policy is malformed', () => {
@@ -331,8 +348,8 @@ describe('hasEnabledTools', () => {
 
 		const withPageTools = {
 			...memoryOnly,
-			tools: { ...memoryOnly.tools, enabled: ['remember', 'recall', 'find_in_page'] },
+			tools: { ...memoryOnly.tools, enabled: ['remember', 'recall', 'read_page'] },
 		}
-		expect(enabledBuiltInTools(withPageTools)).toEqual(['find_in_page'])
+		expect(enabledBuiltInTools(withPageTools)).toEqual(['read_page'])
 	})
 })

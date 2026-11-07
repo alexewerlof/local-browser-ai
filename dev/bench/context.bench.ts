@@ -6,10 +6,9 @@
  * changing the extraction pipeline; the index rows are what the prompt actually gets.
  */
 import { describe, it } from 'vitest'
-import { choosePageMode } from '../../src/core/context/assembly'
+import { freezePage, renderPageBlock } from '../../src/core/context/page-block'
 import { renderPageIndex } from '../../src/core/context/page-index'
-import { createBudget, estimateTokens } from '../../src/core/context/tokens'
-import { defaultSettings } from '../../src/core/settings'
+import { estimateTokens } from '../../src/core/context/tokens'
 import { extractPageInPageContext } from '../../src/browser/extract/inject'
 import { processExtraction } from '../../src/browser/extract/pipeline'
 import { findInAttachment } from '../../src/browser/extract/sections'
@@ -149,10 +148,7 @@ function measureFixture(fixture: Fixture): Row[] {
 
 	const injection = extractPageInPageContext({ mode: 'page' })
 	const attachment = processExtraction(injection)
-	const settings = defaultSettings()
-	const budget = createBudget(32_000, 0.2, 0.75)
-	const withTools = choosePageMode(attachment, settings, budget, fixture.marker, true)
-	const withoutTools = choosePageMode(attachment, settings, budget, fixture.marker, false)
+	const block = renderPageBlock(freezePage(attachment, 'bench', 'p1'))
 	const excerptHits = findInAttachment(attachment, fixture.marker, 2)
 
 	return [
@@ -162,8 +158,7 @@ function measureFixture(fixture: Fixture): Row[] {
 		row(`plain text (innerText${injection.text ? '' : ', jsdom n/a'})`, injection.text, fixture.marker),
 		row(`aria skeleton (${injection.controls} controls)`, injection.aria, fixture.marker),
 		row(`chosen representation (${attachment.representation})`, attachment.markdown, fixture.marker),
-		row(`prompt with tools (${withTools?.mode ?? 'none'})`, withTools?.body ?? '', fixture.marker),
-		row(`prompt without tools (${withoutTools?.mode ?? 'none'})`, withoutTools?.body ?? '', fixture.marker),
+		row('page block (what the prompt carries)', block, fixture.marker),
 		row('index only', renderPageIndex(attachment, { query: fixture.marker }), fixture.marker),
 		row(
 			'index + 2 excerpts',

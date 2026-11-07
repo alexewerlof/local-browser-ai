@@ -1,25 +1,14 @@
 /** Settings fixtures shared by the browser scenarios. */
 
-export const ALL_TOOLS = [
-	'read_attached_page',
-	'get_page_outline',
-	'read_page_section',
-	'find_in_page',
-	'get_selection',
-	'get_current_datetime',
-	'search_web',
-	'open_url',
-	'remember',
-	'recall',
-]
+export const ALL_TOOLS = ['read_page', 'get_selection', 'get_current_datetime', 'search_web', 'remember', 'recall']
 
-/** Tools that never ask before running; `open_url` and memory updates do. */
-export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'open_url' && id !== 'remember')
+/** Tools that never ask before running; `read_page` with a URL and memory updates do. */
+export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'remember')
 
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 9,
+		version: 10,
 		providers: [
 			{
 				id: 'local',
@@ -51,7 +40,7 @@ export function localSettings(endpoint, overrides = {}) {
 
 export function promptApiOnlySettings() {
 	return {
-		version: 9,
+		version: 10,
 		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
 		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
 		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },

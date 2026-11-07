@@ -11,6 +11,8 @@
  * @param {string} [config.selection] Text returned by `tab.selection`.
  * @param {string[]} [config.openTabs] Already-open tabs, as paths resolved against the page.
  * @param {boolean} [config.denyExtraction] Make extraction fail like a missing activeTab grant.
+ * @param {'granted'|'ask'|'deny'} [config.hostAccess] Whether site access is already granted
+ *   (`granted`, the default), still waiting for the user (`ask`), or refused (`deny`).
  */
 export function chromeShim(config = {}) {
 	const STORAGE_KEY = '__lb_ai_storage__'
@@ -92,6 +94,8 @@ export function chromeShim(config = {}) {
 		url: config.tab?.url ?? 'https://example.com/pricing',
 		title: config.tab?.title ?? 'Example Pricing',
 		favIconUrl: config.tab?.favIconUrl ?? '',
+		// A tab that has finished loading, so anything waiting on the load resolves at once.
+		status: 'complete',
 	}
 
 	const defaultExtraction = {
@@ -130,6 +134,18 @@ export function chromeShim(config = {}) {
 	let pendingTabs = config.tab ? [config.tab.id ?? 42] : []
 	const opened = []
 	const searches = []
+	/**
+	 * Site access the shim currently grants, and the requests the extension made.
+	 *
+	 * `config.hostAccess` decides the starting point: `granted` answers every check, `ask`
+	 * makes the extension offer a chip and wait, `deny` refuses both the chip's grant and
+	 * the modal. A scenario grants with `__LB_AI_TEST__.grantHostAccess(pattern).`
+	 */
+	let hostAccess = config.hostAccess ?? 'granted'
+	const grantedOrigins = new Set()
+	const hostAccessRequests = []
+	const hostAccessRemoved = []
+	const permissionsAdded = inertEvent()
 	/** `page.focus` calls, in order: which page a card click asked to bring back. */
 	const focusedPages = []
 	// Tabs beyond the attached one, so a scenario can start with Settings already open.
@@ -186,11 +202,35 @@ export function chromeShim(config = {}) {
 				return { ok: true, value: { text: config.selection ?? '' } }
 			case 'tab.open': {
 				opened.push(request.url)
-				return { ok: true, value: { tabId: 999 } }
+				// A real tab, not a bare id: `tab.info` and `tab.extract` look it up, and a
+				// missing one silently falls back to the fixture tab.
+				const created = {
+					id: nextTabId++,
+					windowId: 2,
+					active: true,
+					status: 'complete',
+					title: request.url,
+					url: request.url,
+					favIconUrl: '',
+				}
+				otherTabs.push(created)
+				return { ok: true, value: { tabId: created.id } }
 			}
 			case 'search.query': {
 				searches.push({ text: request.text, disposition: request.disposition })
-				return { ok: true, value: { disposition: request.disposition } }
+				// The worker works the results tab out of the tabs that appeared around the call;
+				// the shim creates one, so a search leaves a real tab behind like a browser does.
+				const results = {
+					id: nextTabId++,
+					windowId: 2,
+					active: true,
+					status: 'complete',
+					title: `${request.text} - Search`,
+					url: `https://www.google.com/search?q=${encodeURIComponent(request.text)}`,
+					favIconUrl: '',
+				}
+				otherTabs.push(results)
+				return { ok: true, value: { disposition: request.disposition, tabId: results.id, url: results.url } }
 			}
 			default:
 				return { ok: false, error: { kind: 'invalid-request', message: 'Unknown request' } }
@@ -314,15 +354,27 @@ export function chromeShim(config = {}) {
 			},
 		},
 		permissions: {
-			async request() {
+			async request({ origins = [] } = {}) {
+				if (hostAccess === 'deny') return false
+				// An accepted prompt: the grant lands origin by origin, like Chrome's own.
+				for (const origin of origins) grantedOrigins.add(origin)
+				if (origins.length > 0) permissionsAdded.emit({ origins })
 				return true
 			},
-			async contains() {
-				return true
+			async contains({ origins = [] } = {}) {
+				if (hostAccess === 'granted') return true
+				return origins.length > 0 && origins.every((origin) => grantedOrigins.has(origin))
 			},
 			async remove() {
 				return true
 			},
+			async addHostAccessRequest({ tabId } = {}) {
+				hostAccessRequests.push(tabId)
+			},
+			async removeHostAccessRequest({ tabId } = {}) {
+				hostAccessRemoved.push(tabId)
+			},
+			onAdded: permissionsAdded,
 		},
 		contextMenus: {
 			create() {},
@@ -357,7 +409,7 @@ export function chromeShim(config = {}) {
 			},
 			async create({ url }) {
 				opened.push(url)
-				const created = { id: nextTabId++, windowId: 2, active: true, url, title: '' }
+				const created = { id: nextTabId++, windowId: 2, active: true, url, title: '', status: 'complete' }
 				otherTabs.push(created)
 				return created
 			},
@@ -387,6 +439,22 @@ export function chromeShim(config = {}) {
 		opened,
 		searches,
 		focusedPages,
+		/** Tabs the extension asked Chrome to show a host access chip on. */
+		hostAccessRequests,
+		/** Tabs whose chip the extension took back (cancel, or after a grant). */
+		hostAccessRemoved,
+		/**
+		 * Accept the host access request in the address bar, as the user would.
+		 * The origins are the ones the extension asked for, e.g. `https://example.com/*`.
+		 */
+		grantHostAccess(...origins) {
+			for (const origin of origins) grantedOrigins.add(origin)
+			permissionsAdded.emit({ origins })
+		},
+		/** Switch `config.hostAccess` at runtime, for a second turn in one page load. */
+		setHostAccess(next) {
+			hostAccess = next
+		},
 		/** `tabs.update` calls, in order: the tab the app activated (and navigated, if any). */
 		updatedTabs,
 		focusedWindows,

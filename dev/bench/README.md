@@ -11,7 +11,7 @@ describing the page costs and whether the fact a user would ask about is still r
 | `aria skeleton`                     | Roles, names and states derived from the live DOM.                   |
 | `captured page`                     | What `processExtraction` picked (article / app / text).              |
 | `page block (what the prompt gets)` | The frozen block `freezePage` renders once and stores.               |
-| `tools can reach the marker`        | Whether `find_in_page` still finds the fact through the page tools.  |
+| `tools can reach the marker`        | Whether `read_page` still finds the fact through the page tool.      |
 | `re-rendered block (must match)`    | A second render of the same snapshot; a difference breaks the cache. |
 
 Reading the output:

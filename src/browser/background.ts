@@ -1,6 +1,8 @@
 import { AppError, toAppError } from '../providers/errors'
 import { readPendingOmniboxPrompt, normalizeOmniboxPrompt, OMNIBOX_SUGGESTION } from '../core/omnibox'
 import type { OmniboxPrompt } from '../core/omnibox'
+import { delay } from '../core/util'
+import { planSearch } from '../core/search'
 import { extractPageInPageContext, type InjectResult } from './extract/inject'
 import {
 	EVENT_FLAG,
@@ -9,6 +11,7 @@ import {
 	type BackgroundRequest,
 	type BackgroundResponse,
 	type SearchDisposition,
+	type SearchResult,
 	type TabInfo,
 } from './protocol'
 
@@ -355,15 +358,45 @@ async function runExtraction(tabId: number | undefined, mode: 'page' | 'selectio
 /** `chrome.search` is Chrome 87+/Edge only and missing in some forks. */
 const SEARCH_DISPOSITIONS = new Set<SearchDisposition>(['CURRENT_TAB', 'NEW_TAB', 'NEW_WINDOW'])
 const MAX_SEARCH_CHARS = 400
+/** The tab this extension last searched in, so a second search reuses it. */
+const SEARCH_TAB_KEY = 'searchTabId'
+
+async function rememberedSearchTab(): Promise<number | undefined> {
+	try {
+		const stored = await chrome.storage.session.get(SEARCH_TAB_KEY)
+		const id = stored[SEARCH_TAB_KEY]
+		if (typeof id !== 'number') return undefined
+		// A tab the user closed must not be navigated; `get` throws for it.
+		await chrome.tabs.get(id)
+		return id
+	} catch {
+		return undefined
+	}
+}
+
+async function rememberSearchTab(tabId: number | undefined): Promise<void> {
+	try {
+		if (tabId === undefined) await chrome.storage.session.remove(SEARCH_TAB_KEY)
+		else await chrome.storage.session.set({ [SEARCH_TAB_KEY]: tabId })
+	} catch {
+		// Losing the hint only costs one extra tab.
+	}
+}
 
 /**
  * Run a query through the user's default search engine.
  *
  * `chrome.search.query` only navigates: it resolves with `void` and never yields the
- * results. The model is told that, so it asks the user to attach the results tab
- * instead of inventing an answer.
+ * results. The tab it opened is found by diffing the tab list instead, so the panel can
+ * offer to add that page; the model is still told nothing about it, because it cannot
+ * read it and a URL in the tool result invites an answer from a page it never saw.
+ *
+ * A `NEW_TAB` search reuses the tab the previous search opened, because one search per
+ * conversation is the normal case and a fresh tab each time litters the window. Reuse
+ * needs `CURRENT_TAB` — Chrome navigates the active tab — so the remembered tab is
+ * activated first. `CURRENT_TAB` from the caller is left alone: that is the user's page.
  */
-async function runSearch(text: string, disposition: SearchDisposition): Promise<{ disposition: SearchDisposition }> {
+async function runSearch(text: string, disposition: SearchDisposition): Promise<SearchResult> {
 	const query = text.trim()
 	if (!query) throw new AppError('invalid-request', 'A search needs some text to look up.')
 	if (query.length > MAX_SEARCH_CHARS) {
@@ -378,8 +411,60 @@ async function runSearch(text: string, disposition: SearchDisposition): Promise<
 		throw new AppError('unsupported', 'This browser cannot search with the default search engine.')
 	}
 
+	const reusable = await rememberedSearchTab()
+	const plan = planSearch(disposition, reusable)
+	if (plan.tabId !== undefined) {
+		await chrome.tabs.update(plan.tabId, { active: true })
+		await searchApi.query({ text: query, disposition: plan.disposition })
+		// No new tab was opened, so there is nothing to diff: the reused tab is the answer.
+		const url = await chrome.tabs.get(plan.tabId).then(
+			(tab) => tab.url,
+			() => undefined,
+		)
+		return { disposition, tabId: plan.tabId, url }
+	}
+
+	const before = await openTabIds()
 	await searchApi.query({ text: query, disposition })
-	return { disposition }
+	const target = await searchTarget(before, disposition)
+	if (disposition === 'NEW_TAB') await rememberSearchTab(target.tabId)
+	return { disposition, ...target }
+}
+
+async function openTabIds(): Promise<Set<number>> {
+	const tabs = await chrome.tabs.query({}).catch(() => [])
+	return new Set(tabs.map((tab) => tab.id).filter((id): id is number => id !== undefined))
+}
+
+/** How long the results tab is given to appear, and how often it is looked for. */
+const SEARCH_TAB_TIMEOUT_MS = 3000
+const SEARCH_TAB_POLL_MS = 80
+
+/**
+ * The tab the results landed in.
+ *
+ * `query()` resolves as the navigation *starts*, so a single `tabs.query()` right after it
+ * can miss a tab that is not in the list yet — and the old code then fell back to "the
+ * active tab", which is still the page the user was reading. That wrong tab is what the
+ * card's add button pointed at, and capturing it looked like the search had finished
+ * before the results even existed. So a new tab is polled for, and never guessed.
+ */
+async function searchTarget(
+	before: Set<number>,
+	disposition: SearchDisposition,
+): Promise<{ tabId?: number; url?: string }> {
+	const deadline = Date.now() + SEARCH_TAB_TIMEOUT_MS
+	for (;;) {
+		const tabs = await chrome.tabs.query({}).catch(() => [])
+		// `CURRENT_TAB` reuses the page on screen, so there the active tab *is* the answer.
+		const tab =
+			disposition === 'CURRENT_TAB'
+				? tabs.find((entry) => entry.active)
+				: tabs.find((entry) => entry.id !== undefined && !before.has(entry.id))
+		if (tab?.id !== undefined) return { tabId: tab.id, url: tab.url }
+		if (Date.now() >= deadline) return {}
+		await delay(SEARCH_TAB_POLL_MS)
+	}
 }
 
 /** Same page, hash included. */

@@ -135,7 +135,7 @@ describe('renderPageIndex', () => {
 	})
 
 	it('tells the model how to read the rest', () => {
-		expect(renderPageIndex(page())).toContain('read_page_section')
+		expect(renderPageIndex(page())).toContain('read_page')
 	})
 
 	it('handles a page without headings', () => {

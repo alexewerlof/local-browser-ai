@@ -43,7 +43,7 @@ export async function run(ctx) {
 		assert.match(banner, /Could not reach/)
 
 		const names = (server.requests[0].tools ?? []).map((tool) => tool.function.name)
-		assert.ok(names.includes('find_in_page'), 'built-in tools still reach the model')
+		assert.ok(names.includes('read_page'), 'built-in tools still reach the model')
 		assert.equal(
 			names.filter((name) => name.startsWith('mcp_')).length,
 			0,

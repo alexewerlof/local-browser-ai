@@ -1,0 +1,57 @@
+{
+	"skill_name": "slm-harness",
+	"evals": [
+		{
+			"id": 1,
+			"prompt": "Add a built-in tool that reports what is on the user's screen right now — window titles, tab titles, and whether the active tab is audible. I want the model to be able to answer 'what am I looking at' without me adding the page.",
+			"expected_output": "A shape that respects the context and schema budget: prefers extending an existing tool with a mode or a small, clipped result over adding a whole new tool; if a new tool is added, its result is bounded and clipped with a truncation marker, its id is registered in the tool id lists and the settings version migration, an approval decision is made, a prose label is designed for the card, and an ontology entry is added. Raises the permission implication of reading tab URLs.",
+			"files": [],
+			"expectations": [
+				"Considers whether an existing tool with a new mode would cover this before adding a new tool id",
+				"Any tool result is bounded (clipped to a few thousand characters) with an explicit truncation marker rather than returning an unbounded list",
+				"Registers a new tool id in the read-only or action tool list together with the settings version entry that ships it",
+				"States an explicit auto-approve decision for the new tool",
+				"Adds or updates an ontology entry for any new concept, and names the card label in prose rather than showing the tool id",
+				"Treats the returned tab/window text as untrusted data and does not let it become instructions"
+			]
+		},
+		{
+			"id": 2,
+			"prompt": "Adding a big page is slow — every follow-up question takes ages and I think it's because of the page text in the prompt. Can we just have a small model summarize each page into 300 words the moment it's added, and put that summary in the prompt instead of the outline? It would use way fewer tokens.",
+			"expected_output": "Rejects pre-summarizing pages: it costs an extra generation per page, removes exactly the detail the page was attached for, and is a lossy non-deterministic step. Proposes the structural alternative (compact index block plus targeted section reads) and explains why the outline already solves the token cost. Notes that the block is frozen at capture so the prompt prefix stays stable, and that a summary inserted later would rewrite history.",
+			"files": [],
+			"expectations": [
+				"Recommends against summarizing pages with a model call before attaching them",
+				"Explains the existing structural mechanism: a compact page index block plus targeted section reads by heading",
+				"Explains that page blocks are frozen at capture and must not be re-rendered, to keep the prompt prefix/cache valid",
+				"Mentions the extra generation cost and the loss of detail as the core reasons rather than only token count",
+				"Does not propose a vector index, embeddings, or a background model to make this work"
+			]
+		},
+		{
+			"id": 3,
+			"prompt": "The find mode across pages feels dumb — it misses paraphrases. Let's add a transformers.js embedding index built in the background service worker and use cosine similarity for section retrieval.",
+			"expected_output": "Declines the embeddings index and the background model: the service worker must stay model-free, the corpus is one to three explicitly chosen pages, and lexical BM25 over the outline already resolves those. Suggests improving the lexical layer instead (ranking, previews, section granularity, a better find query) and notes the startup, download and failure costs of an in-browser embedder.",
+			"files": [],
+			"expectations": [
+				"Explains that the service worker must remain free of model inference and that the panel is the only place that talks to a model",
+				"Explains that retrieval is lexical (BM25) by design and why that is sufficient for a handful of user-chosen pages",
+				"Offers a concrete improvement within the existing design (ranking, previews, section granularity, query narrowing) instead of only refusing",
+				"Names the cost that an in-browser embedder adds (model download, warm-up, lifecycle, extra failure mode)"
+			]
+		},
+		{
+			"id": 4,
+			"prompt": "During a run users get bored and think the app froze. I want a progress bar under the transcript that shows the stages: thinking, compressing memory, calling tool, generating answer, done. Stepped, so it looks like real progress.",
+			"expected_output": "Declines the staged progress bar: the stages are internal bookkeeping and a literal progress bar implies knowledge the harness does not have. Proposes the existing honest surfaces instead — per-action rows in prose with waiting/running/done/failed/denied states, a collapsed Thinking… line that becomes Thought process with duration and tokens, inline approval on the row that needs it, and the context meter and per-answer stats.",
+			"files": [],
+			"expectations": [
+				"Argues against presenting internal pipeline stages (such as memory compaction) as user-facing progress",
+				"Argues against a progress indicator that implies progress the harness cannot know",
+				"Proposes per-action rows in prose with explicit states instead",
+				"Proposes the collapsed thinking line that becomes a finished thought-process summary with duration and token count",
+				"Keeps a blocked-on-user state visually distinct from a slow-model state"
+			]
+		}
+	]
+}

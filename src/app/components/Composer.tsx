@@ -6,6 +6,7 @@ import {
 	PanelBottomClose,
 	PanelBottomOpen,
 	Play,
+	Plus,
 	Square,
 	Trash2,
 	TriangleAlert,
@@ -31,11 +32,13 @@ import { SkillMenu, ToolsMenu } from './ComposerMenus'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
 import { useStore } from '../useStore'
+import type { TabInfo } from '../../browser/protocol'
 
 export function Composer({
 	settings,
 	conversation,
 	pages,
+	activeTab,
 	run,
 	context,
 	addPageBusy,
@@ -45,6 +48,7 @@ export function Composer({
 	onStop,
 	onContinue,
 	onOpenPage,
+	onAddCurrentPage,
 	onCompact,
 	onModelChange,
 }: {
@@ -52,6 +56,8 @@ export function Composer({
 	conversation: Conversation
 	/** Pages in this chat, in the order they were added. */
 	pages: PageSnapshot[]
+	/** The tab on screen, which the add button would capture. Null when it cannot be read. */
+	activeTab: TabInfo | null
 	run: RunState
 	context: ContextSnapshot
 	addPageBusy: boolean
@@ -62,6 +68,7 @@ export function Composer({
 	onStop: () => void
 	onContinue: () => void
 	onOpenPage: (page: PageSnapshot) => void
+	onAddCurrentPage: () => void
 	onCompact: () => void
 	onModelChange: (ref: ModelRef) => void
 }) {
@@ -202,6 +209,20 @@ export function Composer({
 
 			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
 				<div className="composer__topbar">
+					<button
+						type="button"
+						className="button button--ghost button--icon button--sm composer__add-page"
+						onClick={onAddCurrentPage}
+						disabled={!activeTab || addPageBusy}
+						title={
+							activeTab
+								? `Add “${activeTab.title}” to this chat`
+								: 'Add the page you are reading to this chat'
+						}
+						aria-label="Add current page to chat"
+					>
+						<Plus size={14} />
+					</button>
 					<PageList pages={pages} busy={addPageBusy} onOpen={onOpenPage} />
 					<button
 						type="button"

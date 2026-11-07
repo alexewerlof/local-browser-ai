@@ -113,22 +113,19 @@ export async function getTabSelection(tabId?: number): Promise<string> {
 	return value.text
 }
 
-export async function openUrl(url: string, newWindow = false): Promise<void> {
-	await callBackground({ type: 'tab.open', url, newWindow })
+export async function openUrl(url: string, newWindow = false): Promise<{ tabId?: number }> {
+	return (await callBackground({ type: 'tab.open', url, newWindow })) as { tabId?: number }
 }
 
 /**
- * Search with the user's default search engine. The results open in a tab; the API
- * returns no text, so the caller must not expect any.
+ * Search with the user's default search engine. The API returns no text, only the tab the
+ * results opened in — which is best effort, so read that tab again before capturing it.
  */
 export async function searchWeb(
 	text: string,
 	disposition: import('./protocol').SearchDisposition = 'NEW_TAB',
-): Promise<import('./protocol').SearchDisposition> {
-	const value = (await callBackground({ type: 'search.query', text, disposition })) as {
-		disposition: import('./protocol').SearchDisposition
-	}
-	return value.disposition
+): Promise<import('./protocol').SearchResult> {
+	return (await callBackground({ type: 'search.query', text, disposition })) as import('./protocol').SearchResult
 }
 
 /** Subscribe to background events (page adds, context-menu selections). */

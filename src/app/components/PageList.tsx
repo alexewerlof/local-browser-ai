@@ -28,8 +28,8 @@ export function PageList({
 	if (pages.length === 0) {
 		return (
 			<span className="page-list page-list--empty">
-				{/* The context menu is the only way in, so the empty strip has to say so. */}
-				{busy ? 'Adding the page…' : 'Right-click a page → Add to chat'}
+				{/* Both ways in are worth naming: the button is easy to miss in a narrow panel. */}
+				{busy ? 'Adding the page…' : 'Press + for this page, or right-click → Add to chat'}
 			</span>
 		)
 	}

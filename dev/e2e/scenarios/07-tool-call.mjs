@@ -13,7 +13,7 @@ export async function run(ctx) {
 			if (index > 0) return 'text'
 			return body.messages.some((message) => message.role === 'tool') ? 'text' : 'tool-call'
 		},
-		toolCall: { name: 'find_in_page', arguments: JSON.stringify({ query: 'Teams' }) },
+		toolCall: { name: 'read_page', arguments: JSON.stringify({ mode: 'find', query: 'Teams' }) },
 	})
 	try {
 		await ctx.open({
@@ -27,7 +27,7 @@ export async function run(ctx) {
 
 		// The tool call is rendered while it runs.
 		await page.waitForSelector('.tool')
-		assert.match(await page.locator('.tool__name').textContent(), /Searching page/)
+		assert.match(await page.locator('.tool__name').textContent(), /Reading page/)
 
 		// The answer that follows the tool result is rendered too.
 		await page.waitForFunction(() => document.body.innerText.includes('Teams costs 25 EUR.'))

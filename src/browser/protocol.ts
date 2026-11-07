@@ -12,6 +12,16 @@ export interface TabInfo {
 /** Mirrors `chrome.search.Disposition`; the enum is local so the panel needs no chrome API. */
 export type SearchDisposition = 'CURRENT_TAB' | 'NEW_TAB' | 'NEW_WINDOW'
 
+/**
+ * What a search produced. `chrome.search.query` resolves `void`, so the tab is worked out
+ * by the worker; it is best effort, because the results page may still be loading.
+ */
+export interface SearchResult {
+	disposition: SearchDisposition
+	tabId?: number
+	url?: string
+}
+
 export type BackgroundRequest =
 	| { type: 'page.pending' }
 	| { type: 'prompt.pending' }
@@ -30,7 +40,7 @@ export interface RequestResults {
 	'tab.extract': import('./extract/inject').InjectResult
 	'tab.selection': { text: string }
 	'tab.open': { tabId?: number }
-	'search.query': { disposition: SearchDisposition }
+	'search.query': SearchResult
 }
 
 export type BackgroundResponse =

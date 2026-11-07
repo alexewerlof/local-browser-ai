@@ -27,7 +27,7 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 				<RangeField
 					label="Maximum tool steps per answer"
 					min={1}
-					max={12}
+					max={20}
 					step={1}
 					value={settings.context.maxToolSteps}
 					format={(value) => String(value)}

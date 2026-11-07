@@ -90,6 +90,13 @@ export function MessageItem({
 	const usage = message.usage
 	const modelLabel = message.model ? describeModel(settings, message.model) : ''
 	const hasError = message.parts.some((part) => part.type === 'error')
+	// A local runtime spends 10-20s chewing on tool results before the first token, and the
+	// answer already has parts (the tool cards), so the dots have to follow them rather
+	// than wait for an empty message. Without this the panel looks asleep mid-run.
+	const answered = message.parts.some((part) => part.type === 'text' && part.text.trim().length > 0)
+	const waiting = streaming && !answered
+	const waitingLabel =
+		message.parts.length > 0 ? 'Waiting for the model to read the tool results' : 'The model is responding'
 
 	return (
 		<article className={`message message--assistant${isLast ? ' message--last' : ''}`}>
@@ -131,8 +138,8 @@ export function MessageItem({
 					}
 				})}
 
-				{streaming && message.parts.length === 0 && (
-					<div className="typing" aria-label="The model is responding">
+				{waiting && (
+					<div className="typing" aria-label={waitingLabel} role="status">
 						<span />
 						<span />
 						<span />

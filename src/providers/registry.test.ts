@@ -60,11 +60,13 @@ describe('buildProviderOptions', () => {
 		expect(options.openai).toEqual({ reasoningEffort: 'high' })
 	})
 
-	it('uses the instance id as the key for compatible servers', () => {
+	it('uses the fixed provider key for compatible servers', () => {
 		const local = provider({ id: 'my-server', kind: 'openai-compatible' })
 		const info = getModelInfo('openai-compatible', 'qwen3-32b')
 		const options = buildProviderOptions(local, 'qwen3-32b', { level: 'low' }, info) as Record<string, unknown>
-		expect(options['my-server']).toEqual({ reasoningEffort: 'low' })
+		// The instance name is the deprecated key; the adapter reads `openaiCompatible`.
+		expect(options.openaiCompatible).toEqual({ reasoningEffort: 'low' })
+		expect(options['my-server']).toBeUndefined()
 	})
 
 	it('omits the effort for auto', () => {

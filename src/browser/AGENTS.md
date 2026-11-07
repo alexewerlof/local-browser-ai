@@ -17,8 +17,8 @@ Local rules:
 - `processExtraction` returns a `CapturedPage`: no handle, no prompt block. `freezePage` in `core/context/page-block.ts`
   adds both when the page joins a chat, so the browser layer never decides how a page is presented to the model.
 - Every page tool takes an optional `page` handle. Omit-tolerant only for a single-page chat (`resolvePage`); a
-  multi-page chat refuses to guess. `find_in_page` without a handle searches every page on purpose — that is what makes
-  a comparison one call.
+  multi-page chat refuses to guess. `read_page` with `mode: "find"` and no handle searches every page on purpose — that
+  is what makes a comparison one call.
 - The queue of tool approvals belongs to the panel (`src/state/browser.ts`); this area only calls `requestApproval`.
 - The worker owns the omnibox: it stores the pending `OmniboxPrompt`, answers `prompt.pending` and nudges with
   `prompt.add`. The panel never touches `chrome.omnibox`, exactly as it never opens the panel itself.

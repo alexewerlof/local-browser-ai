@@ -9,6 +9,16 @@ export function now(): number {
 	return Date.now()
 }
 
+/** Resolve after `ms`. Used to poll a browser API that answers before the thing it started exists. */
+export function delay(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** http(s) only: every page the extension can capture lives there. */
+export function isHttpUrl(url: string | undefined): url is string {
+	return typeof url === 'string' && /^https?:\/\//i.test(url)
+}
+
 export function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value))
 }

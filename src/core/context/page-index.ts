@@ -140,7 +140,8 @@ function renderOutlineLines(attachment: PageSnapshot, options: PageIndexOptions)
 	})
 
 	const hidden = entries.length - visible.length
-	if (hidden > 0) lines.push(`- (+${formatCount(hidden)} more headings; use find_in_page to search the rest)`)
+	if (hidden > 0)
+		lines.push(`- (+${formatCount(hidden)} more headings; use read_page with mode \`find\` to search the rest)`)
 	return lines
 }
 
@@ -183,7 +184,7 @@ export function renderPageIndex(attachment: PageSnapshot, options: PageIndexOpti
 
 	lines.push(
 		'',
-		'Only this index is in the prompt. Call `read_page_section` with a heading or `[id]` to read a section, or `find_in_page` to search for a phrase.',
+		'Only this index is in the prompt. Call `read_page` with `mode: "section"` and a heading or `[id]` to read a section, or `mode: "find"` to search for a phrase.',
 	)
 
 	return lines.join('\n')

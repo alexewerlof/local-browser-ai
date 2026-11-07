@@ -71,3 +71,65 @@ export async function requestHostAccess(url: string): Promise<boolean> {
 		return false
 	}
 }
+
+/**
+ * Whether the browser can ask for a site through the toolbar chip instead of a modal.
+ *
+ * Chrome 133 added it; older builds and some forks only have `request()`.
+ */
+export function supportsHostAccessRequest(): boolean {
+	return typeof getChrome()?.permissions?.addHostAccessRequest === 'function'
+}
+
+/**
+ * Ask for host access from the page's own toolbar chip.
+ *
+ * Unlike `requestHostAccess` this needs no user gesture, so it may follow other awaits: it
+ * does not open a modal, it puts a chip on the tab. Resolves false when the browser cannot
+ * show one at all. There is no "denied" event either — an ignored chip and a dismissed one
+ * look the same — so the caller waits for `onHostAccessGranted` instead of for an answer.
+ */
+export async function addHostAccessRequest(tabId: number): Promise<boolean> {
+	const chromeApi = getChrome()
+	const api = chromeApi?.permissions
+	if (typeof api?.addHostAccessRequest !== 'function') return false
+	try {
+		await api.addHostAccessRequest({ tabId })
+		return true
+	} catch {
+		return false
+	}
+}
+
+/** Take the chip away again, so an abandoned request does not linger on the tab. */
+export async function removeHostAccessRequest(tabId: number): Promise<void> {
+	const api = getChrome()?.permissions
+	if (typeof api?.removeHostAccessRequest !== 'function') return
+	try {
+		await api.removeHostAccessRequest({ tabId })
+	} catch {
+		// The chip is gone already, or the tab was closed.
+	}
+}
+
+/**
+ * Fires with the origins the user just granted, from any prompt or chip. Returns an
+ * unsubscribe function.
+ */
+export function onHostAccessGranted(listener: (origins: string[]) => void): () => void {
+	const event = getChrome()?.permissions?.onAdded
+	if (!event) return () => {}
+	const handler = (granted: chrome.permissions.Permissions) => {
+		const origins = granted.origins ?? []
+		if (origins.length > 0) listener(origins)
+	}
+	event.addListener(handler)
+	return () => event.removeListener(handler)
+}
+
+/** Whether a grant reported by the browser covers `url`. */
+export function grantsOrigin(origins: string[], url: string): boolean {
+	const pattern = originPattern(url)
+	const host = hostOf(url)
+	return origins.some((origin) => origin === pattern || origin.includes(`//${host}/`))
+}

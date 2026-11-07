@@ -116,9 +116,11 @@ export function buildProviderOptions(
 		case 'openai-compatible': {
 			const effort = thinking.level === 'auto' ? undefined : thinking.level
 			if (!effort) return undefined
-			// Official providers read a fixed provider key; OpenAI-compatible servers use
-			// the provider instance name we gave `createOpenAICompatible`.
-			const key = provider.kind === 'openai-compatible' ? provider.id : provider.kind
+			// The compatible adapter reads `openaiCompatible`; the hyphenated key and the
+			// per-instance name are the deprecated spellings, and passing either logs a
+			// warning on every request.
+			if (provider.kind === 'openai-compatible') return { openaiCompatible: { reasoningEffort: effort } }
+			const key = provider.kind
 			return { [key]: { reasoningEffort: effort } }
 		}
 		default:

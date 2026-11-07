@@ -28,7 +28,8 @@ harness:
     prompt: the text the user submits; code QueuedPrompt, draftStore, submitPrompt; ui Message, Queue prompt; not question, query
     turn: one prompt plus its answer; code startTurn, keepRecentTurns; ui Keep recent turns; not round, iteration, exchange
     run: one execution of the agent, idle to idle; code RunState, runStore; internal, never a UI word; not turn, job, task
-    step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs; ui Maximum tool steps per answer; not round, iteration
+    step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs, continueRun; ui Maximum tool steps per answer; not round, iteration
+    tool-step-limit: the cap that stops a run which keeps asking for tools, and the offer that spends another budget; code stepLimitStore, continueRun, cancelStepLimit, finishReason tool-calls; ui Reached the limit of N tool steps for this answer., Continue, Cancel; not rate limit, throttle, max calls
     answer: the assistant output the user reads; code MessageItem, MessageStatus; ui Copy answer, Generate this answer again; not response, reply, output
     prompt-queue: the per-conversation FIFO filled while a run is busy; code queueStore, drainQueue, QueuedPrompt; ui Queued · N, Queued prompts; not backlog, stack, batch
     queue-pause: the state Stop or a restored chat sets so the queue stays put; code queuePausedStore, resumeQueue, restoreLastConversation; ui Continue, Continue queued prompts; not hold, suspend
@@ -71,8 +72,9 @@ page:
     representation: which form of the page is used, article or app or text; code PageRepresentation; ui app view; not format, mode, variant
     accessibility-skeleton: a role/name/state rendering for control-heavy shells; code inject.ts, representation app; not ARIA tree, DOM dump, snapshot
     outline: the page's headings with levels and sizes; code OutlineEntry, renderPageBlock; ui N headings; not TOC, table of contents, index
-    section: one heading-anchored slice the page tools can read; code PageChunk, splitIntoSections, read_page_section; ui Reading section; not chunk, block, part
-    page-tools: the built-in tools that read an added page on demand; code read_attached_page, get_page_outline, read_page_section, find_in_page, PAGE_TOOL_IDS; ui Reading page, Searching page; not extractors
+    section: one heading-anchored slice the page tool can read; code PageChunk, splitIntoSections, readSection; ui Reading page; not chunk, block, part
+    page-tools: the built-in tool that reads an added page on demand; code read_page, PAGE_TOOL_IDS, ToolContext.getPages; ui Read page, Reading page; not extractors
+    read-mode: which detail a page read returns; code read_page mode, outline, section, all, find; ui Outline, Section, Whole page, Find; not level, depth, format
 
 # Durable notes that can enter the context.
 memory:
@@ -97,7 +99,9 @@ models:
     hosted-api: a commercial model API with a base URL and a key; code openai, anthropic, deepseek; ui OpenAI, Anthropic, DeepSeek; not cloud, remote model
     base-url: the address a provider's HTTP API sits at; code ProviderSettings.baseURL, normalizeBaseURL; ui Base URL; not endpoint URL, host
     api-key: the credential sent to a hosted API, never synced; code ProviderSettings.apiKey, headers; ui API key; not token, secret, password
-    host-access: the user grant that lets the extension call another origin; code chrome.permissions.request, optional_host_permissions; ui Check site access, Grant host access; not permission
+    host-access: the user grant that lets the extension call another origin; code chrome.permissions.request, addHostAccessRequest, attachSearchTab, pageAccessStore, optional_host_permissions; ui Check site access, Grant host access, Allow; not permission, popup
+    tool-tab: the tab a tool opened, and the wait until the user decides what happens to it; code attachToolTab, ToolContext.attachTab, accessWaiters, TabAttachment, toolTabsStore, waitForTabLoad; ui Chrome is waiting for you to allow {host} in the address bar., Add page to chat; not approval, confirmation, attachment
+    search-tab: the one results tab a search reuses instead of opening another; code planSearch, rememberedSearchTab, SEARCH_TAB_KEY; ui Searching the web; not results window, new tab each time
     model: one model id reachable through a provider; code ModelRef, modelId, ModelInfo, getModelInfo; ui Model, Models, Change model, Search models; not engine, llm
     model-reference: the provider/model pair a chat or the default uses; code ModelRef, providerId, Conversation.model, settings.defaultModel; not model selection, model choice
     model-catalog: the static facts about known model ids; code catalog.ts, PROVIDER_DEFAULTS, getModelInfo; ui context N, max out N, tools, reasoning; not catalog, registry
@@ -124,7 +128,7 @@ tools:
 skills:
     skill: a reusable prompt template inserted by menu or slash; code Skill, settings.skills, skillStore; ui Skills, Insert a prompt, Add skill; not slash command, macro, recipe
     built-in-skill: a skill shipped with the extension, editable and resettable; code builtInSkills, summarize-page, critique, compare; ui built-in, Reset; not default skill
-    agent-skill: a vendored coding-agent package under .agents/skills; code .agents/skills, skills-lock.json; not skill, product skill
+    agent-skill: a coding-agent package under .agents/skills, vendored and hash-locked or written here; code .agents/skills, skills-lock.json, slm-harness; not skill, product skill
 
 # Every side-panel element, grouped by where it sits in the panel.
 ui:
@@ -163,7 +167,7 @@ ui:
         message-bubble: the container of a user message; code message__bubble, message__text, message__actions; not user bubble
         skill-badge: the marker showing which skill filled a message; code message__skill, GraduationCap; not chip, tag
         message-actions: the hover row with save, copy and retry; code message__footer, SaveMemoryButton; ui Save to memory, Copy answer, Retry; not toolbar, message controls
-        typing-indicator: the three dots before an answer has parts; code typing; ui The model is responding; not spinner, loader, thinking dots
+        typing-indicator: the three dots shown while the answer has no text yet, including the wait after tool results; code typing, waiting, answered; ui The model is responding, Waiting for the model to read the tool results; not spinner, loader, thinking dots
         aborted-badge: the marker on a stopped message; code badge, MessageStatus.aborted; ui stopped; not cancelled badge
         reasoning-block: the collapsible block holding the model's reasoning; code ReasoningBlock, reasoning__toggle; ui Thinking…, Thought process, ~N tokens; not thinking block, chain of thought
         tool-card: the transcript block for one tool call; code ToolCallCard, tool__head, tool__body, tool__approval; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
@@ -204,5 +208,5 @@ drift:
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
     built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision
     tool-card: Settings names the capability, the transcript names the activity; deliberate, do not copy one into the other. decision
-    page: '`attachment` is retired everywhere except the tool id `read_attached_page`, which keeps its name so an existing tool toggle keeps working. decision'
+    page: '`attachment` is retired everywhere except the UI word Attachment and `PageList`; the model-facing noun is page. decision'
     toolbar: 'the toolbar button only shows and hides the panel (`openPanelOnActionClick: true`); pages are added from the context menu. This reverses the v2/v3 rule, so `ensureToolbarTogglesPanel` deliberately sets the flag instead of resetting it. decision'

@@ -20,7 +20,10 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.composer__box > .composer__topbar').count(), 1)
 	assert.equal(await page.locator('.composer__topbar button[aria-label="Expand"]').isVisible(), true)
 	assert.equal(await page.locator('.composer__topbar button[aria-label="Shrink"]').count(), 0)
-	assert.equal(await page.locator('.composer__topbar button').getAttribute('aria-expanded'), 'false')
+	assert.equal(
+		await page.locator('.composer__topbar button[aria-label="Expand"]').getAttribute('aria-expanded'),
+		'false',
+	)
 	assert.equal(await page.locator('.composer--expanded').count(), 0)
 
 	const collapsed = await page.evaluate(() => ({
@@ -32,7 +35,10 @@ export async function run(ctx) {
 	await page.waitForSelector('.composer--expanded')
 	assert.equal(await page.locator('.composer__topbar button[aria-label="Shrink"]').isVisible(), true)
 	assert.equal(await page.locator('.composer__topbar button[aria-label="Expand"]').count(), 0)
-	assert.equal(await page.locator('.composer__topbar button').getAttribute('aria-expanded'), 'true')
+	assert.equal(
+		await page.locator('.composer__topbar button[aria-label="Shrink"]').getAttribute('aria-expanded'),
+		'true',
+	)
 
 	const expanded = await page.evaluate(() => ({
 		composer: document.querySelector('.composer').getBoundingClientRect().height,

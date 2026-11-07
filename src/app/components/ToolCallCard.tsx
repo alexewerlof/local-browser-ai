@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, MemoryStick, PocketKnife, Wrench } from 'lucide-react'
 import type { ToolCallPart, ToolCallState } from '../../core/types'
 import { isMemoryToolId } from '../../core/memory'
-import { resolveApproval } from '../../state/browser'
+import { approvalsStore, resolveApproval, toolTabsStore } from '../../state/browser'
+import { addTabPage } from '../../state/bootstrap'
 import { useStore } from '../useStore'
-import { approvalsStore } from '../../state/browser'
 
 /** The badge always reads as prose; the enum value is never shown to the user. */
 const TOOL_STATE_LABELS: Record<ToolCallState, string> = {
@@ -16,14 +16,10 @@ const TOOL_STATE_LABELS: Record<ToolCallState, string> = {
 }
 
 const TOOL_LABELS: Record<string, string> = {
-	read_attached_page: 'Reading page',
-	get_page_outline: 'Page outline',
-	read_page_section: 'Reading section',
-	find_in_page: 'Searching page',
+	read_page: 'Reading page',
 	get_selection: 'Reading selection',
 	get_current_datetime: 'Checking the clock',
 	search_web: 'Searching the web',
-	open_url: 'Opening link',
 	remember: 'Saving to memory',
 	recall: 'Searching memory',
 }
@@ -38,6 +34,12 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	const [open, setOpen] = useState(false)
 	const approvals = useStore(approvalsStore)
 	const approval = approvals.find((entry) => entry.id === part.toolCallId)
+	// A tool that opens a tab keeps it here as a manual fallback: the page is offered while
+	// the access request is still open, and the button is the way back in if it was denied.
+	const toolTabId = useStore(toolTabsStore).get(part.toolCallId)
+	// Once the tool has attached that page itself, offering to add it again would only put
+	// a second copy of the same document in the chat.
+	const alreadyAdded = attachedPageOf(part.output) !== undefined
 	const label = part.label ?? TOOL_LABELS[part.toolName] ?? part.toolName
 	// MCP tools come from a remote server, so they carry the MCP mark instead of the wrench.
 	const Icon = part.server ? PocketKnife : isMemoryToolId(part.toolName) ? MemoryStick : Wrench
@@ -76,6 +78,14 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 							Deny
 						</button>
 					</div>
+				</div>
+			)}
+
+			{toolTabId !== undefined && !alreadyAdded && (
+				<div className="tool__action">
+					<button type="button" className="button button--sm" onClick={() => void addTabPage(toolTabId)}>
+						Add page to chat
+					</button>
 				</div>
 			)}
 
@@ -120,4 +130,17 @@ function summarizeInput(part: ToolCallPart): string {
 
 function trim(value: string): string {
 	return value.length > 60 ? `${value.slice(0, 60)}…` : value
+}
+
+/**
+ * The page handle a tool reported attaching, if any.
+ *
+ * A tool that opened a tab either attached it (and says so with `added: true` plus the
+ * handle) or did not. Only the first case means the card has nothing left to offer.
+ */
+function attachedPageOf(output: unknown): string | undefined {
+	if (typeof output !== 'object' || output === null) return undefined
+	const record = output as Record<string, unknown>
+	if (record.added !== true) return undefined
+	return typeof record.page === 'string' ? record.page : undefined
 }

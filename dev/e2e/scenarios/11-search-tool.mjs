@@ -18,8 +18,12 @@ export async function run(ctx) {
 		await ctx.open({
 			settings: localSettings(server.endpoint, {
 				model: 'llama-3.2-3b-instruct',
-				// Only the search tool, so the recorded call is unambiguous.
-				tools: { enabled: ['search_web'], autoApprove: ['search_web'] },
+				// Search plus one page tool: the results tab becomes a page in the chat, and a
+				// page nobody can read is refused.
+				tools: {
+					enabled: ['search_web', 'read_page'],
+					autoApprove: ['search_web', 'read_page'],
+				},
 			}),
 		})
 		const { page } = ctx
@@ -38,18 +42,25 @@ export async function run(ctx) {
 		const searches = await page.evaluate(() => window.__LB_AI_TEST__.searches)
 		assert.deepEqual(searches, [{ text: 'chrome mv3 search api', disposition: 'NEW_TAB' }])
 
-		// The result tells the model it cannot read the results tab, so it does not
-		// pretend to have seen them.
+		// The result carries the captured results, so the model answers from the page
+		// instead of telling the user to add the tab itself.
 		assert.equal(server.requests.length, 2)
 		const toolMessage = server.requests[1].messages.find((message) => message.role === 'tool')
 		assert.ok(toolMessage, 'the search result should be sent back to the model')
 		const content =
 			typeof toolMessage.content === 'string' ? toolMessage.content : JSON.stringify(toolMessage.content)
 		const result = JSON.parse(content)
-		assert.equal(result.searched, true)
+		assert.equal(result.searched, true, JSON.stringify(result))
 		assert.equal(result.query, 'chrome mv3 search api')
-		assert.equal(result.disposition, 'NEW_TAB')
-		assert.match(result.note, /cannot read/)
+		assert.equal(result.added, true, JSON.stringify(result))
+		assert.equal(result.page, 'p1', JSON.stringify(result))
+		assert.ok(result.text.length > 0, 'the captured results should come back with the call')
+
+		// And the page is really in the chat, not just promised to the model.
+		await page.waitForSelector('.page-chip')
+		assert.equal(await page.locator('.page-chip').count(), 1)
+		// The tool attached it itself, so the card no longer offers to add it again.
+		assert.equal(await page.locator('.tool__action').count(), 0)
 	} finally {
 		await server.close()
 	}

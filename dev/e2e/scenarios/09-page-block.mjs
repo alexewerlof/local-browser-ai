@@ -47,7 +47,10 @@ export async function run(ctx) {
 		chunks: ['The', ' key', ' is', ' olshausen', '.'],
 		// First turn: the model reads a section. Second turn: it answers.
 		toolScript: (_body, index) => (index === 0 ? 'tool-call' : 'text'),
-		toolCall: { name: 'read_page_section', arguments: JSON.stringify({ heading: 'Authentication' }) },
+		toolCall: {
+			name: 'read_page',
+			arguments: JSON.stringify({ mode: 'section', headings: ['Authentication'] }),
+		},
 	})
 
 	try {
@@ -68,7 +71,7 @@ export async function run(ctx) {
 		const userTurn = body.messages.at(-1)
 		assert.match(userTurn.content, /## Page p1 — Transport guide/)
 		assert.match(userTurn.content, /Outline \(id, heading, reading size\)/)
-		assert.match(userTurn.content, /read_page_section/)
+		assert.match(userTurn.content, /read_page/)
 		assert.doesNotMatch(userTurn.content, /Filler paragraph 30/)
 		assert.ok(userTurn.content.length < 2500, `page block should be small, was ${userTurn.content.length} chars`)
 

@@ -30,7 +30,7 @@ export async function run(ctx) {
 		// Tool definitions are advertised because the model id looks tool-capable.
 		assert.ok(Array.isArray(body.tools) && body.tools.length > 0)
 		const toolNames = body.tools.map((tool) => tool.function.name)
-		assert.ok(toolNames.includes('find_in_page'))
+		assert.ok(toolNames.includes('read_page'))
 
 		// Usage reporting is requested for streaming responses.
 		assert.equal(body.stream_options?.include_usage, true)

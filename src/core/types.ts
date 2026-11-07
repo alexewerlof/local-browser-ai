@@ -366,7 +366,7 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 9
+	version: 10
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults
