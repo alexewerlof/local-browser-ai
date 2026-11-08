@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '34-tool-step-limit'
@@ -36,7 +36,7 @@ export async function run(ctx) {
 		})
 		const { page } = ctx
 
-		await page.waitForSelector('.page-chip')
+		await waitForPageCount(page, 1)
 		await page.locator('.composer__input').fill('What does the page say?')
 		await page.locator('button[aria-label="Submit"]').click()
 

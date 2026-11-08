@@ -151,6 +151,18 @@ the block's cost per page shape; run it before changing the layout.
 Page adds are serialized through one chain in `bootstrap.ts` (`queuePageAdd`): `addPage` returns early while a capture
 is running, and the boot drain, the context-menu nudge and an omnibox prompt can all ask for one in the same tick.
 
+**The list above the prompt is the user's references, not a tool's working set.** `PageListToggle` shows a page icon and
+the count from the first page on — one control for any number of pages — and opens `PageList`, a stacked `ol` rendered
+above `.composer__box`, so the list grows upwards and never squeezes the prompt. **An add opens that list**, because a
+changing count is too quiet a signal and the new row is one click from `removePage`; `lastPageAddedStore` carries that
+signal and only `appendPage` sets it, so a restored chat still starts with the list closed. A row is dimmed and carries
+a trash can until a turn claims the page (`messageId`), because only then is its block in a request. Handles count up
+from the highest live one, so a removed `p1` is never handed to the next capture. A page `search_web` captured is born
+with `source: 'search'` — the tool passes it to `attachTab`, which carries it through the grant into `freezePage` — and
+is filtered out of the list _and_ of the transcript cards (`isPageReference`, applied once in `App.tsx`): the search is
+the extension doing its job, not a reference the user chose, while the model still reads that page like any other. Keep
+the list out of `pagesStore`'s reach — it is a view over the chat's pages, never a second copy.
+
 ## Omnibox
 
 `lbai <prompt>` in the address bar, accepted, is the one-gesture version of "open the panel, add this page, type the

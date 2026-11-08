@@ -597,57 +597,146 @@
 
 /* ---------------------------------------------------------------- page cards */
 
-/* The strip lives inside the composer's top bar, so it must stay one row: it scrolls
-   horizontally instead of wrapping, whatever number of pages the chat holds. */
+/* The strip lives inside the composer's top bar: one page or twelve, it is the same count
+   that opens the list above the box, so the bar stays one line. */
 .page-list {
 	display: flex;
 	flex: 1 1 auto;
 	align-items: center;
 	gap: var(--space-2);
 	min-width: 0;
-	overflow-x: auto;
-	overflow-y: hidden;
-	scrollbar-width: none;
-}
-
-.page-list::-webkit-scrollbar {
-	display: none;
+	/* Exactly one chip row tall, so the states and the buttons beside them never shift. */
+	min-height: 24px;
 }
 
 .page-list--empty {
 	color: var(--fg-faint);
 	font-size: var(--text-xs);
-	white-space: nowrap;
+}
+
+.page-list__hint {
+	min-width: 0;
 	overflow: hidden;
+	white-space: nowrap;
 	text-overflow: ellipsis;
-	display: block;
+}
+
+/* A ghost button from the shared atom: only the icon/number gap and the open state are
+   ours, so it keeps the 24px height of the add and expand buttons beside it. */
+.page-list__toggle {
+	gap: var(--space-1);
+	padding-inline: var(--space-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.page-list__toggle[aria-expanded='true'] {
+	background: var(--bg-hover);
+	color: var(--fg);
+}
+
+/* The count's page icon pulses while a page is being captured and converted, so a slow
+   page reads as work in progress instead of a control that does nothing. base.css
+   neutralises the animation under prefers-reduced-motion. */
+.page-list__capturing {
+	animation: page-capturing 1.6s infinite ease-in-out;
+}
+
+@keyframes page-capturing {
+	0%,
+	100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* The expanded list: an `ol` above the composer box. The composer is anchored to the
+   bottom, so this pushes the transcript up and leaves the count and the prompt where they
+   were; the cap makes a very long list scroll instead of swallowing the panel. */
+.page-list__panel {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	max-height: 45vh;
+	overflow-y: auto;
+	margin: 0;
+	padding: var(--space-2);
+	list-style: none;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-lg);
+	background: var(--bg-raised);
+	scrollbar-width: thin;
+}
+
+.page-list__item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	border-radius: var(--radius-sm);
+}
+
+.page-list__item:hover {
+	background: var(--bg-hover);
+}
+
+/* Not in the prompt yet: dimmed, while its trash can stays at full contrast because that
+   button is the way out. */
+.page-list__item--pending .page-chip {
+	opacity: 0.7;
+}
+
+.page-list__item--pending:hover .page-chip {
+	opacity: 1;
 }
 
 .page-chip {
-	display: inline-flex;
-	flex: none;
+	display: flex;
 	align-items: center;
 	gap: var(--space-1);
-	max-width: 180px;
-	padding: 2px var(--space-2);
-	border: 1px dashed var(--border-strong);
-	border-radius: 999px;
-	background: var(--bg-raised);
+	padding: 0;
+	border: 0;
+	background: none;
 	color: var(--fg);
 	font-size: var(--text-xs);
+	text-align: start;
 	cursor: pointer;
 }
 
-/* A page whose turn already carries its block: part of the chat, not waiting for it. */
-.page-chip--sent {
-	border-style: solid;
-	border-color: var(--border);
-	color: var(--fg-muted);
+/* A row of the list: it shares the line with the trash can of a page that is pending. */
+.page-chip--list {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	font-size: var(--text-sm);
 }
 
-.page-chip:hover {
-	color: var(--fg);
-	border-color: var(--border-strong);
+/* The way back out of a page whose block is not in a request yet. */
+.page-list__remove {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-inline-end: var(--space-2);
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--fg-faint);
+	cursor: pointer;
+}
+
+.page-list__remove:hover {
+	background: var(--bg-hover);
+	color: var(--danger-fg);
+}
+
+.page-list__remove:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
 }
 
 .page-chip:focus-visible {
@@ -665,6 +754,21 @@
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
+}
+
+.page-chip--list .page-chip__title {
+	flex: 1 1 auto;
+}
+
+/* Where the page came from; the full URL stays the row's tooltip. */
+.page-chip__host {
+	flex: none;
+	max-width: 45%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--fg-faint);
+	font-size: var(--text-xs);
 }
 
 .page-card {
@@ -762,11 +866,12 @@
 }
 
 /* Lives inside the box border so it reads as part of the prompt editor. The page strip
-   takes the left side and scrolls; the Expand toggle keeps its own space on the right. */
+   takes the left side and scrolls; the Expand toggle keeps its own space on the right.
+   Start-aligned, so the two buttons stay on the count row when the chips open below it. */
 .composer__topbar {
 	display: flex;
 	flex: none;
-	align-items: center;
+	align-items: flex-start;
 	gap: var(--space-1);
 	min-height: 24px;
 	min-width: 0;

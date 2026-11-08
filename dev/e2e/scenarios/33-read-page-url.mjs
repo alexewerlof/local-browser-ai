@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '33-read-page-url'
@@ -106,7 +106,8 @@ export async function run(ctx) {
 
 		await page.waitForFunction(() => document.body.innerText.includes('how to declare optional permissions.'))
 
-		// The page joined the chat and the fallback button is gone.
+		// The page joined the chat, and adding it opened the list.
+		await waitForPageCount(page, 1)
 		assert.match(await page.locator('.page-chip__title').textContent(), /Permissions - Docs/)
 		assert.equal(await page.locator('.tool__action').count(), 0)
 

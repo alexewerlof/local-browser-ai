@@ -1,4 +1,4 @@
-/** Settings fixtures shared by the browser scenarios. */
+/** Settings fixtures and page-strip helpers shared by the browser scenarios. */
 
 export const ALL_TOOLS = ['read_page', 'get_selection', 'get_current_datetime', 'search_web', 'remember', 'recall']
 
@@ -98,4 +98,20 @@ export const deskExtraction = {
 		'<p>Ten years on the frame, three on the motor.</p>',
 		'</article></body></html>',
 	].join(''),
+}
+
+/**
+ * Wait until the page strip reports `count` pages. Two or more collapse into the count
+ * badge, so the number of `.page-chip` nodes is not a readiness signal any more.
+ */
+export async function waitForPageCount(page, count) {
+	await page.waitForFunction((expected) => {
+		const badge = document.querySelector('.page-list__toggle')
+		return badge?.textContent?.trim() === String(expected)
+	}, count)
+}
+
+/** Open or close the chip row of a chat holding more than one page. */
+export async function togglePageList(page) {
+	await page.locator('.page-list__toggle').click()
 }

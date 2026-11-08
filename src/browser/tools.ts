@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
-import type { MemoryItem, PageSnapshot } from '../core/types'
+import type { MemoryItem, PageSnapshot, PageSource } from '../core/types'
 import { describeClock } from '../core/clock'
 import { openUrl, getTabSelection, searchWeb } from './client'
 import type { SearchDisposition } from './protocol'
@@ -38,9 +38,10 @@ export interface ToolContext {
 	 *
 	 * Resolves only once the user has decided: an access request that is still on screen
 	 * is an unfinished tool call, not a result. Approving attaches the page, so the very
-	 * next step of the run can read it.
+	 * next step of the run can read it. `source` says where the page came from: `search`
+	 * marks the results a tool captured for its own use, which are not shown as references.
 	 */
-	attachTab(tabId: number, signal?: AbortSignal): Promise<TabAttachment>
+	attachTab(tabId: number, signal?: AbortSignal, source?: PageSource): Promise<TabAttachment>
 }
 
 /** What became of a tab a tool tried to add to the chat. */
@@ -475,7 +476,7 @@ export function buildTools(
 					// The card keeps the tab as a manual fallback, and this settles on the same
 					// decision the banner is asking the user for.
 					context.onToolTab(options.toolCallId, result.tabId)
-					const attachment = await context.attachTab(result.tabId, options.abortSignal)
+					const attachment = await context.attachTab(result.tabId, options.abortSignal, 'search')
 					if (!attachment.attached) {
 						return {
 							searched: true,

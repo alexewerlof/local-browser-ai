@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '28-cache-stability'
@@ -45,7 +45,7 @@ export async function run(ctx) {
 		await ctx.open({ settings: localSettings(server.endpoint), tab: exampleTab })
 		const { page } = ctx
 
-		await page.waitForSelector('.page-chip')
+		await waitForPageCount(page, 1)
 		await page.locator('.composer__input').fill('What does the first page cost?')
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.querySelectorAll('.message--assistant').length === 1)
@@ -55,7 +55,7 @@ export async function run(ctx) {
 			([nextTab, nextExtraction]) => window.__LB_AI_TEST__.addPage(nextTab, nextExtraction),
 			[desk, deskExtraction],
 		)
-		await page.waitForFunction(() => document.querySelectorAll('.page-chip').length === 2)
+		await waitForPageCount(page, 2)
 		await page.locator('.composer__input').fill('And the second one?')
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.querySelectorAll('.message--assistant').length === 2)

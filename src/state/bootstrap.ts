@@ -28,6 +28,7 @@ import { Store } from '../core/store'
 import { enabledBuiltInTools, normalizeSettings } from '../core/settings'
 import { freezePage } from '../core/context/page-block'
 import type { OmniboxPrompt } from '../core/omnibox'
+import type { PageSource } from '../core/types'
 import type { PageSnapshot } from '../core/types'
 import { hasPageTools, type TabAttachment } from '../browser/tools'
 import type { TabInfo } from '../browser/protocol'
@@ -93,6 +94,12 @@ export interface AddPageOptions {
 	 * add never sets it — see `addPage`.
 	 */
 	reuseExisting?: boolean
+	/**
+	 * Where the page comes from. `search` marks the results a tool captured for its own
+	 * use: the model reads them like any page, but they are not a reference the user
+	 * added, so the list and the transcript leave them out.
+	 */
+	source?: PageSource
 }
 
 /**
@@ -120,7 +127,12 @@ export async function addPage(tabId?: number, options: AddPageOptions = {}): Pro
 
 		const { page } = await extractPage(info.id, info)
 		const conversation = conversationStore.get()
-		const snapshot = freezePage({ ...page, tabIdHint: info.id }, conversation.id, nextPageHandle(pagesStore.get()))
+		const snapshot = freezePage(
+			{ ...page, tabIdHint: info.id },
+			conversation.id,
+			nextPageHandle(pagesStore.get()),
+			options.source,
+		)
 		await appendPage(snapshot)
 		return snapshot
 	} catch (error) {
@@ -150,6 +162,8 @@ export interface PendingPageAccess {
 	 * there is no way to know from here whether anything appeared in the address bar.
 	 */
 	chip: boolean
+	/** Where the page comes from, kept so the grant that finally captures it still knows. */
+	source?: PageSource
 }
 
 export const pageAccessStore = new Store<PendingPageAccess | null>(null)
@@ -193,13 +207,13 @@ function waitForAccess(tabId: number, signal?: AbortSignal): Promise<TabAttachme
  */
 const grantsInFlight = new Map<number, Promise<TabAttachment>>()
 
-function grantAccess(tabId: number): Promise<TabAttachment> {
+function grantAccess(tabId: number, source: PageSource = 'user'): Promise<TabAttachment> {
 	const running = grantsInFlight.get(tabId)
 	if (running) return running
 
 	const grant = (async (): Promise<TabAttachment> => {
 		if (pageAccessStore.get()?.tabId === tabId) pageAccessStore.set(null)
-		const page = await queuePageAdd(tabId)
+		const page = await queuePageAdd(tabId, { source })
 		const attachment: TabAttachment = page
 			? { attached: true, page: page.handle }
 			: { attached: false, reason: 'The page could not be read.' }
@@ -283,7 +297,7 @@ export async function allowPageAccess(): Promise<void> {
 	if (!pending) return
 	if (!(await requestHostAccess(pending.url))) return
 	await removeHostAccessRequest(pending.tabId)
-	await grantAccess(pending.tabId)
+	await grantAccess(pending.tabId, pending.source)
 }
 
 /**
@@ -325,7 +339,7 @@ export async function cancelPageAccess(): Promise<void> {
 async function completePageAccess(origins: string[]): Promise<void> {
 	const pending = pageAccessStore.get()
 	if (!pending || !grantsOrigin(origins, pending.url)) return
-	await grantAccess(pending.tabId)
+	await grantAccess(pending.tabId, pending.source)
 }
 
 /**
@@ -343,7 +357,11 @@ async function completePageAccess(origins: string[]): Promise<void> {
  * No gesture is left by the time a tool runs, so the modal cannot be asked for: the
  * address-bar chip is offered, and the banner carries a button whose own click is one.
  */
-export async function attachToolTab(tabId: number, signal?: AbortSignal): Promise<TabAttachment> {
+export async function attachToolTab(
+	tabId: number,
+	signal?: AbortSignal,
+	source: PageSource = 'user',
+): Promise<TabAttachment> {
 	// The tab was created a moment ago and is still loading; reading it now would capture
 	// an empty document and settle the call on nothing.
 	await waitForTabLoad(tabId)
@@ -361,11 +379,11 @@ export async function attachToolTab(tabId: number, signal?: AbortSignal): Promis
 	const readable = pageReadable()
 	if (!readable.ok) return { attached: false, reason: readable.message }
 
-	if (await hasHostAccess(info.url)) return grantAccess(tabId)
+	if (await hasHostAccess(info.url)) return grantAccess(tabId, source)
 
 	const answer = waitForAccess(tabId, signal)
 	const offered = supportsHostAccessRequest() && (await addHostAccessRequest(tabId))
-	pageAccessStore.set({ tabId, url: info.url, chip: offered })
+	pageAccessStore.set({ tabId, url: info.url, chip: offered, source })
 	return answer
 }
 

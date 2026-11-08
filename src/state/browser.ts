@@ -1,4 +1,4 @@
-import type { CapturedPage } from '../core/types'
+import type { CapturedPage, PageSource } from '../core/types'
 import type { OmniboxPrompt } from '../core/omnibox'
 import { Store } from '../core/store'
 import {
@@ -95,7 +95,7 @@ export function recordToolTab(toolCallId: string, tabId: number): void {
  * the page store), but `chat` builds the tool context and `bootstrap` already imports
  * `chat`, so the handler is handed over here instead of imported from there.
  */
-type TabAttachHandler = (tabId: number, signal?: AbortSignal) => Promise<TabAttachment>
+type TabAttachHandler = (tabId: number, signal?: AbortSignal, source?: PageSource) => Promise<TabAttachment>
 
 let tabAttachHandler: TabAttachHandler | null = null
 
@@ -104,9 +104,9 @@ export function bindTabAttach(handler: TabAttachHandler): void {
 }
 
 /** Add the tab a tool opened to the chat, waiting for the user's answer. */
-export function attachTabForTool(tabId: number, signal?: AbortSignal): Promise<TabAttachment> {
+export function attachTabForTool(tabId: number, signal?: AbortSignal, source?: PageSource): Promise<TabAttachment> {
 	if (!tabAttachHandler) return Promise.resolve({ attached: false, reason: 'The panel is still starting up.' })
-	return tabAttachHandler(tabId, signal)
+	return tabAttachHandler(tabId, signal, source)
 }
 
 /** How long a tool-opened tab gets to finish loading before it is read anyway. */

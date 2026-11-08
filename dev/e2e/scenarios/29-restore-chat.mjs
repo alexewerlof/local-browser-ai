@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { deskExtraction, deskTab, exampleTab, localSettings } from '../fixtures.mjs'
+import { deskExtraction, deskTab, exampleTab, localSettings, togglePageList, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '29-restore-chat'
@@ -19,7 +19,7 @@ export async function run(ctx) {
 		// The pages are added while the panel is open, so the reload below has nothing
 		// queued to deliver: what comes back is what the chat stored, not a re-extraction.
 		await page.evaluate((nextTab) => window.__LB_AI_TEST__.addPage(nextTab), exampleTab)
-		await page.waitForSelector('.page-chip')
+		await waitForPageCount(page, 1)
 		await page.locator('.composer__input').fill(title)
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('Ten euros a month.'))
@@ -29,7 +29,7 @@ export async function run(ctx) {
 			([nextTab, nextExtraction]) => window.__LB_AI_TEST__.addPage(nextTab, nextExtraction),
 			[deskTab, deskExtraction],
 		)
-		await page.waitForFunction(() => document.querySelectorAll('.page-chip').length === 2)
+		await waitForPageCount(page, 2)
 
 		await page.reload()
 		await page.waitForSelector('.composer__input')
@@ -39,9 +39,16 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.message--user').count(), 1)
 		assert.equal(await page.locator('.message--assistant').count(), 1)
 
-		// Same pages: the one that already reached a turn is still marked as sent.
+		// Same pages: the strip comes back collapsed, with one still waiting for a turn.
+		assert.equal(await page.locator('.page-list__toggle').textContent(), '2')
+		assert.equal(await page.locator('.page-chip').count(), 0)
+		// Restoring reads the store; nothing is being converted, so nothing animates.
+		assert.equal(await page.locator('.page-list__capturing').count(), 0)
+
+		await togglePageList(page)
+		// The one that already reached a turn is still marked as sent.
 		assert.equal(await page.locator('.page-chip').count(), 2)
-		assert.equal(await page.locator('.page-chip--sent').count(), 1)
+		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
 		assert.deepEqual(await page.locator('.page-chip__title').allTextContents(), [
 			'Example Pricing',
 			'Standing desk — Garden',

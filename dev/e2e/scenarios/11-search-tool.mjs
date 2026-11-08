@@ -56,9 +56,11 @@ export async function run(ctx) {
 		assert.equal(result.page, 'p1', JSON.stringify(result))
 		assert.ok(result.text.length > 0, 'the captured results should come back with the call')
 
-		// And the page is really in the chat, not just promised to the model.
-		await page.waitForSelector('.page-chip')
-		assert.equal(await page.locator('.page-chip').count(), 1)
+		// The results page is in the chat for the model to read (`result.added` above), but a
+		// search is the extension doing its job, not a reference: nothing is listed.
+		assert.equal(await page.locator('.page-list__toggle').count(), 0)
+		assert.equal(await page.locator('.page-chip').count(), 0)
+		assert.match(await page.locator('.page-list').textContent(), /Add to chat/i)
 		// The tool attached it itself, so the card no longer offers to add it again.
 		assert.equal(await page.locator('.tool__action').count(), 0)
 	} finally {

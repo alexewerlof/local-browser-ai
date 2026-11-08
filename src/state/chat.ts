@@ -29,7 +29,7 @@ import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, loadPages, saveConversation, savePage } from './database'
 import { clearOpenChatId, readOpenChatId, writeOpenChatId } from './panel-state'
-import { bindPages, findAttachedPage, pagesStore, pendingPages } from './pages'
+import { bindPages, findAttachedPage, isPageReference, lastPageAddedStore, pagesStore, pendingPages } from './pages'
 import {
 	bindQueue,
 	enqueuePrompt,
@@ -369,6 +369,8 @@ export function setModel(ref: ModelRef): void {
 export async function appendPage(page: PageSnapshot): Promise<void> {
 	await savePage(page)
 	bindPages([...pagesStore.get(), page])
+	// A search result is captured for the model only, so it must not open the page list.
+	if (isPageReference(page)) lastPageAddedStore.set(page.id)
 	refreshContext()
 }
 

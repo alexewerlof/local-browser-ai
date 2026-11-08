@@ -115,6 +115,13 @@ export interface PageChunk {
 export type PageRepresentation = 'article' | 'app' | 'text'
 
 /**
+ * How a page came into the chat. The user adds pages; the search tool captures its own
+ * results so the model can read them, which is the extension working rather than a
+ * reference the user chose.
+ */
+export type PageSource = 'user' | 'search'
+
+/**
  * One page the user added to a chat. Captured once and immutable afterwards: the full
  * text lives here, outside the conversation, and the model pulls what it needs with
  * the page tools.
@@ -154,6 +161,11 @@ export interface PageSnapshot {
 	block: string
 	/** The message that carries the block; unset while the page waits for the next turn. */
 	messageId?: string
+	/**
+	 * Where the page came from. Unset is a page the user added; `search` is a results page
+	 * the tool captured for the model, which is not shown as a reference (`isPageReference`).
+	 */
+	source?: PageSource
 	/** The tab it came from, used only to re-focus that tab when its card is clicked. */
 	tabIdHint?: number
 }
@@ -162,7 +174,7 @@ export interface PageSnapshot {
  * What extraction produces: everything a snapshot has except the three things decided
  * when the page joins a conversation — its chat, its handle and its frozen prompt block.
  */
-export type CapturedPage = Omit<PageSnapshot, 'conversationId' | 'handle' | 'block' | 'messageId'>
+export type CapturedPage = Omit<PageSnapshot, 'conversationId' | 'handle' | 'block' | 'messageId' | 'source'>
 
 /* ------------------------------------------------------------- conversations */
 

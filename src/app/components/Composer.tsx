@@ -22,12 +22,13 @@ import type {
 import type { ContextSnapshot, RunState } from '../../state/chat'
 import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
 import { queueStore, removeQueuedPrompt } from '../../state/queue'
+import { lastPageAddedStore } from '../../state/pages'
 import { updateSettings } from '../../state/settings'
 import { estimateTokens } from '../../core/context/tokens'
 import { formatTokens } from '../../core/util'
 import { getModelInfo } from '../../providers/catalog'
 import { ContextMeter } from './ContextMeter'
-import { PageList } from './PageList'
+import { PageList, PageListToggle } from './PageList'
 import { SkillMenu, ToolsMenu } from './ComposerMenus'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
@@ -48,6 +49,7 @@ export function Composer({
 	onStop,
 	onContinue,
 	onOpenPage,
+	onRemovePage,
 	onAddCurrentPage,
 	onCompact,
 	onModelChange,
@@ -68,6 +70,7 @@ export function Composer({
 	onStop: () => void
 	onContinue: () => void
 	onOpenPage: (page: PageSnapshot) => void
+	onRemovePage: (page: PageSnapshot) => void
 	onAddCurrentPage: () => void
 	onCompact: () => void
 	onModelChange: (ref: ModelRef) => void
@@ -75,6 +78,7 @@ export function Composer({
 	const draft = useStore(draftStore)
 	const activeSkill = useStore(skillStore)
 	const queue = useStore(queueStore)
+	const lastPageAdded = useStore(lastPageAddedStore)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const [slashOpen, setSlashOpen] = useState(false)
 	/**
@@ -83,6 +87,12 @@ export function Composer({
 	 * panel starts at the normal size.
 	 */
 	const [expanded, setExpanded] = useState(false)
+	/**
+	 * The page list opens above the box, so it costs the transcript room, never the prompt.
+	 * It also opens by itself when a page joins the chat (see below); like `expanded` it is
+	 * in-memory, so a reopened panel starts with it closed.
+	 */
+	const [pagesOpen, setPagesOpen] = useState(false)
 
 	const hasPages = pages.length > 0
 	const streaming = run.status === 'streaming'
@@ -112,6 +122,18 @@ export function Composer({
 	useEffect(() => {
 		setSlashOpen(slashQuery !== null && slashMatches.length > 0)
 	}, [slashQuery, slashMatches.length])
+
+	// The list belongs to the chat that opened it: switching chats closes it.
+	useEffect(() => {
+		setPagesOpen(false)
+	}, [conversation.id])
+
+	// A page that just joined opens the list: a changing count is too quiet a signal, and
+	// the row is one click from the trash can if the add was a mistake. A restored chat
+	// appends nothing, so reopening the panel still starts with the list closed.
+	useEffect(() => {
+		if (lastPageAdded) setPagesOpen(true)
+	}, [lastPageAdded])
 
 	const submit = () => {
 		const text = draftStore.get().trim()
@@ -207,6 +229,8 @@ export function Composer({
 				</div>
 			)}
 
+			{pagesOpen && pages.length > 0 && <PageList pages={pages} onOpen={onOpenPage} onRemove={onRemovePage} />}
+
 			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
 				<div className="composer__topbar">
 					<button
@@ -223,7 +247,12 @@ export function Composer({
 					>
 						<Plus size={14} />
 					</button>
-					<PageList pages={pages} busy={addPageBusy} onOpen={onOpenPage} />
+					<PageListToggle
+						pages={pages}
+						busy={addPageBusy}
+						open={pagesOpen}
+						onToggle={() => setPagesOpen((value) => !value)}
+					/>
 					<button
 						type="button"
 						className="button button--ghost button--icon button--sm"

@@ -1,4 +1,4 @@
-import type { CapturedPage, PageSnapshot } from '../types'
+import type { CapturedPage, PageSnapshot, PageSource } from '../types'
 import { estimateTokens } from './tokens'
 
 /**
@@ -146,8 +146,13 @@ export function renderPageBlock(page: PageSnapshot): string {
  * handle the model addresses it by, and the block that goes into the prompt. All three
  * are fixed from here on.
  */
-export function freezePage(captured: CapturedPage, conversationId: string, handle: string): PageSnapshot {
-	const page: PageSnapshot = { ...captured, conversationId, handle, block: '' }
+export function freezePage(
+	captured: CapturedPage,
+	conversationId: string,
+	handle: string,
+	source: PageSource = 'user',
+): PageSnapshot {
+	const page: PageSnapshot = { ...captured, conversationId, handle, source, block: '' }
 	return { ...page, block: renderPageBlock(page) }
 }
 

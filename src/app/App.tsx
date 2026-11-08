@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { TriangleAlert, X } from 'lucide-react'
 import {
 	cancelStepLimit,
@@ -26,7 +26,7 @@ import { promptStatusStore } from '../state/prompt'
 import { settingsStore, updateSettings } from '../state/settings'
 import { openSettings } from '../platform/chrome'
 import { focusPage, activeTabStore } from '../state/browser'
-import { pagesStore } from '../state/pages'
+import { pagesStore, isPageReference, removePage } from '../state/pages'
 import { hostOf } from '../platform/permissions'
 import { Composer } from './components/Composer'
 import { Header } from './components/Header'
@@ -44,7 +44,13 @@ export function App() {
 	const stepLimit = useStore(stepLimitStore)
 	const addPageBusy = useStore(addPageBusyStore)
 	const addPageError = useStore(addPageErrorStore)
-	const pages = useStore(pagesStore)
+	const allPages = useStore(pagesStore)
+	/**
+	 * The pages the user sees. A search result page is captured so the model can read it,
+	 * but it is the extension's working set rather than a reference: it stays out of the
+	 * page list and out of the transcript cards.
+	 */
+	const pages = useMemo(() => allPages.filter(isPageReference), [allPages])
 	const activeTab = useStore(activeTabStore)
 	const pageAccess = useStore(pageAccessStore)
 	const mcpWarnings = useStore(mcpWarningsStore)
@@ -207,6 +213,7 @@ export function App() {
 				onContinue={resumeQueue}
 				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}
 				onAddCurrentPage={() => void addCurrentPage()}
+				onRemovePage={(page) => void removePage(page)}
 				onCompact={() => void compactNow()}
 				onModelChange={(ref) => {
 					setModel(ref)

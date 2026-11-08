@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '31-omnibox-prompt'
@@ -35,9 +35,10 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.message--user').count(), 1, 'one user turn')
 		assert.equal(await page.locator('.message--assistant').count(), 1, 'one answer')
 
-		// The page came along and reached the turn, so its chip is marked as sent.
-		await page.waitForSelector('.page-chip--sent')
+		// The page came along and reached the turn, so it is listed and no longer pending.
+		await waitForPageCount(page, 1)
 		assert.match(await page.locator('.page-chip__title').textContent(), /Example Pricing/)
+		assert.equal(await page.locator('.page-list__item--pending').count(), 0)
 		assert.equal(await page.locator('.message__pages .page-card').count(), 1, 'one card on the turn')
 
 		// The block rides the first turn and the system prompt stays free of it, exactly as
@@ -55,7 +56,7 @@ export async function run(ctx) {
 		await page.waitForSelector('.composer__input')
 		assert.equal(await page.locator('.header__title').textContent(), prompt, 'restored title')
 		assert.equal(await page.locator('.message--user').count(), 1, 'no replay of the prompt')
-		assert.equal(await page.locator('.page-chip').count(), 1, 'one restored page')
+		assert.equal(await page.locator('.page-list__toggle').textContent(), '1', 'one restored page')
 		assert.equal(server.requests.length, 1, 'no second request after reload')
 
 		// A second prompt, this time while the panel is open: the nudge path.
@@ -65,7 +66,7 @@ export async function run(ctx) {
 
 		// A new chat again, with its own single copy of the page.
 		assert.equal(await page.locator('.message--user').count(), 1, 'fresh transcript')
-		assert.equal(await page.locator('.page-chip').count(), 1, 'one page in the new chat')
+		assert.equal(await page.locator('.page-list__toggle').textContent(), '1', 'one page in the new chat')
 		assert.equal(await page.locator('.message__pages .page-card').count(), 1, 'one card in the new chat')
 		assert.equal(server.requests.length, 2, 'second request')
 		assert.match(server.requests[1].messages.at(-1).content, /## Page p1 — Example Pricing/)

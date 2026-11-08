@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '09-page-block'
@@ -61,7 +61,7 @@ export async function run(ctx) {
 		})
 		const { page } = ctx
 
-		await page.waitForSelector('.page-chip')
+		await waitForPageCount(page, 1)
 		await page.locator('.composer__input').fill('Which key does authentication use?')
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.body.innerText.includes('olshausen.'))

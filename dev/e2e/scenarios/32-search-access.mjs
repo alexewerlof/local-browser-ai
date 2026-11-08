@@ -85,9 +85,11 @@ export async function run(ctx) {
 
 		await page.waitForFunction(() => document.body.innerText.includes('According to the results'))
 
-		// The banner is gone and the page it waited for is in the chat.
+		// The banner is gone and the page it waited for is in the chat, but a search is not a
+		// reference: the page list stays empty.
 		assert.equal(await page.locator('.banner--warn').count(), 0)
-		assert.match(await page.locator('.page-chip__title').first().textContent(), /chrome mv3 search api/)
+		assert.equal(await page.locator('.page-list__toggle').count(), 0)
+		assert.equal(await page.locator('.page-chip').count(), 0)
 		assert.equal(await page.locator('.tool__action').count(), 0)
 
 		// The search result carries the page and its text, and the next step read that

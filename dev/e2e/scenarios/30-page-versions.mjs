@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '30-page-versions'
@@ -53,8 +53,7 @@ export async function run(ctx) {
 		// The first capture arrives from the context menu before the panel opened.
 		await ctx.open({ settings: localSettings(server.endpoint), tab: exampleTab })
 		const { page } = ctx
-		await page.waitForSelector('.page-chip')
-		assert.equal(await page.locator('.page-chip').count(), 1)
+		await waitForPageCount(page, 1)
 
 		await page.locator('.composer__input').fill('How much is the Teams plan?')
 		await page.locator('[aria-label="Submit"]').click()
@@ -66,11 +65,13 @@ export async function run(ctx) {
 		// The user reloads the page and adds it again from the context menu. Nothing about
 		// the add says "replace": it is a second capture, and it gets the next handle.
 		await page.evaluate((extraction) => window.__LB_AI_TEST__.addPage(undefined, extraction), updatedExtraction)
-		await page.waitForFunction(() => document.querySelectorAll('.page-chip').length === 2)
+		await waitForPageCount(page, 2)
+		// The capture has finished, so the count sits still even though p2 waits for a turn.
+		assert.equal(await page.locator('.page-list__capturing').count(), 0)
 
-		// Both versions are in the strip; only the new one is still waiting for a turn.
-		assert.equal(await page.locator('.page-chip--sent').count(), 1)
-		assert.equal(await page.locator('.page-chip:not(.page-chip--sent)').count(), 1)
+		// The capture opened the list; both versions are in it, and only the new one waits.
+		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
+		assert.equal(await page.locator('.page-list__item:not(.page-list__item--pending)').count(), 1)
 
 		await page.locator('.composer__input').fill('What changed since my last visit?')
 		await page.locator('[aria-label="Submit"]').click()

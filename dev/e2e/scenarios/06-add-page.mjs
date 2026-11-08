@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '06-add-page'
@@ -16,11 +16,12 @@ export async function run(ctx) {
 		await ctx.open({ settings: localSettings(server.endpoint), tab: exampleTab })
 		const { page } = ctx
 
-		// The page is listed immediately, before any message carries it.
-		await page.waitForSelector('.page-chip')
+		// The page is counted as soon as it is captured, and the add opens the list by itself.
+		await waitForPageCount(page, 1)
+		await page.waitForSelector('.page-list__panel')
 		assert.match(await page.locator('.page-chip__title').textContent(), /Example Pricing/)
 		assert.equal(await page.locator('.page-chip').getAttribute('title'), 'https://example.com/pricing')
-		assert.equal(await page.locator('.page-list .page-chip').count(), 1)
+		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
 		// Nothing is in the prompt yet, so no card marks a turn.
 		assert.equal(await page.locator('.message__pages').count(), 0)
 
