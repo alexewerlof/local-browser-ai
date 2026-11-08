@@ -10,8 +10,18 @@ import { SettingsButton } from './SettingsButton'
 
 export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
 	const [open, setOpen] = useState(false)
+	const [query, setQuery] = useState('')
 
 	if (skills.length === 0) return null
+
+	const needle = query.trim().toLowerCase()
+	const matches = needle
+		? skills.filter(
+				(skill) =>
+					skill.name.toLowerCase().includes(needle) ||
+					(skill.description ?? '').toLowerCase().includes(needle),
+			)
+		: skills
 
 	return (
 		<Popover
@@ -27,25 +37,35 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 				</button>
 			}
 		>
-			<div className="popover__group">
-				<div className="popover__group-label">Insert a prompt</div>
-				{skills.map((skill) => (
-					<button
-						key={skill.id}
-						type="button"
-						className="popover__item popover__item--stacked"
-						onClick={() => {
-							onSelect(skill)
-							setOpen(false)
-						}}
-					>
-						<span className="popover__item-main">{skill.name}</span>
-						{skill.description && <span className="popover__item-sub">{skill.description}</span>}
-					</button>
-				))}
-			</div>
-			<div className="popover__footer popover__footer--end">
+			<div className="popover__header">
+				<input
+					className="input input--compact"
+					placeholder="Search skills"
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					autoFocus
+				/>
 				<SettingsButton section="skills" label="Manage skills" onClose={() => setOpen(false)} />
+			</div>
+			<div className="popover__list">
+				<div className="popover__group">
+					<div className="popover__group-label">Insert a prompt</div>
+					{matches.length === 0 && <p className="popover__empty">No skills match.</p>}
+					{matches.map((skill) => (
+						<button
+							key={skill.id}
+							type="button"
+							className="popover__item popover__item--stacked"
+							onClick={() => {
+								onSelect(skill)
+								setOpen(false)
+							}}
+						>
+							<span className="popover__item-main">{skill.name}</span>
+							{skill.description && <span className="popover__item-sub">{skill.description}</span>}
+						</button>
+					))}
+				</div>
 			</div>
 		</Popover>
 	)

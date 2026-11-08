@@ -1154,9 +1154,18 @@
 	right: 0;
 }
 
+/* Search row, with its settings gear on the trailing edge. */
 .popover__header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	padding: var(--space-3);
 	border-bottom: 1px solid var(--border);
+}
+
+.popover__header .input {
+	flex: 1;
+	min-width: 0;
 }
 
 .input--compact {

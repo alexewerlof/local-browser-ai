@@ -38,10 +38,10 @@ export async function run(ctx) {
 		}, before)
 	}
 
-	// Skills: the footer hint is now a gear.
+	// Skills: the gear sits beside the search row at the top of the menu.
 	await page.locator('.chip:has-text("Skills")').click()
 	let result = await clickAndReadSection(() =>
-		page.locator('.popover__footer button[aria-label="Manage skills"]').click(),
+		page.locator('.popover__header button[aria-label="Manage skills"]').click(),
 	)
 	assert.deepEqual(result, { created: true, hash: '#/skills' })
 	// Opening Settings dismisses the popover.
@@ -56,7 +56,7 @@ export async function run(ctx) {
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage MCP servers"]').click())
 	assert.deepEqual(result, { created: false, hash: '#/mcp' })
 
-	// Models: the footer button is the same gear.
+	// Models: the gear sits beside the search row at the top of the picker.
 	await page.locator('.chip--model').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage models"]').click())
 	assert.deepEqual(result, { created: false, hash: '#/models' })

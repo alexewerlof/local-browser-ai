@@ -71,6 +71,7 @@ export function ModelPicker({
 					onChange={(event) => setQuery(event.target.value)}
 					autoFocus
 				/>
+				<SettingsButton section="models" label="Manage models" onClose={() => setOpen(false)} />
 			</div>
 			<div className="popover__list">
 				{groups.length === 0 && <p className="popover__empty">No models. Add a provider in Settings.</p>}
@@ -99,9 +100,6 @@ export function ModelPicker({
 						})}
 					</div>
 				))}
-			</div>
-			<div className="popover__footer popover__footer--end">
-				<SettingsButton section="models" label="Manage models" onClose={() => setOpen(false)} />
 			</div>
 		</Popover>
 	)
