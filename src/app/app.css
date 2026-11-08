@@ -479,11 +479,57 @@
 	font-size: 1.05em;
 }
 
+/* ---------------------------------------------------------------------- steps */
+
+/*
+ * The steps of one answer — its thinking and its tool calls — as one flow. The rail is
+ * what makes the rows read as one thing rather than as separate blocks, and it folds into
+ * a single summary row once the run is over.
+ */
+.steps {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.steps__summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	width: 100%;
+	padding: var(--space-2) 0;
+	text-align: left;
+	font-size: var(--text-xs);
+	color: var(--fg-muted);
+}
+
+.steps__summary:hover {
+	color: var(--fg);
+}
+
+.steps__summary svg {
+	flex: none;
+}
+
+.steps__list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0 0 0 var(--space-3);
+	list-style: none;
+	border-left: 2px solid var(--border-strong);
+}
+
+.steps__item {
+	min-width: 0;
+}
+
 /* ------------------------------------------------------------------- reasoning */
 
 .reasoning {
-	border-left: 2px solid var(--border-strong);
-	padding-left: var(--space-4);
+	min-width: 0;
 }
 
 .reasoning__toggle {
@@ -493,6 +539,7 @@
 	font-size: var(--text-xs);
 	color: var(--fg-muted);
 	width: 100%;
+	padding: var(--space-2) 0;
 	text-align: left;
 }
 
@@ -500,8 +547,12 @@
 	color: var(--fg);
 }
 
+.reasoning__toggle svg {
+	flex: none;
+}
+
 .reasoning__body {
-	margin-top: var(--space-3);
+	margin: var(--space-2) 0 var(--space-3);
 	font-size: var(--text-sm);
 	color: var(--fg-muted);
 	white-space: pre-wrap;
@@ -512,16 +563,17 @@
 
 /* ------------------------------------------------------------------------ tools */
 
+/*
+ * One step row. Like the reasoning row it is flat — no card, no background — so a run of
+ * steps reads as a single flow; the chevron opens the call's input and output.
+ */
 .tool {
-	border: 1px solid var(--border);
-	border-radius: var(--radius-md);
-	background: var(--bg-raised);
-	font-size: var(--text-sm);
-	overflow: hidden;
+	min-width: 0;
+	font-size: var(--text-xs);
 }
 
-.tool--error {
-	border-color: color-mix(in oklab, var(--danger) 40%, var(--border));
+.tool--error .tool__name {
+	color: var(--danger-fg);
 }
 
 .tool__head {
@@ -529,18 +581,21 @@
 	align-items: center;
 	gap: var(--space-3);
 	width: 100%;
-	padding: var(--space-3) var(--space-4);
+	padding: var(--space-2) 0;
 	text-align: left;
 	color: var(--fg-muted);
 }
 
 .tool__head:hover {
-	background: var(--bg-hover);
+	color: var(--fg);
+}
+
+.tool__head svg {
+	flex: none;
 }
 
 .tool__name {
-	font-weight: 600;
-	color: var(--fg);
+	color: inherit;
 }
 
 .tool__arg {
@@ -553,24 +608,27 @@
 	opacity: 0.8;
 }
 
-.tool__body,
-.tool__approval,
-.tool__action {
-	border-top: 1px solid var(--border);
-	padding: var(--space-3) var(--space-4);
-	background: var(--bg-sunken);
+.tool__body {
+	margin: var(--space-2) 0 var(--space-3);
 }
 
-.tool__action {
-	display: flex;
-	gap: var(--space-3);
-}
-
+/* The one part of a step that is a question rather than detail, so it keeps a surface. */
 .tool__approval {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-3);
+	margin: var(--space-2) 0 var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--bg-raised);
 	font-size: var(--text-sm);
+}
+
+.tool__action {
+	display: flex;
+	gap: var(--space-3);
+	margin: var(--space-2) 0 var(--space-3);
 }
 
 .tool__approval code {

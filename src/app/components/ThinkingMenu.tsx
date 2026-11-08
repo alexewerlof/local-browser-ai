@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Brain, Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, MessageCircleMore } from 'lucide-react'
 import type { ThinkingSelection } from '../../core/types'
 import type { ModelInfo } from '../../providers/catalog'
 import { thinkingOptions } from '../../providers/catalog'
@@ -38,7 +38,7 @@ export function ThinkingMenu({
 					onClick={() => setOpen((current) => !current)}
 					title="Reasoning effort"
 				>
-					<Brain size={12} />
+					<MessageCircleMore size={12} />
 					<span className="chip__text">{label}</span>
 					<ChevronDown size={12} />
 				</button>

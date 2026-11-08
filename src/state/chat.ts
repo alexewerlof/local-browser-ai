@@ -164,6 +164,25 @@ function patchMessage(
 	}
 }
 
+/**
+ * The work an answer has done so far.
+ *
+ * A continued answer adds a run to the one that hit the tool-step cap, so its numbers are
+ * totals: the group above the answer describes the whole answer, not the last segment.
+ */
+function workOf(
+	message: ChatMessage,
+	durationMs: number,
+	steps: number,
+	continued = false,
+): Pick<ChatMessage, 'steps' | 'durationMs'> {
+	if (!continued) return { steps, durationMs }
+	return {
+		steps: (message.steps ?? 0) + steps,
+		durationMs: (message.durationMs ?? 0) + durationMs,
+	}
+}
+
 /* ------------------------------------------------------------ model selection */
 
 interface Selection {
@@ -661,17 +680,19 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		}
 
 		const aborted = controller.signal.aborted
+		const duration = finishedAt - startedAt
+
 		working = patchMessage(working, assistantId, (message) => ({
 			...message,
 			status: aborted ? 'aborted' : 'complete',
 			usage,
 			parts: [...parts],
 			model: selection.ref,
+			...workOf(message, duration, steps, options.resume),
 		}))
 		working = withTitle(working)
 		commitRun(working)
 
-		const duration = finishedAt - startedAt
 		runStore.set({
 			status: 'idle',
 			startedAt,
@@ -722,6 +743,8 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 					...message,
 					parts: [],
 					status: 'streaming',
+					steps: undefined,
+					durationMs: undefined,
 				}))
 				commitRun(working)
 				activeController = null
@@ -734,11 +757,16 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		}
 
 		if (appError.kind === 'aborted') {
-			working = patchMessage(working, assistantId, (message) => ({ ...message, status: 'aborted' }))
+			working = patchMessage(working, assistantId, (message) => ({
+				...message,
+				status: 'aborted',
+				...workOf(message, now() - startedAt, steps, options.resume),
+			}))
 		} else {
 			working = patchMessage(working, assistantId, (message) => ({
 				...message,
 				status: 'error',
+				...workOf(message, now() - startedAt, steps, options.resume),
 				parts: [
 					...message.parts,
 					{ type: 'error', kind: appError.kind, message: appError.message, retryable: appError.retryable },

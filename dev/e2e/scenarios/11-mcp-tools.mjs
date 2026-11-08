@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { ALL_TOOLS, localSettings } from '../fixtures.mjs'
+import { ALL_TOOLS, expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 import { startMockMcpServer } from '../mock-mcp-server.mjs'
 
@@ -48,13 +48,11 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('Say hello through the mock server.')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		// The call card shows the tool's title and which server it belongs to.
-		await page.waitForSelector('.tool')
+		await page.waitForFunction(() => document.body.innerText.includes('The server said hello.'))
+		// The row names the tool and its server once the steps have folded away.
+		await expandSteps(page)
 		assert.equal(await page.locator('.tool__name').textContent(), 'Echo')
 		assert.match(await page.locator('.tool__head').textContent(), /MCP · Mock tools/)
-
-		await page.waitForFunction(() => document.body.innerText.includes('The server said hello.'))
-		assert.equal(await page.locator('.tool__head .badge').first().textContent(), 'MCP · Mock tools')
 
 		// The advertised tool is namespaced and labelled with its server.
 		assert.equal(server.requests.length, 2)

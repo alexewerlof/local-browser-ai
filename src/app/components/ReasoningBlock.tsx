@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Brain, ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, MessageCircleMore } from 'lucide-react'
 import { formatDuration, formatTokens } from '../../core/util'
 import type { ReasoningPart } from '../../core/types'
 
@@ -10,7 +10,7 @@ export function ReasoningBlock({ part, streaming }: { part: ReasoningPart; strea
 	return (
 		<div className={`reasoning${open ? ' reasoning--open' : ''}`}>
 			<button type="button" className="reasoning__toggle" onClick={() => setOpen((value) => !value)}>
-				<Brain size={13} />
+				<MessageCircleMore size={13} />
 				<span>{streaming ? 'Thinking…' : 'Thought process'}</span>
 				<span className="faint">
 					{part.durationMs ? formatDuration(part.durationMs) : ''}

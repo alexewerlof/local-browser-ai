@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '11-search-tool'
@@ -31,11 +31,10 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('Look up the Chrome search API')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		await page.waitForSelector('.tool')
-		assert.match(await page.locator('.tool__name').textContent(), /Searching the web/)
-
 		await page.waitForFunction(() => document.body.innerText.includes('I opened the results in a new tab.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
+		await expandSteps(page)
+		assert.match(await page.locator('.tool__name').textContent(), /Searching the web/)
+		assert.equal(await page.locator('.tool[data-state="complete"]').count(), 1)
 
 		// The query ran through the default search engine, in a new tab unless the model
 		// asked for something else.

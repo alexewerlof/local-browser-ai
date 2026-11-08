@@ -115,3 +115,28 @@ export async function waitForPageCount(page, count) {
 export async function togglePageList(page) {
 	await page.locator('.page-list__toggle').click()
 }
+
+/**
+ * Show the steps of every answer.
+ *
+ * While a run streams its rows are on screen; when it ends they fold into one summary row,
+ * so a scenario that inspects a finished answer has to open it first.
+ */
+export async function expandSteps(page) {
+	// A run keeps its rows open and has no summary yet, so wait for the run to end before
+	// counting them — otherwise a summary that appears mid-wait is never opened.
+	await page.waitForFunction(() => document.querySelector('[aria-label="Stop generating"]') === null)
+	const summaries = page.locator('.steps__summary')
+	const count = await summaries.count()
+	for (let index = 0; index < count; index += 1) {
+		const summary = summaries.nth(index)
+		if ((await summary.getAttribute('aria-expanded')) !== 'true') await summary.click()
+	}
+	// React commits the rows a tick after the click, so wait for the state rather than for
+	// a node that a previous, already-open group may be providing.
+	await page.waitForFunction(() => {
+		const nodes = [...document.querySelectorAll('.steps__summary')]
+		return nodes.every((node) => node.getAttribute('aria-expanded') === 'true')
+	})
+	await page.waitForSelector('.steps__list')
+}

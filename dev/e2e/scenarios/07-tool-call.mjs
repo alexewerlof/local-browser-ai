@@ -25,13 +25,22 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('How much is the Teams plan?')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		// The tool call is rendered while it runs.
-		await page.waitForSelector('.tool')
-		assert.match(await page.locator('.tool__name').textContent(), /Reading page/)
-
 		// The answer that follows the tool result is rendered too.
 		await page.waitForFunction(() => document.body.innerText.includes('Teams costs 25 EUR.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
+
+		// The run is over, so the steps fold into one line and the rows are gone.
+		const summary = page.locator('.steps__summary')
+		await summary.waitFor()
+		assert.match(await summary.textContent(), /Completed \d+ steps? in /)
+		assert.equal(await summary.getAttribute('aria-expanded'), 'false')
+		assert.equal(await page.locator('.tool').count(), 0)
+
+		// Opening it brings the call back: complete, and without a badge saying so, because a
+		// finished step is the quiet default.
+		await summary.click()
+		assert.match(await page.locator('.tool__name').textContent(), /Reading page/)
+		assert.equal(await page.locator('.tool[data-state="complete"]').count(), 1)
+		assert.equal(await page.locator('.tool__head .badge').count(), 0)
 
 		assert.equal(server.requests.length, 2)
 		const second = server.requests[1]

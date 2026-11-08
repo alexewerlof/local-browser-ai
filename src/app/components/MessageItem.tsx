@@ -3,13 +3,13 @@ import { Check, Copy, GraduationCap, MemoryStick, RefreshCw, TriangleAlert } fro
 import type { ChatMessage, PageSnapshot } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
+import { isStepPart, stepParts } from '../../core/steps'
 import { formatDuration, formatTokens } from '../../core/util'
 import { MEMORY_MAX_TEXT } from '../../core/memory'
 import { saveMemory } from '../../state/memory'
 import { Markdown } from './Markdown'
 import { PageCard } from './PageCard'
-import { ReasoningBlock } from './ReasoningBlock'
-import { ToolCallCard } from './ToolCallCard'
+import { StepsGroup } from './StepsGroup'
 
 export function MessageItem({
 	message,
@@ -97,20 +97,27 @@ export function MessageItem({
 	const waiting = streaming && !answered
 	const waitingLabel =
 		message.parts.length > 0 ? 'Waiting for the model to read the tool results' : 'The model is responding'
+	// Every step goes into one group, rendered where the first step sits, so the answer text
+	// keeps its place after the work that produced it.
+	const steps = stepParts(message.parts)
+	const firstStep = message.parts.findIndex(isStepPart)
 
 	return (
 		<article className={`message message--assistant${isLast ? ' message--last' : ''}`}>
 			<div className="message__body">
 				{message.parts.map((part, index) => {
+					if (isStepPart(part)) {
+						return index === firstStep ? (
+							<StepsGroup
+								key="steps"
+								message={message}
+								parts={steps}
+								streaming={streaming}
+								isLast={isLast}
+							/>
+						) : null
+					}
 					switch (part.type) {
-						case 'reasoning':
-							return (
-								<ReasoningBlock
-									key={`reasoning-${index}`}
-									part={part}
-									streaming={streaming && index === message.parts.length - 1}
-								/>
-							)
 						case 'text':
 							return (
 								<Markdown
@@ -121,8 +128,6 @@ export function MessageItem({
 									codeHighlighting={settings.rendering.codeHighlighting}
 								/>
 							)
-						case 'tool-call':
-							return <ToolCallCard key={part.toolCallId} part={part} />
 						case 'error':
 							return (
 								<div className="message__error" key={`error-${index}`}>

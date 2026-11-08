@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '16-memory-tools'
@@ -30,12 +30,14 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('Remember that I prefer tabs')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		await page.waitForFunction(() => document.querySelectorAll('.tool').length === 2)
+		await page.waitForFunction(() => document.body.innerText.includes('Saved.'))
+		await expandSteps(page)
 		const labels = await page.locator('.tool__name').allTextContents()
 		assert.deepEqual(labels, ['Saving to memory', 'Searching memory'])
-
-		await page.waitForFunction(() => document.body.innerText.includes('Saved.'))
-		assert.deepEqual(await page.locator('.tool__head .badge').allTextContents(), ['done', 'done'])
+		assert.deepEqual(await page.locator('.tool').evaluateAll((nodes) => nodes.map((node) => node.dataset.state)), [
+			'complete',
+			'complete',
+		])
 
 		// Both tools are advertised to the model.
 		const toolNames = server.requests[0].tools.map((tool) => tool.function.name)

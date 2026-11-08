@@ -87,6 +87,14 @@ export interface ChatMessage {
 	status: MessageStatus
 	usage?: Usage
 	model?: ModelRef
+	/**
+	 * How many model calls produced this answer, counted from the provider's steps. The
+	 * transcript keeps the steps but not their boundaries, so the count is stored rather
+	 * than guessed back from `parts`.
+	 */
+	steps?: number
+	/** Wall-clock time spent on this answer, across every run that added to it. */
+	durationMs?: number
 	/** The skill that was applied when this user message was sent. */
 	skillId?: string
 }

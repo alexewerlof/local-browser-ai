@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings, waitForPageCount } from '../fixtures.mjs'
+import { expandSteps, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '34-tool-step-limit'
@@ -44,9 +44,12 @@ export async function run(ctx) {
 		await page.waitForSelector('.banner--warn')
 		const banner = await page.locator('.banner--warn').textContent()
 		assert.match(banner, /limit of 2 tool steps/)
+		// The cap is a question, not an ending: the steps stay on screen so the user can see
+		// what the two steps did before spending another budget.
+		assert.equal(await page.locator('.steps__summary').getAttribute('aria-expanded'), 'true')
 		assert.equal(await page.locator('.tool').count(), 2)
 		assert.equal(server.requests.length, 2, 'the cap stops the loop after two steps')
-		assert.equal(await page.locator('.tool__head .badge').last().textContent(), 'done')
+		assert.equal(await page.locator('.tool[data-state="complete"]').count(), 2)
 
 		// The number in the sentence opens the Settings section that owns the control.
 		await page.locator('.banner__link').click()
@@ -60,6 +63,10 @@ export async function run(ctx) {
 		// One bubble: the continuation adds to the answer that stopped, it does not open a
 		// second one with the same tool cards in it.
 		assert.equal(await page.locator('.message--assistant').count(), 1)
+		// The answer is finished now, so the whole group folds — both runs' steps together:
+		// the two that hit the cap, plus the one that produced the answer.
+		assert.match(await page.locator('.steps__summary').textContent(), /Completed 3 steps/)
+		await expandSteps(page)
 		assert.equal(await page.locator('.tool').count(), 2)
 
 		// The resumed request continues the conversation instead of restarting it: the

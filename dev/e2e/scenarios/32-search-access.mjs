@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '32-search-access'
@@ -90,6 +90,8 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.banner--warn').count(), 0)
 		assert.equal(await page.locator('.page-list__toggle').count(), 0)
 		assert.equal(await page.locator('.page-chip').count(), 0)
+		// The search attached its own page, so opening the folded steps offers no manual add.
+		await expandSteps(page)
 		assert.equal(await page.locator('.tool__action').count(), 0)
 
 		// The search result carries the page and its text, and the next step read that

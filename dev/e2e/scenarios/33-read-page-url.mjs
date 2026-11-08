@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings, waitForPageCount } from '../fixtures.mjs'
+import { expandSteps, localSettings, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '33-read-page-url'
@@ -109,6 +109,7 @@ export async function run(ctx) {
 		// The page joined the chat, and adding it opened the list.
 		await waitForPageCount(page, 1)
 		assert.match(await page.locator('.page-chip__title').textContent(), /Permissions - Docs/)
+		await expandSteps(page)
 		assert.equal(await page.locator('.tool__action').count(), 0)
 
 		// The result is content, not an echo of the URL that was passed in.

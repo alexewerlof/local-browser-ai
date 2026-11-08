@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { ALL_TOOLS, localSettings } from '../fixtures.mjs'
+import { ALL_TOOLS, expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 import { startMockMcpServer } from '../mock-mcp-server.mjs'
 
@@ -55,7 +55,9 @@ export async function run(ctx) {
 		await page.waitForSelector('.tool__approval')
 		await page.locator('.tool__approval button', { hasText: 'Deny' }).click()
 		await page.waitForFunction(() => !document.querySelector('.tool__approval'))
-		await page.waitForFunction(() => document.querySelectorAll('.tool').length >= 2)
+		// A denied call is still a row: the steps of both answers fold away, so open them.
+		await expandSteps(page)
+		assert.equal(await page.locator('.tool').count(), 2)
 
 		assert.equal(mcp.calls.length, 1, 'a denied call must never reach the server')
 		const lastRequest = server.requests.at(-1)

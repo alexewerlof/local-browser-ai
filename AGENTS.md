@@ -295,6 +295,16 @@ nodes). Do not add `rehype-raw`. Passing `rehypePlugins` replaces the whole defa
 `defaultRehypePlugins` instead of re-listing the plugins. `linkSafety` is disabled (the panel has no room for the
 confirmation modal) and `controls` keeps only the code copy button.
 
+**The steps of an answer are one flow, not a stack of cards.** `StepsGroup` renders the answer's reasoning and tool
+calls as flat rows (`steps__list`, one rail, `ReasoningBlock` and `ToolCallCard` inside it) while the run streams,
+because on a local model those rows are the only sign of progress there is. When the run ends they fold into a single
+`Completed N steps in 12.4 s · ~1.2k tokens` line, because a finished answer's steps are noise beside the answer, and
+the answer text is never inside the group. The group stays open while a row still needs the user — a live approval, an
+"Add page to chat" offer, a failed or stopped answer, or the tool-step cap — since hiding a question is worse than a
+busy transcript. The count is the provider's, from `finish-step`, stored on the message (`steps`) because the transcript
+cannot tell two tools in one step from two one-tool steps; `durationMs` is stored beside it, and a continuation adds to
+both. The wording and the fallback count live in `core/steps.ts`.
+
 ## Non-negotiables
 
 - **The side panel is the only place that talks to a model.** The service worker only extracts pages, opens tabs and
@@ -450,11 +460,13 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
 - **Hitting the tool-step cap is a question, not an ending.** `stopWhen: stepCountIs(maxToolSteps)` stops the loop while
   the model still wants tools; the run then finishes with tool cards and no answer, which is indistinguishable from a
   hang. `finishReason === 'tool-calls'` is that signal, so `runTurn` sets `stepLimitStore` and the panel shows a banner
-  whose number links to Settings → General. `continueRun` runs the same assistant message again with `resume: true`,
-  which seeds `parts` from the message instead of resetting them: the counter restarts at zero, the tool calls already
-  made are replayed from the transcript rather than repeated, and the answer stays one bubble. Every new run, `newChat`
-  and `openConversation` clears the store, so an offer never outlives the answer that made it.
-- Icons: `MemoryStick` is memory everywhere (Settings rail, memory tool cards, the panel's save action).
+  whose number links to Settings → General, and the steps group refuses to fold while that offer is up. `continueRun`
+  runs the same assistant message again with `resume: true`, which seeds `parts` from the message instead of resetting
+  them: the counter restarts at zero, the tool calls already made are replayed from the transcript rather than repeated,
+  and the answer stays one bubble. Every new run, `newChat` and `openConversation` clears the store, so an offer never
+  outlives the answer that made it.
+- Icons: `MemoryStick` is memory everywhere (Settings rail, memory tool cards, the panel's save action);
+  `MessageCircleMore` is thinking and model reasoning (the steps' reasoning row, the reasoning chip).
 - The composer has a top bar inside the box border (`.composer__topbar`), empty for now and reserved for per-prompt
   context. Its right side holds the Expand/Shrink toggle (`PanelBottomOpen`/`PanelBottomClose`): `.composer--expanded`
   sizes the whole composer to 75% of the panel so a sliver of transcript stays visible, and the textarea then scrolls

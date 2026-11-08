@@ -13,8 +13,8 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 7
-    updated: 2026-11-06
+    version: 8
+    updated: 2026-11-08
     status: contract
     shipped: false
 
@@ -28,7 +28,7 @@ harness:
     prompt: the text the user submits; code QueuedPrompt, draftStore, submitPrompt; ui Message, Queue prompt; not question, query
     turn: one prompt plus its answer; code startTurn, keepRecentTurns; ui Keep recent turns; not round, iteration, exchange
     run: one execution of the agent, idle to idle; code RunState, runStore; internal, never a UI word; not turn, job, task
-    step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs, continueRun; ui Maximum tool steps per answer; not round, iteration
+    step: one model call plus the tool calls it asked for; code maxToolSteps, stepCountIs, continueRun, countSteps, describeSteps; ui Maximum tool steps per answer, Completed 3 steps in 12.4 s; not round, iteration
     tool-step-limit: the cap that stops a run which keeps asking for tools, and the offer that spends another budget; code stepLimitStore, continueRun, cancelStepLimit, finishReason tool-calls; ui Reached the limit of N tool steps for this answer., Continue, Cancel; not rate limit, throttle, max calls
     answer: the assistant output the user reads; code MessageItem, MessageStatus; ui Copy answer, Generate this answer again; not response, reply, output
     prompt-queue: the per-conversation FIFO filled while a run is busy; code queueStore, drainQueue, QueuedPrompt; ui Queued · N, Queued prompts; not backlog, stack, batch
@@ -154,7 +154,7 @@ ui:
             skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Search skills, No skills match., Manage skills; not skill button
             tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount; ui Tools, Built-in tools, MCP servers, No MCP servers yet., Manage built-in tools, Manage MCP servers; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
-            reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, Brain, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
+            reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item; not dropdown, menu, modal, dialog
             model-picker: the popover listing models by provider, with search; code ModelPicker, popover__header; ui Search models, No models. Add a provider in Settings., Manage models; not model menu, provider picker
@@ -171,8 +171,9 @@ ui:
         message-actions: the hover row with save, copy and retry; code message__footer, SaveMemoryButton; ui Save to memory, Copy answer, Retry; not toolbar, message controls
         typing-indicator: the three dots shown while the answer has no text yet, including the wait after tool results; code typing, waiting, answered; ui The model is responding, Waiting for the model to read the tool results; not spinner, loader, thinking dots
         aborted-badge: the marker on a stopped message; code badge, MessageStatus.aborted; ui stopped; not cancelled badge
-        reasoning-block: the collapsible block holding the model's reasoning; code ReasoningBlock, reasoning__toggle; ui Thinking…, Thought process, ~N tokens; not thinking block, chain of thought
-        tool-card: the transcript block for one tool call; code ToolCallCard, tool__head, tool__body, tool__approval; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
+        reasoning-block: the collapsible row holding the model's reasoning inside the steps group; code ReasoningBlock, reasoning__toggle, reasoning__body; ui Thinking…, Thought process, ~N tokens; not thinking block, chain of thought
+        tool-card: the step row for one tool call: icon, activity, argument, state badge and detail; code ToolCallCard, tool__head, tool__body, tool__approval, data-state; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
+        step-group: the reasoning and tool calls of one answer as a single flow, folded into one line once the run ends; code StepsGroup, steps, steps__summary, steps__list, steps__item, isStepPart, countSteps, describeSteps, ChatMessage.steps, ChatMessage.durationMs; ui Completed 3 steps in 12.4 s · ~1.2k tokens; not run summary, activity log, trace, timeline
     numbers:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
@@ -206,6 +207,7 @@ errors:
 # An empty list is the goal for `pending`, not for `decision`.
 drift:
     mcp-server: MCP servers have their own section and their own gear, which opens Settings → MCP; the Tools menu never sends the user to Built-in Tools for them. decision
+    tool-card: the row is a flat step now, not a card; the id and `ToolCallCard` keep the name. decision
     conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
     built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision

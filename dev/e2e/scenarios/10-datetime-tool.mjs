@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { expandSteps, localSettings } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '10-datetime-tool'
@@ -23,11 +23,10 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('What is the date today?')
 		await page.locator('button[aria-label="Submit"]').click()
 
-		await page.waitForSelector('.tool')
-		assert.match(await page.locator('.tool__name').textContent(), /Checking the clock/)
-
 		await page.waitForFunction(() => document.body.innerText.includes('It is 2 November 2026.'))
-		assert.equal(await page.locator('.tool__head .badge').textContent(), 'done')
+		await expandSteps(page)
+		assert.match(await page.locator('.tool__name').textContent(), /Checking the clock/)
+		assert.equal(await page.locator('.tool[data-state="complete"]').count(), 1)
 
 		assert.equal(server.requests.length, 2)
 		const toolMessage = server.requests[1].messages.find((message) => message.role === 'tool')

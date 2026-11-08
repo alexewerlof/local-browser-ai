@@ -19,6 +19,9 @@ Local rules:
   opens it by itself (`lastPageAddedStore`); a row is dimmed with a trash can until a turn carries its page; the Expand
   toggle keeps its own space. The count's icon pulses while `addPageBusy` is on (capture and markdown conversion, under
   a second) and never for a page that is merely waiting for a turn.
+- `StepsGroup` owns the transcript's steps: `ReasoningBlock` and `ToolCallCard` are rows inside it, flat (no card border
+  or background), and the whole group folds into one `.steps__summary` line once the run ends — unless a row still needs
+  the user. The rail in `.steps__list` is what makes the rows one flow; do not give a row its own surface again.
 - UI strings are quoted verbatim in the ontology. Change the string and the entry together.
 - `HistoryPanel` renders the **chats drawer**; the UI word is "Chats", never "History panel".
 

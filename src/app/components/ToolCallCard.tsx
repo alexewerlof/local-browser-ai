@@ -1,28 +1,10 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, MemoryStick, PocketKnife, Wrench } from 'lucide-react'
-import type { ToolCallPart, ToolCallState } from '../../core/types'
-import { isMemoryToolId } from '../../core/memory'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import type { ToolCallPart } from '../../core/types'
 import { approvalsStore, resolveApproval, toolTabsStore } from '../../state/browser'
 import { addTabPage } from '../../state/bootstrap'
+import { attachedPageOf, TOOL_LABELS, TOOL_STATE_LABELS, toolIcon } from '../tool-display'
 import { useStore } from '../useStore'
-
-/** The badge always reads as prose; the enum value is never shown to the user. */
-const TOOL_STATE_LABELS: Record<ToolCallState, string> = {
-	pending: 'waiting',
-	running: 'running',
-	complete: 'done',
-	error: 'failed',
-	denied: 'denied',
-}
-
-const TOOL_LABELS: Record<string, string> = {
-	read_page: 'Reading page',
-	get_selection: 'Reading selection',
-	get_current_datetime: 'Checking the clock',
-	search_web: 'Searching the web',
-	remember: 'Saving to memory',
-	recall: 'Searching memory',
-}
 
 function preview(value: unknown, limit = 700): string {
 	if (value === undefined) return ''
@@ -41,20 +23,27 @@ export function ToolCallCard({ part }: { part: ToolCallPart }) {
 	// a second copy of the same document in the chat.
 	const alreadyAdded = attachedPageOf(part.output) !== undefined
 	const label = part.label ?? TOOL_LABELS[part.toolName] ?? part.toolName
-	// MCP tools come from a remote server, so they carry the MCP mark instead of the wrench.
-	const Icon = part.server ? PocketKnife : isMemoryToolId(part.toolName) ? MemoryStick : Wrench
+	const Icon = toolIcon(part)
 
 	return (
-		<div className={`tool tool--${part.state}`}>
-			<button type="button" className="tool__head" onClick={() => setOpen((value) => !value)}>
+		<div className={`tool tool--${part.state}`} data-state={part.state}>
+			<button
+				type="button"
+				className="tool__head"
+				aria-expanded={open}
+				onClick={() => setOpen((value) => !value)}
+			>
 				<Icon size={13} />
 				<span className="tool__name">{label}</span>
 				{part.server && <span className="badge">MCP · {part.server}</span>}
 				<span className="tool__arg">{summarizeInput(part)}</span>
 				<span className="spacer" />
-				<span className={`badge${part.state === 'error' ? ' badge--danger' : ''}`}>
-					{TOOL_STATE_LABELS[part.state]}
-				</span>
+				{/* Done is the quiet default; a state the user has to act on keeps its badge. */}
+				{part.state !== 'complete' && (
+					<span className={`badge${part.state === 'error' ? ' badge--danger' : ''}`}>
+						{TOOL_STATE_LABELS[part.state]}
+					</span>
+				)}
 				{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
 			</button>
 
@@ -130,17 +119,4 @@ function summarizeInput(part: ToolCallPart): string {
 
 function trim(value: string): string {
 	return value.length > 60 ? `${value.slice(0, 60)}…` : value
-}
-
-/**
- * The page handle a tool reported attaching, if any.
- *
- * A tool that opened a tab either attached it (and says so with `added: true` plus the
- * handle) or did not. Only the first case means the card has nothing left to offer.
- */
-function attachedPageOf(output: unknown): string | undefined {
-	if (typeof output !== 'object' || output === null) return undefined
-	const record = output as Record<string, unknown>
-	if (record.added !== true) return undefined
-	return typeof record.page === 'string' ? record.page : undefined
 }
