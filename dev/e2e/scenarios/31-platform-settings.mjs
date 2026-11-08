@@ -36,6 +36,6 @@ export async function run(ctx) {
 	assert.equal(await page.evaluate(() => window.__LB_AI_TEST__.opened.at(-1)), 'chrome://extensions/?id=harness')
 
 	// Opening Chrome's page leaves Settings where it was.
-	assert.equal(await page.evaluate(() => window.location.hash), '#/')
+	assert.equal(await page.evaluate(() => window.location.hash), '')
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'General')
 }

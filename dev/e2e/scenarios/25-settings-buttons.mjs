@@ -43,28 +43,28 @@ export async function run(ctx) {
 	let result = await clickAndReadSection(() =>
 		page.locator('.popover__header button[aria-label="Manage skills"]').click(),
 	)
-	assert.deepEqual(result, { created: true, hash: '#/skills' })
+	assert.deepEqual(result, { created: true, hash: '#skills' })
 	// Opening Settings dismisses the popover.
 	assert.equal(await page.locator('.popover').count(), 0)
 
 	// Built-in tools and MCP each have their own gear in the group heading.
 	await page.locator('.chip:has-text("Tools")').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage built-in tools"]').click())
-	assert.deepEqual(result, { created: false, hash: '#/tools' })
+	assert.deepEqual(result, { created: false, hash: '#tools' })
 
 	await page.locator('.chip:has-text("Tools")').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage MCP servers"]').click())
-	assert.deepEqual(result, { created: false, hash: '#/mcp' })
+	assert.deepEqual(result, { created: false, hash: '#mcp' })
 
 	// Models: the gear sits beside the search row at the top of the picker.
 	await page.locator('.chip--model').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage models"]').click())
-	assert.deepEqual(result, { created: false, hash: '#/models' })
+	assert.deepEqual(result, { created: false, hash: '#models' })
 
 	// The context meter's settings button lands on its own section.
 	await page.locator('.meter').click()
 	result = await clickAndReadSection(() => page.locator('button:has-text("Context settings")').click())
-	assert.deepEqual(result, { created: false, hash: '#/context' })
+	assert.deepEqual(result, { created: false, hash: '#context' })
 
 	// The header gear asks for no section, so the tab keeps the section on screen.
 	await page.locator('button[aria-label="Settings"]').click()
@@ -74,5 +74,5 @@ export async function run(ctx) {
 	assert.equal(last.url, undefined)
 	assert.equal(last.active, true)
 	// Only ever one Settings tab.
-	assert.deepEqual(await openedHashes(), ['#/skills'])
+	assert.deepEqual(await openedHashes(), ['#skills'])
 }

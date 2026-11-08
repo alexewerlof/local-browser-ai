@@ -1,10 +1,11 @@
 /**
  * Which Settings section the page shows, and how that section is named in the URL.
  *
- * The page is a static extension file, so a path segment (`settings.html/skills`) would need a
- * server to rewrite it. The slash lives in the fragment instead, mirroring Chrome's own
- * settings (`chrome://settings/performance`): General is the root, every other section is
- * `#/<id>`.
+ * The page is a static extension file and Chrome's extension loader opens a URL path verbatim
+ * as a file, so a path segment (`settings/models`) can never resolve — there is no rewrite
+ * layer to map it back to `settings.html`. The fragment is the only part of the URL the loader
+ * leaves alone, so the section lives there: General is the bare page, every other section is
+ * `#<id>` (`settings.html#models`).
  */
 
 export const SETTINGS_SECTIONS = [
@@ -21,22 +22,21 @@ export const SETTINGS_SECTIONS = [
 
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]['id']
 
-/** The section the root URL opens. */
+/** The section the bare page (no fragment) opens. */
 export const DEFAULT_SETTINGS_SECTION: SettingsSectionId = 'general'
 
 /**
- * The section a fragment names. Hand-typed URLs are tolerated (`#skills`, `#/Skills/`), and
- * anything unknown falls back to the landing section so a stale link opens a usable page.
+ * The section a fragment names. The id is matched case-insensitively, and anything unknown —
+ * including an empty fragment — falls back to the landing section so a mistyped URL opens a
+ * usable page.
  */
 export function parseSettingsHash(hash: string): SettingsSectionId {
-	const [path = ''] = hash.replace(/^#/, '').split('?')
-	const name = path.replace(/^\/+|\/+$/g, '').toLowerCase()
-	if (!name) return DEFAULT_SETTINGS_SECTION
+	const name = hash.replace(/^#/, '').toLowerCase()
 	const match = SETTINGS_SECTIONS.find((section) => section.id === name)
 	return match ? match.id : DEFAULT_SETTINGS_SECTION
 }
 
-/** The canonical fragment for a section: `#/` for the landing section, else `#/<id>`. */
+/** The canonical fragment for a section: empty for the landing section, else `#<id>`. */
 export function settingsSectionHash(section: SettingsSectionId): string {
-	return section === DEFAULT_SETTINGS_SECTION ? '#/' : `#/${section}`
+	return section === DEFAULT_SETTINGS_SECTION ? '' : `#${section}`
 }

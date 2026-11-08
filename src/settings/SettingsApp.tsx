@@ -51,6 +51,19 @@ const PLATFORM_SETTINGS_LABEL = 'Platform Settings…'
 const PLATFORM_SETTINGS_HINT = 'Keyboard shortcuts, site access and updates live in Chrome.'
 const PLATFORM_SETTINGS_UNAVAILABLE = 'Available in the installed extension.'
 
+/**
+ * The canonical URL of a section: the bare page for General, `#<id>` for anything else.
+ *
+ * Built through `URL` because assigning an empty string to `hash` *removes* the fragment,
+ * whereas `history.replaceState(null, '', '')` would resolve to the page root and lose the
+ * whole file name.
+ */
+function sectionUrl(section: SettingsSectionId): string {
+	const url = new URL(window.location.href)
+	url.hash = settingsSectionHash(section)
+	return url.href
+}
+
 export function SettingsApp() {
 	const status = useStore(settingsStatusStore)
 	const settings = useStore(settingsStore)
@@ -65,8 +78,8 @@ export function SettingsApp() {
 		// actually visited.
 		const sync = () => {
 			const next = parseSettingsHash(window.location.hash)
-			const canonical = settingsSectionHash(next)
-			if (window.location.hash !== canonical) window.history.replaceState(null, '', canonical)
+			const canonical = sectionUrl(next)
+			if (window.location.href !== canonical) window.history.replaceState(null, '', canonical)
 			setSection(next)
 		}
 		sync()
@@ -80,8 +93,8 @@ export function SettingsApp() {
 	}, [])
 
 	const openSection = (id: SettingsSectionId) => {
-		const hash = settingsSectionHash(id)
-		if (window.location.hash !== hash) window.history.pushState(null, '', hash)
+		const url = sectionUrl(id)
+		if (window.location.href !== url) window.history.pushState(null, '', url)
 		setSection(id)
 	}
 

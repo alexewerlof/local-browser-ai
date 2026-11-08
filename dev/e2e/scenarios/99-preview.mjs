@@ -33,7 +33,7 @@ export async function run(ctx) {
 					},
 				}),
 			},
-			'#/mcp',
+			'#mcp',
 		)
 		// The client probes `server/discover`; the legacy mock answers 400, which is handled.
 		ctx.expectConsoleError(/400 \(Bad Request\)/)

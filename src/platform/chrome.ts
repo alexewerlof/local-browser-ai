@@ -43,6 +43,8 @@ export function extensionUrl(path: string): string {
 export async function openSettings(section?: SettingsSectionId): Promise<void> {
 	const chromeApi = getChrome()
 	const base = extensionUrl('settings.html')
+	// General has no fragment at all, so its section hash is the empty string and `url` is the
+	// bare page — the same URL `options_ui` opens.
 	const sectionHash = section === undefined ? null : settingsSectionHash(section)
 	const url = sectionHash === null ? base : `${base}${sectionHash}`
 	if (!chromeApi?.tabs) {

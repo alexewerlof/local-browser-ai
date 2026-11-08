@@ -22,10 +22,11 @@ Local rules:
   themselves (`padding-inline-start: var(--space-7)`, `border-radius: 0 var(--radius-pill) var(--radius-pill) 0`). That
   is what makes a hovered or selected row's fill reach the edge, the way Chrome's own rails behave. Never re-add the
   rail's inline-start padding; it clips the fill.
-- The open section is the URL fragment, Chrome-style: General is the root and every other section is `#/<id>`
-  (`settings.html#/skills`). A path segment is impossible (the page is a static file), so the slash lives in the
-  fragment. The page reads the fragment on mount, normalises an unknown or hand-typed one with `replaceState`, syncs on
-  `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click. `openSettings(section)` in
+- The open section is the URL fragment: General is the bare page and every other section is `#<id>`
+  (`settings.html#skills`) — no slash, because Chrome's extension loader opens a URL path verbatim as a file, so a path
+  segment cannot exist and the slash would only be decoration. The page reads the fragment on mount, normalises an
+  unknown or hand-typed one with `replaceState` (through a `URL`, since an empty hash must remove the fragment), syncs
+  on `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click. `openSettings(section)` in
   `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then activates the one Settings tab
   and moves it to the section (`tabs.update`), creating the tab only when none is open. That reuse is why the manifest
   requests `tabs`; never open a second Settings tab.

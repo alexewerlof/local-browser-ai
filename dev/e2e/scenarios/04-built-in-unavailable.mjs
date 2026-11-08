@@ -22,5 +22,5 @@ export async function run(ctx) {
 	await page.locator('button:has-text("Set up a model")').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.opened.length === 1)
 	const opened = await page.evaluate(() => window.__LB_AI_TEST__.opened[0])
-	assert.equal(new URL(opened).hash, '#/models')
+	assert.equal(new URL(opened).hash, '#models')
 }

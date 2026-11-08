@@ -8,7 +8,7 @@ export const name = '26-settings-single-tab'
  * section instead of stacking another copy, and the header gear keeps the section on screen.
  */
 export async function run(ctx) {
-	await ctx.open({ settings: localSettings('http://127.0.0.1:1/v1'), openTabs: ['settings.html#/'] })
+	await ctx.open({ settings: localSettings('http://127.0.0.1:1/v1'), openTabs: ['settings.html'] })
 	const { page } = ctx
 
 	const opened = () => page.evaluate(() => window.__LB_AI_TEST__.opened.length)
@@ -22,7 +22,7 @@ export async function run(ctx) {
 	let last = (await updates()).at(-1)
 	assert.equal(last.id, 500)
 	assert.equal(last.active, true)
-	assert.match(String(last.url), /\/settings\.html#\/skills$/)
+	assert.match(String(last.url), /\/settings\.html#skills$/)
 	assert.deepEqual(await page.evaluate(() => window.__LB_AI_TEST__.focusedWindows), [{ id: 2, focused: true }])
 
 	// Asking for the section already on screen only activates the tab; it does not reload it.
@@ -39,7 +39,7 @@ export async function run(ctx) {
 	await page.locator('button[aria-label="Manage MCP servers"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 3)
 	last = (await updates()).at(-1)
-	assert.match(String(last.url), /\/settings\.html#\/mcp$/)
+	assert.match(String(last.url), /\/settings\.html#mcp$/)
 	assert.equal(await opened(), 0)
 
 	// The header gear passes no section, so the tab keeps the one the user was reading.
