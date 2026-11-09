@@ -912,6 +912,9 @@
 	background: var(--bg);
 }
 
+/* One gutter on all four sides, and the box owns it: the topbar and the toolbar carry no
+   padding of their own, so the buttons above and the chips below sit the same distance
+   from the border. */
 .composer__box {
 	position: relative;
 	display: flex;
@@ -919,7 +922,7 @@
 	border: 1px solid var(--border-strong);
 	border-radius: var(--radius-lg);
 	background: var(--bg-raised);
-	padding: var(--space-1) var(--space-2) 0;
+	padding: var(--space-2);
 	transition: border-color var(--duration-fast);
 }
 
@@ -933,7 +936,6 @@
 	gap: var(--space-1);
 	min-height: 24px;
 	min-width: 0;
-	padding-inline: var(--space-1);
 }
 
 .composer__topbar > .button {
@@ -983,12 +985,14 @@
 	outline: none;
 }
 
+/* No padding-inline: the box gutter positions the first chip and the last button. The top
+   padding is the gap under the prompt text; the bottom one belongs to the box. */
 .composer__toolbar {
 	display: flex;
 	flex: none;
 	align-items: center;
 	gap: var(--space-2);
-	padding: var(--space-2) var(--space-1);
+	padding: var(--space-2) 0 0;
 	flex-wrap: wrap;
 }
 
@@ -1124,6 +1128,13 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+/* A bare count, like the page counter: no border and no fixed height, so a chip carrying
+   one is still the height of the chips beside it. */
+.chip__count {
+	flex: none;
+	font-variant-numeric: tabular-nums;
 }
 
 .chip--model {

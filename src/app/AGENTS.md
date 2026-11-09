@@ -19,6 +19,10 @@ Local rules:
   opens it by itself (`lastPageAddedStore`); a row is dimmed with a trash can until a turn carries its page; the Expand
   toggle keeps its own space. The count's icon pulses while `addPageBusy` is on (capture and markdown conversion, under
   a second) and never for a page that is merely waiting for a turn.
+- `.composer__box` owns the composer's **one** gutter (`padding: var(--space-2)`, 4px on all four sides); the topbar and
+  the toolbar add no `padding-inline` of their own, which is what keeps the buttons above and the chips below the same
+  distance from the border. Every control in those two rows is 24px (`.button--sm`, `.chip`): a chip must never be
+  taller than its neighbours, so a count inside one is a bare `.chip__count`, never the bordered `.badge` atom.
 - `StepsGroup` owns the transcript's steps: `ReasoningBlock` and `ToolCallCard` are rows inside it, flat (no card border
   or background), and the whole group folds into one `.steps__summary` line once the run ends — unless a row still needs
   the user. The rail in `.steps__list` is what makes the rows one flow; do not give a row its own surface again.

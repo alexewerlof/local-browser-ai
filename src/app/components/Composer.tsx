@@ -355,7 +355,7 @@ export function Composer({
 					{streaming && (
 						<button
 							type="button"
-							className="button button--icon"
+							className="button button--icon button--sm"
 							onClick={onStop}
 							title="Stop generating"
 							aria-label="Stop generating"
@@ -368,7 +368,7 @@ export function Composer({
 					{queuePaused && queue.length > 0 && !busy && (
 						<button
 							type="button"
-							className="button button--icon"
+							className="button button--icon button--sm"
 							onClick={onContinue}
 							title="Continue queued prompts"
 							aria-label="Continue"
@@ -381,7 +381,7 @@ export function Composer({
 					{draft.trim() !== '' && (
 						<button
 							type="button"
-							className="button button--primary button--icon composer__submit"
+							className="button button--primary button--icon button--sm composer__submit"
 							onClick={submit}
 							title={busy ? 'Queue prompt' : 'Submit'}
 							aria-label="Submit"

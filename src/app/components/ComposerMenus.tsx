@@ -118,7 +118,7 @@ export function ToolsMenu({
 				>
 					<Wrench size={12} />
 					<span className="chip__text">Tools</span>
-					<span className="badge">{enabledCount}</span>
+					<span className="chip__count">{enabledCount}</span>
 				</button>
 			}
 		>

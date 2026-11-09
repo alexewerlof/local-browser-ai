@@ -151,8 +151,9 @@ ui:
         queue-row: one queued prompt above the box; code composer__queue-item, composer__queue-text; ui Queued · N, Remove from queue and edit; not pending item, queued message
         chips:
             chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
+            chip-count: the bare number at the end of a chip, as on the page counter; code chip__count; ui 6; not badge, pill, counter
             skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Search skills, No skills match., Manage skills; not skill button
-            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount; ui Tools, Built-in tools, MCP servers, No MCP servers yet., Manage built-in tools, Manage MCP servers; not tool button, plugin menu
+            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount, chip__count; ui Tools, Built-in tools, MCP servers, No MCP servers yet., Manage built-in tools, Manage MCP servers; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
