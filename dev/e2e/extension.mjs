@@ -210,9 +210,9 @@ async function main() {
 		)
 		assert.match(await settingsPage.locator('.settings__brand-label').textContent(), /Local Browser AI/)
 
-		// 4a. The rail footer really opens Chrome's Extensions page. A `chrome://` URL is only
-		//     reachable from `tabs.create`, so this is the one place the real browser can prove it.
-		const platformAction = settingsPage.locator('.settings__nav-action')
+		// 4a. The rail links really open Chrome's own pages. A `chrome://` URL is only reachable from
+		//     `tabs.create`, so this is the one place the real browser can prove it.
+		const platformAction = settingsPage.locator('.settings__nav-action', { hasText: 'Platform Settings' })
 		assert.equal(await platformAction.textContent(), 'Platform Settings…')
 		assert.equal(await platformAction.isDisabled(), false)
 		await platformAction.click()

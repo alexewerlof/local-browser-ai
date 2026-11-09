@@ -31,12 +31,20 @@ Local rules:
   requests `tabs`; never open a second Settings tab.
 - A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
   skills"), not a sentence. The Tools menu has **one** gear for its one destination, Settings → Tools (`#tools`).
-- The rail footer holds actions that leave Settings, and it is not a section: `Platform Settings…` has no entry in
-  `SETTINGS_SECTIONS` and no hash, so it lives in `.settings__footer` and is styled with `.settings__nav-action` rather
-  than `.settings__nav-item`. It opens `chrome://extensions/?id=<runtime id>` through `openPlatformSettings`, because
-  Chrome owns shortcuts, site access and the update button, and because a `chrome://` URL cannot be an `<a href>` (a
-  renderer-initiated navigation to a privileged scheme is blocked) — `chrome.tabs.create` is the only way. Outside an
-  extension there is no id, so the action renders disabled.
+- The two rail links that leave Settings come last, after `.settings__divider`, and neither is a section:
+  `Platform Settings…` and `Privacy and security…` have no entry in `SETTINGS_SECTIONS` and no hash, so they are direct
+  children of `.settings__nav` styled with `.settings__nav-action` rather than `.settings__nav-item`. There is no footer
+  wrapper — the rows really are the last items of the menu — and the divider is a hairline in `var(--separator)`, the
+  token the cards already use. Both open Chrome's own pages through `tabs.create` (`openPlatformSettings`,
+  `openExtensionSiteDetails`), because a `chrome://` URL cannot be an `<a href>` (a renderer-initiated navigation to a
+  privileged scheme is blocked). Outside an extension there is no id to name, so both render disabled with
+  `RAIL_LINK_UNAVAILABLE` as the tooltip.
+- A rail link carries **two** icons, and unlike a section row it keeps its own: the leading icon (`Puzzle` for Platform
+  Settings, `Shield` for Privacy and security) and a **trailing** `SquareArrowOutUpRight` after the label, which is how
+  Chrome marks its own Extensions row. The label fills the row (`flex: 1 1 auto`) so the trailing glyph sits on the far
+  edge; below 900px the label and that glyph both disappear and the leading icon centers, exactly like a section row.
+  Their labels are ellipsised (`Platform Settings…`, `Privacy and security…`) and there is deliberately no hint
+  paragraph: the row `title` carries the whole explanation.
 - Card title is sentence case (`Built-in tools`, `Memory settings`); the rail label alone is title case (`Tools`). An
   MCP server's card title is its label, not a section name.
 - **Tools is one section, and a tool set is the unit.** The built-in tools are the first card, then one card per MCP

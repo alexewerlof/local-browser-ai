@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 9
+    version: 10
     updated: 2026-11-09
     status: contract
     shipped: false
@@ -193,7 +193,9 @@ settings:
     checkbox: the availability control, full, empty or dashed when a tool set is partly on; code Checkbox, checkbox, indeterminate, SelectionState; ui Enable {tool}, Enable {server}, Enable every built-in tool, Run every built-in tool without asking, Run {server} tools without asking; not toggle, tickbox
     tool-tree: the expandable tree of tool sets in the composer's Tools menu; code ToolTree, tool-tree__group, tool-tree__toggle, tool-tree__row, mcpServerSelection; ui Tools, Built-in, Expand, Collapse, Manage tools; not accordion, dropdown list, submenu
     settings-version: the schema version that migrates fields and tools once; code SETTINGS_VERSION, migrateSettings, TOOLS_ADDED_IN; not schema version, config version
-    platform-settings: this extension's own entry in Chrome's Extensions page, opened from the rail footer; shortcuts, site access and update controls live there and no extension can reproduce them; code openPlatformSettings, platformSettingsUrl, settings__nav-action, settings__footer; ui Platform Settings…, Keyboard shortcuts, site access and updates live in Chrome., Available in the installed extension.; not extension settings, browser settings, options page
+    platform-settings: this extension's own entry in Chrome's Extensions page, opened from the rail under the divider; keyboard shortcuts, allow-in-incognito and the update controls live there and no extension can reproduce them; code openPlatformSettings, platformSettingsUrl, settings__nav-action; ui Platform Settings…, Available in the installed extension.; not extension settings, browser settings, options page
+    extension-site-settings: this extension's own entry in Chrome's site settings, opened from the rail beside Platform Settings…; the permissions for its origin — notifications, camera, pop-ups — live there; code openExtensionSiteDetails, extensionSiteDetailsUrl, settings__nav-action; ui Privacy and security…, Available in the installed extension.; not permissions page, site access page, browser settings
+    rail-link: a rail row that leaves Settings for one of Chrome's own pages instead of opening a section, carrying its own leading icon and a trailing external-link glyph; code railLinks, RailLink, RAIL_LINK_UNAVAILABLE, settings__nav-icon--trailing, settings__divider; ui Platform Settings…, Privacy and security…, Available in the installed extension.; not footer link, section, hash route
 
 # Failures, from a provider error down to a single warning.
 errors:

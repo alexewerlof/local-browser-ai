@@ -74,33 +74,59 @@ export async function openSettings(section?: SettingsSectionId): Promise<void> {
 /** Chrome's per-extension page, which owns the controls no extension can reproduce. */
 const PLATFORM_SETTINGS_BASE = 'chrome://extensions/?id='
 
+/** Chrome's per-extension site settings: permissions, notifications and pop-ups for this origin. */
+const SITE_DETAILS_BASE = 'chrome://settings/content/siteDetails?site=chrome-extension://'
+
 /**
- * The URL of this extension's entry in Chrome's Extensions page — shortcuts, site access,
- * allow-in-incognito and update controls all live there.
- *
- * `null` outside an extension: the plain-web dev page has no `runtime.id`, so there is no id to
- * name. This is a `chrome://` URL, so it can only be opened with `tabs.create`; rendering it as an
- * `<a href>` would be a renderer-initiated navigation to a privileged scheme, which Chrome blocks.
+ * Both links are a `chrome://` URL naming this extension, so they can only be opened with
+ * `tabs.create`: rendering one as an `<a href>` would be a renderer-initiated navigation to a
+ * privileged scheme, which Chrome blocks. `null` outside an extension, where there is no
+ * `runtime.id` to name.
  */
-export function platformSettingsUrl(): string | null {
+function extensionChromeUrl(base: string): string | null {
 	const chromeApi = getChrome()
-	return chromeApi ? `${PLATFORM_SETTINGS_BASE}${chromeApi.runtime.id}` : null
+	return chromeApi ? `${base}${chromeApi.runtime.id}` : null
 }
 
 /**
- * Open Chrome's Extensions page at this extension's entry.
- *
- * Always a new tab. `chrome://extensions` is Chrome's own page, so it takes no part in the
- * one-Settings-tab rule `openSettings` enforces, and reusing a tab would mean navigating one
- * Chrome already owns.
+ * The URL of this extension's entry in Chrome's Extensions page — shortcuts, allow-in-incognito
+ * and the update controls all live there.
  */
-export async function openPlatformSettings(): Promise<void> {
+export function platformSettingsUrl(): string | null {
+	return extensionChromeUrl(PLATFORM_SETTINGS_BASE)
+}
+
+/**
+ * The URL of this extension's own entry in Chrome's site settings — the page that grants or
+ * blocks location, camera, notifications and pop-ups for the `chrome-extension://` origin.
+ */
+export function extensionSiteDetailsUrl(): string | null {
+	return extensionChromeUrl(SITE_DETAILS_BASE)
+}
+
+/**
+ * Open one of Chrome's own pages in a new tab.
+ *
+ * Always a new tab, never a reused one: `chrome://` is Chrome's page, so it takes no part in the
+ * one-Settings-tab rule `openSettings` enforces, and navigating a tab Chrome already owns is not
+ * this extension's call.
+ */
+async function openChromePage(url: string | null, failure: string): Promise<void> {
 	const chromeApi = getChrome()
-	const url = platformSettingsUrl()
 	if (!chromeApi?.tabs || url === null) return
 	try {
 		await chromeApi.tabs.create({ url })
 	} catch (error) {
-		console.warn('[lbai] could not open the Extensions page', error)
+		console.warn(`[lbai] ${failure}`, error)
 	}
+}
+
+/** Open Chrome's Extensions page at this extension's entry. */
+export async function openPlatformSettings(): Promise<void> {
+	await openChromePage(platformSettingsUrl(), 'could not open the Extensions page')
+}
+
+/** Open Chrome's site settings at this extension's entry. */
+export async function openExtensionSiteDetails(): Promise<void> {
+	await openChromePage(extensionSiteDetailsUrl(), 'could not open the site settings page')
 }

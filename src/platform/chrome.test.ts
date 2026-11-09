@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { openPlatformSettings, platformSettingsUrl } from './chrome'
+import { extensionSiteDetailsUrl, openExtensionSiteDetails, openPlatformSettings, platformSettingsUrl } from './chrome'
 
 const EXTENSION_ID = 'pbapheoahbjhbmokcapedhmnblfgiik'
 const EXTENSIONS_URL = `chrome://extensions/?id=${EXTENSION_ID}`
+const SITE_DETAILS_URL = `chrome://settings/content/siteDetails?site=chrome-extension://${EXTENSION_ID}`
 
 type ChromeStub = {
 	runtime: { id: string; getURL: (path: string) => string }
@@ -47,5 +48,33 @@ describe('openPlatformSettings', () => {
 
 	it('resolves quietly outside an extension', async () => {
 		await expect(openPlatformSettings()).resolves.toBeUndefined()
+	})
+})
+
+describe('extensionSiteDetailsUrl', () => {
+	it('names this extension on the site details page', () => {
+		stubChrome()
+		expect(extensionSiteDetailsUrl()).toBe(SITE_DETAILS_URL)
+	})
+
+	it('is null outside an extension, where there is no id to name', () => {
+		expect(extensionSiteDetailsUrl()).toBeNull()
+	})
+})
+
+describe('openExtensionSiteDetails', () => {
+	it('creates one tab on the site details page', async () => {
+		const chromeApi = stubChrome()
+		const create = vi.fn(() => Promise.resolve({ id: 7 }))
+		chromeApi.tabs.create = create
+
+		await openExtensionSiteDetails()
+
+		expect(create).toHaveBeenCalledTimes(1)
+		expect(create).toHaveBeenCalledWith({ url: SITE_DETAILS_URL })
+	})
+
+	it('resolves quietly outside an extension', async () => {
+		await expect(openExtensionSiteDetails()).resolves.toBeUndefined()
 	})
 })

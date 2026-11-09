@@ -126,21 +126,26 @@ body {
 	outline-offset: -2px;
 }
 
-/* The footer sits below the sections and above the fold: `margin-top: auto` pins it to the
- * bottom while there is free space, and degrades to "after the last row" when the rail scrolls. */
-.settings__footer {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-2);
-	margin-top: auto;
-	padding-top: var(--space-6);
+/* The links that leave Settings are the last rows of the menu, under the same hairline Chrome
+ * draws between groups of its own rail items. It is inset to the row text on the left and runs to
+ * the rail's existing right inset, so it reads as a group rule rather than a row edge. */
+.settings__divider {
+	flex: none;
+	height: 0;
+	margin: var(--space-3) 0 var(--space-3) var(--space-7);
+	border: 0;
+	border-top: 1px solid var(--separator);
 }
 
-.settings__footer-hint {
-	padding-inline: var(--space-7) var(--space-6);
-	font-size: var(--text-md);
-	line-height: 1.5;
-	color: var(--fg-muted);
+/* A link's label fills the row so the external-link glyph that follows it sits on the trailing
+ * edge, the way Chrome marks its own Extensions row. Both the label and that glyph go away when
+ * the rail collapses to icons, leaving the row's own icon in the middle. */
+.settings__nav-action .settings__nav-label {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 /* Outside an extension there is no id to name, so the action is inert but still visible. */
@@ -178,9 +183,17 @@ body {
 	}
 
 	.settings__brand-label,
-	.settings__nav-label,
-	.settings__footer-hint {
+	.settings__nav-label {
 		display: none;
+	}
+
+	/* One glyph per row, centred: the trailing external-link mark goes with the label. */
+	.settings__nav-icon--trailing {
+		display: none;
+	}
+
+	.settings__divider {
+		margin-inline: var(--space-4);
 	}
 
 	.settings__nav-item,

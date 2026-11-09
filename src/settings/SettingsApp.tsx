@@ -7,7 +7,9 @@ import {
 	Palette,
 	Puzzle,
 	Settings,
+	Shield,
 	Sparkles,
+	SquareArrowOutUpRight,
 	Wrench,
 	type LucideIcon,
 } from 'lucide-react'
@@ -17,7 +19,14 @@ import {
 	settingsSectionHash,
 	type SettingsSectionId,
 } from '../core/settings-routes'
-import { extensionUrl, getManifest, openPlatformSettings, platformSettingsUrl } from '../platform/chrome'
+import {
+	extensionSiteDetailsUrl,
+	extensionUrl,
+	getManifest,
+	openExtensionSiteDetails,
+	openPlatformSettings,
+	platformSettingsUrl,
+} from '../platform/chrome'
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
@@ -41,12 +50,36 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	context: Notebook,
 }
 
-/* The rail footer points at Chrome's own page for this extension: shortcuts, site access and
- * updates live there and cannot be reproduced here. It is not a section — no hash, no
- * `SETTINGS_SECTIONS` entry — so it is labelled and rendered on its own. */
-const PLATFORM_SETTINGS_LABEL = 'Platform Settings…'
-const PLATFORM_SETTINGS_HINT = 'Keyboard shortcuts, site access and updates live in Chrome.'
-const PLATFORM_SETTINGS_UNAVAILABLE = 'Available in the installed extension.'
+/* Two rail rows leave Settings for Chrome's own pages: shortcuts, updates and site access live
+ * there and cannot be reproduced here. Neither is a section — no hash, no `SETTINGS_SECTIONS`
+ * entry — so they are labelled and rendered after the divider, as the last rows of the menu. */
+const RAIL_LINK_UNAVAILABLE = 'Available in the installed extension.'
+
+interface RailLink {
+	label: string
+	/** The row's own icon, leading it like a section row's icon and never replaced. */
+	icon: LucideIcon
+	/** `null` on the plain-web dev page, which has no extension id to name. */
+	url: string | null
+	open: () => Promise<void>
+}
+
+function railLinks(): RailLink[] {
+	return [
+		{
+			label: 'Platform Settings…',
+			icon: Puzzle,
+			url: platformSettingsUrl(),
+			open: openPlatformSettings,
+		},
+		{
+			label: 'Privacy and security…',
+			icon: Shield,
+			url: extensionSiteDetailsUrl(),
+			open: openExtensionSiteDetails,
+		},
+	]
+}
 
 /**
  * The canonical URL of a section: the bare page for General, `#<id>` for anything else.
@@ -66,8 +99,6 @@ export function SettingsApp() {
 	const settings = useStore(settingsStore)
 	const [section, setSection] = useState<SettingsSectionId>(() => parseSettingsHash(window.location.hash))
 	const manifest = getManifest()
-	// `null` on the plain-web dev page, which has no extension id to open.
-	const platformSettings = platformSettingsUrl()
 
 	useEffect(() => {
 		// Rewrite a hand-typed or stale fragment so the URL always names the open section.
@@ -126,22 +157,30 @@ export function SettingsApp() {
 						</button>
 					)
 				})}
-				<div className="settings__footer">
-					<button
-						type="button"
-						className="settings__nav-action"
-						title={platformSettings === null ? PLATFORM_SETTINGS_UNAVAILABLE : PLATFORM_SETTINGS_LABEL}
-						aria-label={PLATFORM_SETTINGS_LABEL}
-						disabled={platformSettings === null}
-						onClick={() => void openPlatformSettings()}
-					>
-						<Puzzle size={20} />
-						<span className="settings__nav-label">{PLATFORM_SETTINGS_LABEL}</span>
-					</button>
-					<p className="settings__footer-hint">
-						{platformSettings === null ? PLATFORM_SETTINGS_UNAVAILABLE : PLATFORM_SETTINGS_HINT}
-					</p>
-				</div>
+				<hr className="settings__divider" />
+				{railLinks().map((link) => {
+					const Icon = link.icon
+					// A row with no URL has no id to name, so it stays visible but inert.
+					const available = link.url !== null
+					return (
+						<button
+							key={link.label}
+							type="button"
+							className="settings__nav-action"
+							title={available ? link.label : RAIL_LINK_UNAVAILABLE}
+							aria-label={link.label}
+							disabled={!available}
+							onClick={() => void link.open()}
+						>
+							<Icon size={20} />
+							<span className="settings__nav-label">{link.label}</span>
+							{/* Leaving Settings for a Chrome page is said by a trailing external-link glyph,
+							 * the way Chrome marks its own Extensions row. It goes with the label when the
+							 * rail collapses to icons. */}
+							<SquareArrowOutUpRight size={16} className="settings__nav-icon--trailing" />
+						</button>
+					)
+				})}
 			</nav>
 
 			<main className="settings__content">

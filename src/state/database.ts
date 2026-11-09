@@ -60,6 +60,9 @@ function database(): Promise<IDBPDatabase<PanelDatabase>> | null {
 					const store = db.createObjectStore('conversations', { keyPath: 'id' })
 					store.createIndex('by-updated', 'updatedAt')
 				}
+				// Each step is guarded by its own version, never by the newest one: a database
+				// created at v3 still has to be born with the stores added in v1 and v2.
+				if (oldVersion < 2) db.createObjectStore('queues')
 				if (oldVersion < 3) {
 					const pages = db.createObjectStore('pages', { keyPath: 'id' })
 					pages.createIndex('by-conversation', 'conversationId')
