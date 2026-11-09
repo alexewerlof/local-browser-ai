@@ -6,6 +6,7 @@ import type {
 	ProviderSettings,
 	RenderingSettings,
 	Skill,
+	ThinkingSelection,
 	ToolSettings,
 	UiSettings,
 } from './types'
@@ -49,6 +50,18 @@ const thinkingSchema = z.object({
 	tokens: z.number().int().positive().optional(),
 })
 
+const modelModalitySchema = z.enum(['text', 'image', 'audio', 'video'])
+
+const modelDetailsSchema = z.object({
+	id: z.string().min(1),
+	label: z.string().optional(),
+	contextWindow: z.number().int().positive().optional(),
+	maxOutputTokens: z.number().int().positive().optional(),
+	inputModalities: z.array(modelModalitySchema).optional(),
+	outputModalities: z.array(modelModalitySchema).optional(),
+	state: z.enum(['loaded', 'unloaded']).optional(),
+})
+
 const providerSchema = z.object({
 	id: z.string().min(1),
 	kind: z.enum(['prompt-api', 'openai', 'anthropic', 'deepseek', 'openai-compatible']),
@@ -57,6 +70,9 @@ const providerSchema = z.object({
 	apiKey: z.string().optional(),
 	headers: z.record(z.string(), z.string()).optional(),
 	models: z.array(z.string()),
+	// Added without a version bump: both are optional, and an older store simply has neither.
+	modelDetails: z.array(modelDetailsSchema).optional().catch(undefined),
+	modelThinking: z.record(z.string(), thinkingSchema).optional().catch(undefined),
 	contextWindowOverride: z.number().int().positive().optional(),
 	maxOutputTokensOverride: z.number().int().positive().optional(),
 })
@@ -486,6 +502,15 @@ export function hasEnabledTools(settings: AppSettings): boolean {
 
 export function getProvider(settings: AppSettings, providerId: string): ProviderSettings | undefined {
 	return settings.providers.find((provider) => provider.id === providerId)
+}
+
+/** The reasoning effort for one model: its own choice, else the shared default. */
+export function thinkingForModel(
+	provider: ProviderSettings,
+	modelId: string,
+	fallback: ThinkingSelection,
+): ThinkingSelection {
+	return provider.modelThinking?.[modelId] ?? fallback
 }
 
 export function describeModel(settings: AppSettings, ref: { providerId: string; modelId: string }): string {

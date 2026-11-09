@@ -1,9 +1,9 @@
 import { getChrome } from './chrome'
 
 /**
- * Host permissions are port-agnostic in Chrome: granting `http://mac-mini/*` also covers
- * `http://mac-mini:8080/`. The pattern therefore carries the hostname only, which matches
- * the wording of the prompt Chrome shows the user.
+ * Host permissions are port-agnostic in Chrome: granting `http://llm.example.com/*` also
+ * covers `http://llm.example.com:8080/`. The pattern therefore carries the hostname only,
+ * which matches the wording of the prompt Chrome shows the user.
  */
 function parseOrigin(url: string): { pattern: string; host: string } | null {
 	try {

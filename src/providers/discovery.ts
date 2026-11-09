@@ -1,21 +1,107 @@
-import type { ProviderSettings } from '../core/types'
+import type { ModelDetails, ModelModality, ProviderSettings } from '../core/types'
 import { hasHostAccess, hostOf } from '../platform/permissions'
 import { DEFAULT_BASE_URLS, normalizeBaseURL } from './registry'
 import { AppError, toAppError } from './errors'
 
+/**
+ * One entry of a `/models` response. The shape is deliberately loose: OpenAI-compatible
+ * servers all return `{ data: [{ id }] }`, but llama.cpp adds architecture, context and
+ * load state, and other servers add their own spellings.
+ */
+export interface RawModelEntry {
+	id?: string
+	name?: string
+	display_name?: string
+	context_length?: number
+	context_window?: number
+	max_output_tokens?: number
+	max_tokens?: number
+	architecture?: {
+		input_modalities?: string[]
+		output_modalities?: string[]
+	}
+	meta?: {
+		n_ctx?: number
+		n_ctx_train?: number
+	}
+	status?: {
+		value?: string
+		args?: string[]
+		preset?: string
+	}
+}
+
 interface ModelListResponse {
-	data?: Array<{ id?: string; name?: string }>
-	models?: Array<{ id?: string; name?: string }>
+	data?: RawModelEntry[]
+	models?: RawModelEntry[]
+}
+
+const MODALITIES: readonly ModelModality[] = ['text', 'image', 'audio', 'video']
+
+function positive(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : undefined
+}
+
+function normalizeModalities(value: unknown): ModelModality[] {
+	if (!Array.isArray(value)) return []
+	const found = value.filter(
+		(modality): modality is ModelModality =>
+			typeof modality === 'string' && (MODALITIES as readonly string[]).includes(modality),
+	)
+	return [...new Set(found)]
+}
+
+/** Read `--flag value` and `--flag=value` alike; llama.cpp uses the first form. */
+function numberArg(args: string[] | undefined, flag: string): number | undefined {
+	if (!args) return undefined
+	for (let index = 0; index < args.length; index += 1) {
+		const arg = args[index]
+		if (!arg) continue
+		if (arg === flag) return positive(Number(args[index + 1]))
+		if (arg.startsWith(`${flag}=`)) return positive(Number(arg.slice(flag.length + 1)))
+	}
+	return undefined
 }
 
 /**
- * Fetch the model list of a provider.
+ * Turn one server entry into the facts the Models table shows. Every field is what the
+ * server said, spread across the spellings real servers use; a field it omits stays empty.
+ */
+export function parseModelEntry(entry: RawModelEntry): ModelDetails | null {
+	const id = (entry.id ?? entry.name ?? '').trim()
+	if (!id) return null
+
+	const args = entry.status?.args
+	const input = normalizeModalities(entry.architecture?.input_modalities)
+	const output = normalizeModalities(entry.architecture?.output_modalities)
+	const state = entry.status?.value
+
+	return {
+		id,
+		label: entry.display_name ?? (entry.name && entry.name !== id ? entry.name : undefined),
+		// `meta.n_ctx` is the context the server actually loaded; `--ctx-size` is what it
+		// would load; `context_length` is usually the model's trained maximum.
+		contextWindow:
+			positive(entry.meta?.n_ctx) ??
+			numberArg(args, '--ctx-size') ??
+			positive(entry.context_window) ??
+			positive(entry.context_length),
+		maxOutputTokens:
+			positive(entry.max_output_tokens) ?? positive(entry.max_tokens) ?? numberArg(args, '--n-predict'),
+		inputModalities: input.length > 0 ? input : undefined,
+		outputModalities: output.length > 0 ? output : undefined,
+		state: state === 'loaded' || state === 'unloaded' ? state : undefined,
+	}
+}
+
+/**
+ * Fetch the model list of a provider with the attributes the table shows.
  *
  * Every supported provider exposes a `/models` endpoint: OpenAI, DeepSeek and
  * OpenAI-compatible servers use the OpenAI shape, Anthropic returns `{ data: [{ id }] }`.
  */
-export async function discoverModels(provider: ProviderSettings): Promise<string[]> {
-	if (provider.kind === 'prompt-api') return provider.models
+export async function discoverModels(provider: ProviderSettings): Promise<ModelDetails[]> {
+	if (provider.kind === 'prompt-api') return provider.models.map((id) => ({ id }))
 
 	const baseURL = normalizeBaseURL(provider.baseURL, DEFAULT_BASE_URLS[provider.kind] ?? '')
 	if (!(await hasHostAccess(baseURL))) {
@@ -51,11 +137,13 @@ export async function discoverModels(provider: ProviderSettings): Promise<string
 
 	const body = (await response.json()) as ModelListResponse
 	const entries = body.data ?? body.models ?? []
-	const ids = entries
-		.map((entry) => entry.id ?? entry.name ?? '')
-		.filter((id): id is string => Boolean(id))
-		// Chat model lists often include embedding, speech and image models.
-		.filter((id) => !/embedding|whisper|tts|dall-e|moderation|gpt-image|transcribe|rerank/i.test(id))
-		.sort((a, b) => a.localeCompare(b))
-	return ids
+	const seen = new Set<string>()
+	const models: ModelDetails[] = []
+	for (const entry of entries) {
+		const model = parseModelEntry(entry)
+		if (!model || seen.has(model.id)) continue
+		seen.add(model.id)
+		models.push(model)
+	}
+	return models.sort((a, b) => a.id.localeCompare(b.id))
 }

@@ -66,7 +66,7 @@ Add a provider in **Settings → Providers → Local server (OpenAI-compatible)*
 
 | Server                     | Base URL                    |
 | -------------------------- | --------------------------- |
-| llama.cpp (`llama-server`) | `http://localhost:8080/v1`  |
+| llama.cpp (`llama-server`) | `http://localhost:9931/v1`  |
 | Ollama                     | `http://localhost:11434/v1` |
 | LM Studio                  | `http://localhost:1234/v1`  |
 

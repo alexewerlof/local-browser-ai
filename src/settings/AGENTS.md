@@ -63,6 +63,19 @@ Local rules:
 - Editing a list item happens **in place**, not in a second card under the list: `ToolsSection` replaces that server's
   card with `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the card.
   Prefer this for any future list editor; `SkillsSection` and `MemorySection` still open a separate card.
+- A provider's models are a **table** (`ProviderModelTable`), not a textarea: one row per id with a **Use** checkbox,
+  type, `input` and `output` modalities, context, max output and a per-model **Reasoning** select. `Refresh` writes
+  `models` (the chat ids the pickers offer) and `modelDetails` (what the server reported); an unticked model stays in
+  the table but out of the pickers. A `~` marks a catalog estimate rather than the server's own figure. Only an id the
+  user typed by hand gets a Remove button (on hover) — the server's own models cannot be deleted from here, which is
+  what the Use checkbox is for. A loaded preset shows a green check with the tooltip `Loaded in the server`, never a
+  word. Per-model reasoning lives in `ProviderSettings.modelThinking` and falls back to `modelDefaults.thinking` through
+  `thinkingForModel`. Nothing in the table is inferred from an id: `Refresh` only seeds `models` while that list is
+  still empty, and afterwards the ticks are the user's.
+- **Site access belongs to the Base URL, not to the model list.** The Base URL row is a stacked `.field` holding
+  `.url-row` (input + `Check site access`) and, underneath, the answer (`Host access granted.` or
+  `Chrome has not granted access to {host}.` with `Grant host access`). `Refresh` sits alone under the table. The row is
+  a plain `<div>`, not `Field`, because a button inside that `<label>` would fire twice.
 - The MCP server's headers are `Name`/`Value` rows (`HeaderRow` + `headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`),
   not a textarea: one row per pair with a trash button, and an "Add header" button below. The helpers own validation (a
   fully blank row is dropped; a name without a value, an invalid name and a repeated name are row errors) so the

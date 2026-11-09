@@ -37,7 +37,7 @@ describe('normalizeSettings', () => {
 					id: 'local',
 					kind: 'openai-compatible',
 					label: 'Local',
-					baseURL: 'http://localhost:8080/v1',
+					baseURL: 'http://localhost:9931/v1',
 					models: ['llama'],
 				},
 			],

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildProviderOptions, normalizeBaseURL } from './registry'
+import { DEFAULT_BASE_URLS, buildProviderOptions, normalizeBaseURL } from './registry'
 import { getModelInfo } from './catalog'
+import { PROVIDER_PRESETS } from './types'
 import type { ProviderSettings } from '../core/types'
 
 function provider(overrides: Partial<ProviderSettings>): ProviderSettings {
@@ -15,7 +16,7 @@ function provider(overrides: Partial<ProviderSettings>): ProviderSettings {
 
 describe('normalizeBaseURL', () => {
 	it('keeps an existing /v1', () => {
-		expect(normalizeBaseURL('http://localhost:8080/v1', '')).toBe('http://localhost:8080/v1')
+		expect(normalizeBaseURL('http://localhost:9931/v1', '')).toBe('http://localhost:9931/v1')
 	})
 
 	it('appends /v1 to a bare host', () => {
@@ -32,6 +33,26 @@ describe('normalizeBaseURL', () => {
 
 	it('uses the fallback when empty', () => {
 		expect(normalizeBaseURL('', 'https://api.openai.com/v1')).toBe('https://api.openai.com/v1')
+	})
+})
+
+/**
+ * The preset's placeholder URL and the fallback `createLanguageModel` uses are two separate
+ * constants for the same endpoint, so they must not drift: llama.cpp's default port has
+ * moved before, and a stale one would send every request nowhere.
+ */
+describe('default base URLs', () => {
+	it('keeps every preset in step with DEFAULT_BASE_URLS', () => {
+		for (const preset of PROVIDER_PRESETS) {
+			const fallback = DEFAULT_BASE_URLS[preset.kind]
+			if (!fallback) continue
+			expect(preset.defaultBaseURL).toBe(fallback)
+		}
+	})
+
+	it('points the local server preset at llama.cpp', () => {
+		const local = PROVIDER_PRESETS.find((preset) => preset.kind === 'openai-compatible')
+		expect(local?.defaultBaseURL).toBe('http://localhost:9931/v1')
 	})
 })
 

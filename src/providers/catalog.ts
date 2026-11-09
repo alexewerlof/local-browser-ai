@@ -1,4 +1,11 @@
-import type { ModelCapabilities, ProviderKind, ThinkingOption, ThinkingSelection } from '../core/types'
+import type {
+	ModelCapabilities,
+	ModelDetails,
+	ProviderKind,
+	ProviderSettings,
+	ThinkingOption,
+	ThinkingSelection,
+} from '../core/types'
 
 export interface ModelInfo {
 	id: string
@@ -135,6 +142,44 @@ export function getModelInfo(kind: ProviderKind, modelId: string): ModelInfo {
 	const label = modelId || fallback.label
 	if (!pattern) return { ...fallback, id: modelId, label }
 	return { id: modelId, label, ...pattern.info }
+}
+
+function detailsFor(provider: ProviderSettings, modelId: string): ModelDetails | undefined {
+	return provider.modelDetails?.find((model) => model.id === modelId)
+}
+
+/**
+ * The window for one model: the provider override, then what the server itself reported,
+ * then the static catalog. A server's own figure beats a guess from the model id, and the
+ * override stays the user's final say.
+ */
+export function modelContextWindow(provider: ProviderSettings, modelId: string): number {
+	return (
+		provider.contextWindowOverride ??
+		detailsFor(provider, modelId)?.contextWindow ??
+		getModelInfo(provider.kind, modelId).contextWindow
+	)
+}
+
+/** The output cap for one model, with the same precedence as the context window. */
+export function modelMaxOutputTokens(provider: ProviderSettings, modelId: string): number {
+	return (
+		provider.maxOutputTokensOverride ??
+		detailsFor(provider, modelId)?.maxOutputTokens ??
+		getModelInfo(provider.kind, modelId).maxOutputTokens
+	)
+}
+
+/** True when the window came from the catalog rather than the server or an override. */
+export function isContextWindowEstimated(provider: ProviderSettings, modelId: string): boolean {
+	return provider.contextWindowOverride === undefined && detailsFor(provider, modelId)?.contextWindow === undefined
+}
+
+/** True when the output cap came from the catalog rather than the server or an override. */
+export function isMaxOutputEstimated(provider: ProviderSettings, modelId: string): boolean {
+	return (
+		provider.maxOutputTokensOverride === undefined && detailsFor(provider, modelId)?.maxOutputTokens === undefined
+	)
 }
 
 export function thinkingOptions(kind: ProviderKind, info: ModelInfo): ThinkingOption[] {

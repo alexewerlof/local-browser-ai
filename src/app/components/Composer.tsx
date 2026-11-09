@@ -25,6 +25,7 @@ import { queueStore, removeQueuedPrompt } from '../../state/queue'
 import { lastPageAddedStore } from '../../state/pages'
 import { updateSettings } from '../../state/settings'
 import { estimateTokens } from '../../core/context/tokens'
+import { thinkingForModel } from '../../core/settings'
 import { formatTokens } from '../../core/util'
 import { getModelInfo } from '../../providers/catalog'
 import { ContextMeter } from './ContextMeter'
@@ -185,9 +186,19 @@ export function Composer({
 	}
 
 	const setThinking = (thinking: ThinkingSelection) => {
+		if (!modelRef) return
+		// The chip is about the model on screen, so the choice is stored on that model
+		// rather than changing every model's default.
 		updateSettings((current) => ({
 			...current,
-			modelDefaults: { ...current.modelDefaults, thinking },
+			providers: current.providers.map((entry) =>
+				entry.id === modelRef.providerId
+					? {
+							...entry,
+							modelThinking: { ...(entry.modelThinking ?? {}), [modelRef.modelId]: thinking },
+						}
+					: entry,
+			),
 		}))
 	}
 
@@ -329,7 +340,7 @@ export function Composer({
 						<ThinkingMenu
 							kind={provider.kind}
 							info={info}
-							value={settings.modelDefaults.thinking}
+							value={thinkingForModel(provider, modelRef.modelId, settings.modelDefaults.thinking)}
 							onChange={setThinking}
 						/>
 					)}

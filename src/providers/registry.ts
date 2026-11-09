@@ -17,7 +17,8 @@ export const DEFAULT_BASE_URLS: Record<string, string> = {
 	openai: 'https://api.openai.com/v1',
 	anthropic: 'https://api.anthropic.com/v1',
 	deepseek: 'https://api.deepseek.com/v1',
-	'openai-compatible': 'http://localhost:8080/v1',
+	// llama-server's default port; Ollama and LM Studio are user-entered examples elsewhere.
+	'openai-compatible': 'http://localhost:9931/v1',
 }
 
 export interface CreateModelOptions {

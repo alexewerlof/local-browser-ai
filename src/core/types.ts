@@ -300,6 +300,28 @@ export interface ThinkingSelection {
 	tokens?: number
 }
 
+/** Content a model accepts or produces. */
+export type ModelModality = 'text' | 'image' | 'audio' | 'video'
+
+/**
+ * What a provider's `/models` endpoint reported about one model. It sits beside `models`
+ * rather than replacing it: `models` is the list of ids the chat surfaces offer, while this
+ * is the table of facts the provider served, cached so it survives a reload.
+ *
+ * Every field is something the server said, or nothing at all. Nothing here is inferred from
+ * the model id: a wrong guess in a table reads as a fact, so an unknown cell stays empty.
+ */
+export interface ModelDetails {
+	id: string
+	label?: string
+	contextWindow?: number
+	maxOutputTokens?: number
+	inputModalities?: ModelModality[]
+	outputModalities?: ModelModality[]
+	/** llama.cpp reports whether a preset is currently loaded. */
+	state?: 'loaded' | 'unloaded'
+}
+
 export interface ProviderSettings {
 	id: string
 	kind: ProviderKind
@@ -309,6 +331,10 @@ export interface ProviderSettings {
 	headers?: Record<string, string>
 	/** Model ids discovered from the provider or entered by hand. */
 	models: string[]
+	/** What the provider reported for its models; the Models table reads it. */
+	modelDetails?: ModelDetails[]
+	/** Reasoning effort chosen per model, overriding `modelDefaults.thinking`. */
+	modelThinking?: Record<string, ThinkingSelection>
 	contextWindowOverride?: number
 	maxOutputTokensOverride?: number
 }

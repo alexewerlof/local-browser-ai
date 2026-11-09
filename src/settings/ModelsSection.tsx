@@ -1,5 +1,12 @@
 import type { AppSettings } from '../core/types'
-import { getModelInfo, normalizeThinking, thinkingOptions } from '../providers/catalog'
+import { thinkingForModel } from '../core/settings'
+import {
+	getModelInfo,
+	modelContextWindow,
+	modelMaxOutputTokens,
+	normalizeThinking,
+	thinkingOptions,
+} from '../providers/catalog'
 import { updateSettings } from '../state/settings'
 import { Field, RangeField, SelectField } from './fields'
 import { SettingsCard } from './SettingsCard'
@@ -11,7 +18,11 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 	const options = info && provider ? thinkingOptions(provider.kind, info) : [{ value: 'off' as const, label: 'Off' }]
 	const thinking =
 		info && provider
-			? normalizeThinking(settings.modelDefaults.thinking, provider.kind, info)
+			? normalizeThinking(
+					thinkingForModel(provider, modelId, settings.modelDefaults.thinking),
+					provider.kind,
+					info,
+				)
 			: { level: 'off' as const }
 
 	const updateModel = (providerId: string, nextModelId: string) =>
@@ -21,7 +32,8 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 		<div className="section">
 			<p className="section__intro">
 				The default model is used for new chats. You can switch models per chat from the composer. Temperature
-				and reasoning settings apply to every model unless you change them here.
+				applies to every model; reasoning effort applies to the default model, and each model can override it
+				under Providers.
 			</p>
 
 			<SettingsCard title="Default model">
@@ -46,15 +58,13 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 						onChange={(nextModelId) => provider && updateModel(provider.id, nextModelId)}
 					/>
 				</div>
-				{info && (
+				{info && provider && (
 					<div className="row" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
 						<span className="badge">
-							context{' '}
-							{new Intl.NumberFormat().format(provider?.contextWindowOverride ?? info.contextWindow)}
+							context {new Intl.NumberFormat().format(modelContextWindow(provider, modelId))}
 						</span>
 						<span className="badge">
-							max out{' '}
-							{new Intl.NumberFormat().format(provider?.maxOutputTokensOverride ?? info.maxOutputTokens)}
+							max out {new Intl.NumberFormat().format(modelMaxOutputTokens(provider, modelId))}
 						</span>
 						<span className="badge">{info.capabilities.tools ? 'tools' : 'no tools'}</span>
 						<span className="badge">{info.capabilities.reasoning ? 'reasoning' : 'no reasoning'}</span>
@@ -100,14 +110,25 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 					value={thinking.level}
 					options={options.map((option) => ({ value: option.value, label: option.label }))}
 					onChange={(level) =>
+						provider &&
 						updateSettings((current) => ({
 							...current,
-							modelDefaults: { ...current.modelDefaults, thinking: { level } },
+							providers: current.providers.map((entry) =>
+								entry.id === provider.id
+									? {
+											...entry,
+											modelThinking: {
+												...(entry.modelThinking ?? {}),
+												[modelId]: { level },
+											},
+										}
+									: entry,
+							),
 						}))
 					}
 					hint={
 						info?.capabilities.reasoning
-							? 'Anthropic maps these to thinking budgets; OpenAI-style models map them to reasoning effort.'
+							? 'Stored for this model. Anthropic maps these to thinking budgets; OpenAI-style models map them to reasoning effort.'
 							: 'This model does not expose a reasoning control.'
 					}
 				/>

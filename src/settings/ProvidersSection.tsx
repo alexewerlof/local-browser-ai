@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
-import type { AppSettings, ProviderSettings, ProviderKind } from '../core/types'
+import { CircleAlert, CircleCheck, Plus, RefreshCw } from 'lucide-react'
+import type { AppSettings, ModelDetails, ProviderSettings, ProviderKind } from '../core/types'
 import { createId } from '../core/util'
 import { PROVIDER_PRESETS, type ProviderPreset } from '../providers/types'
 import { DEFAULT_BASE_URLS } from '../providers/registry'
@@ -8,8 +8,16 @@ import { discoverModels } from '../providers/discovery'
 import { toAppError } from '../providers/errors'
 import { hasHostAccess, hostOf, requestHostAccess } from '../platform/permissions'
 import { updateSettings } from '../state/settings'
-import { Field, SelectField, TextAreaField, TextField } from './fields'
+import { Field, SelectField, TextField } from './fields'
+import { ProviderModelTable } from './ProviderModelTable'
 import { SettingsCard } from './SettingsCard'
+
+/** One row per id; a later duplicate replaces the earlier entry. */
+function dedupeDetails(details: ModelDetails[]): ModelDetails[] {
+	const byId = new Map<string, ModelDetails>()
+	for (const detail of details) byId.set(detail.id, detail)
+	return [...byId.values()]
+}
 
 export function ProvidersSection({ settings }: { settings: AppSettings }) {
 	const [editing, setEditing] = useState<ProviderSettings | null>(null)
@@ -58,7 +66,14 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 								type="button"
 								className="button button--sm"
 								onClick={() => {
-									setEditing({ ...provider, models: [...provider.models] })
+									setEditing({
+										...provider,
+										models: [...provider.models],
+										modelDetails: provider.modelDetails?.map((model) => ({ ...model })),
+										modelThinking: provider.modelThinking
+											? { ...provider.modelThinking }
+											: undefined,
+									})
 									setIsNew(false)
 								}}
 							>
@@ -170,34 +185,38 @@ function ProviderEditor({
 	onCancel: () => void
 }) {
 	const [draft, setDraft] = useState<ProviderSettings>(provider)
-	const [modelsText, setModelsText] = useState(provider.models.join('\n'))
 	const [busy, setBusy] = useState(false)
-	const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+	const [error, setError] = useState<string | null>(null)
 	const [granted, setGranted] = useState<boolean | null>(null)
 
 	const patch = (update: Partial<ProviderSettings>) => setDraft((current) => ({ ...current, ...update }))
 
-	const fetchModels = async () => {
+	/** Ask the server what it has. The table shows the answer; only a failure needs words. */
+	const refreshModels = async () => {
 		setBusy(true)
-		setMessage(null)
+		setError(null)
 		try {
 			// Must be the first await of the click: Chrome only shows the permission
 			// prompt while a user gesture is still live.
 			if (draft.baseURL && !(await requestHostAccess(draft.baseURL))) {
 				setGranted(false)
-				setMessage({
-					ok: false,
-					text: `Chrome did not grant access to ${hostOf(draft.baseURL)}. Use “Grant host access” to try again.`,
-				})
+				setError(
+					`Chrome did not grant access to ${hostOf(draft.baseURL)}. Use “Grant host access” to try again.`,
+				)
 				return
 			}
 			setGranted(true)
-			const models = await discoverModels(draft)
-			setModelsText(models.join('\n'))
-			patch({ models })
-			setMessage({ ok: true, text: `Found ${models.length} models.` })
-		} catch (error) {
-			setMessage({ ok: false, text: toAppError(error).message })
+			const details = await discoverModels(draft)
+			// A refresh never guesses which ids are chat models, so it only seeds `models`
+			// when the list is still empty. Afterwards the Use ticks are the user's and a
+			// refresh just updates the facts beside them.
+			const models =
+				draft.models.length > 0
+					? draft.models
+					: [...new Set(details.map((model) => model.id))].sort((a, b) => a.localeCompare(b))
+			patch({ models, modelDetails: details })
+		} catch (caught) {
+			setError(toAppError(caught).message)
 		} finally {
 			setBusy(false)
 		}
@@ -219,21 +238,16 @@ function ProviderEditor({
 		// the click's gesture is live. Generate-and-send later has no prompt available.
 		if (draft.kind !== 'prompt-api' && draft.baseURL && !(await requestHostAccess(draft.baseURL))) {
 			setGranted(false)
-			setMessage({
-				ok: false,
-				text: `Chrome did not grant access to ${hostOf(draft.baseURL)}. Use “Grant host access” to try again.`,
-			})
+			setError(`Chrome did not grant access to ${hostOf(draft.baseURL)}. Use “Grant host access” to try again.`)
 			return
 		}
-		const models = modelsText
-			.split('\n')
-			.map((line) => line.trim())
-			.filter(Boolean)
+		const models = draft.models.map((id) => id.trim()).filter(Boolean)
 		onSave({
 			...draft,
 			label: draft.label.trim() || 'Provider',
 			baseURL: draft.kind === 'prompt-api' ? undefined : draft.baseURL?.trim(),
 			models: draft.kind === 'prompt-api' ? ['text'] : [...new Set(models)],
+			modelDetails: draft.modelDetails ? dedupeDetails(draft.modelDetails) : undefined,
 		})
 	}
 
@@ -278,17 +292,57 @@ function ProviderEditor({
 				/>
 			</div>
 
-			<TextField
-				label="Base URL"
-				value={draft.baseURL ?? ''}
-				onChange={(baseURL) => patch({ baseURL })}
-				placeholder={DEFAULT_BASE_URLS[draft.kind]}
-				hint={
-					draft.kind === 'openai-compatible'
-						? 'Examples: llama.cpp http://localhost:8080/v1 · Ollama http://localhost:11434/v1 · LM Studio http://localhost:1234/v1'
-						: 'The /v1 endpoint. Trailing /chat/completions is removed.'
-				}
-			/>
+			{/* One host control, under the URL it is about: the grant belongs to this endpoint, not
+			    to the model list. It is a plain div, not `Field`, because a button inside a label
+			    would fire twice. */}
+			<div className="field field--stacked">
+				<span className="field__text">
+					<span className="field__label">Base URL</span>
+					<span className="field__hint">
+						{draft.kind === 'openai-compatible'
+							? 'Examples: llama.cpp http://localhost:9931/v1 · Ollama http://localhost:11434/v1 · LM Studio http://localhost:1234/v1'
+							: 'The /v1 endpoint. Trailing /chat/completions is removed.'}
+					</span>
+				</span>
+				<div className="url-row">
+					<input
+						className="input"
+						value={draft.baseURL ?? ''}
+						placeholder={DEFAULT_BASE_URLS[draft.kind]}
+						aria-label="Base URL"
+						onChange={(event) => patch({ baseURL: event.target.value })}
+						spellCheck={false}
+						autoComplete="off"
+					/>
+					<button
+						type="button"
+						className="button button--ghost button--sm"
+						onClick={() => void checkAccess()}
+						disabled={!draft.baseURL}
+					>
+						Check site access
+					</button>
+				</div>
+				{granted === true && (
+					<span className="url-access url-access--granted">
+						<CircleCheck size={14} />
+						Host access granted.
+					</span>
+				)}
+				{granted === false && (
+					<span className="url-access url-access--missing">
+						<CircleAlert size={14} />
+						Chrome has not granted access to {draft.baseURL ? hostOf(draft.baseURL) : 'this host'}.
+						<button
+							type="button"
+							className="button button--primary button--sm"
+							onClick={() => void grantHostAccess()}
+						>
+							Grant host access
+						</button>
+					</span>
+				)}
+			</div>
 
 			<TextField
 				label="API key"
@@ -332,35 +386,35 @@ function ProviderEditor({
 				</Field>
 			</div>
 
-			<TextAreaField
-				label="Models"
-				value={modelsText}
-				onChange={setModelsText}
-				rows={4}
-				hint="One model id per line. Use the button below to ask the server what it has."
-				placeholder="llama-3.3-70b-instruct"
-			/>
-
-			<div className="row" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-				<button type="button" className="button button--sm" onClick={() => void fetchModels()} disabled={busy}>
-					{busy ? 'Connecting…' : 'Fetch models'}
-				</button>
-				<button type="button" className="button button--ghost button--sm" onClick={() => void checkAccess()}>
-					Check site access
-				</button>
-				{granted === true && <span className="hint">Host access granted.</span>}
-				{granted === false && (
-					<button
-						type="button"
-						className="button button--primary button--sm"
-						onClick={() => void grantHostAccess()}
-					>
-						Grant host access
-					</button>
-				)}
+			<div className="field field--stacked">
+				<span className="field__text">
+					<span className="field__label">Models</span>
+					<span className="field__hint">
+						Refresh asks the server what it has. Unticked models stay out of the pickers; a ~ marks a figure
+						the catalog estimated rather than the server’s own.
+					</span>
+				</span>
+				<ProviderModelTable provider={draft} onChange={patch} />
 			</div>
 
-			{message && <div className={`notice ${message.ok ? 'notice--good' : 'notice--bad'}`}>{message.text}</div>}
+			<div className="row" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+				<button
+					type="button"
+					className="button button--sm"
+					onClick={() => void refreshModels()}
+					disabled={busy}
+					title="Ask the server for its model list"
+				>
+					<RefreshCw size={16} />
+					{busy ? 'Refreshing…' : 'Refresh'}
+				</button>
+			</div>
+
+			{error && (
+				<div className="notice notice--bad" role="alert">
+					{error}
+				</div>
+			)}
 
 			<div className="row" style={{ gap: 'var(--space-3)' }}>
 				<button type="button" className="button button--primary" onClick={() => void save()}>

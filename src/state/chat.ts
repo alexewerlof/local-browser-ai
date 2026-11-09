@@ -14,12 +14,18 @@ import type {
 } from '../core/types'
 import { Store } from '../core/store'
 import { createId, now } from '../core/util'
-import { enabledBuiltInTools, getProvider, hasEnabledTools, normalizeSettings } from '../core/settings'
+import {
+	enabledBuiltInTools,
+	getProvider,
+	hasEnabledTools,
+	normalizeSettings,
+	thinkingForModel,
+} from '../core/settings'
 import { buildContext, messageText, type ContextPart } from '../core/context/assembly'
 import { buildSummaryPrompt, microCompact, planCompaction, usageRatio } from '../core/context/compaction'
 import { createBudget, estimateTokens, type TokenBudget } from '../core/context/tokens'
 import { buildTools, type ToolContext } from '../browser/tools'
-import { getModelInfo, normalizeThinking, type ModelInfo } from '../providers/catalog'
+import { getModelInfo, modelContextWindow, normalizeThinking, type ModelInfo } from '../providers/catalog'
 import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
 import { getPromptApiStatus } from '../providers/prompt-status'
@@ -201,21 +207,23 @@ function resolveSelection(settings = settingsStore.get(), conversation = convers
 	return { ref: { ...ref, modelId }, provider, info: getModelInfo(provider.kind, modelId) }
 }
 
-const contextWindowCache = new Map<string, number>()
+const promptApiWindowCache = new Map<string, number>()
 
 async function contextWindowFor(selection: Selection): Promise<number> {
-	const { provider, info, ref } = selection
+	const { provider, ref } = selection
 	if (provider.contextWindowOverride) return provider.contextWindowOverride
-	const key = `${provider.id}:${ref.modelId}`
-	const cached = contextWindowCache.get(key)
-	if (cached) return cached
 
-	let value = info.contextWindow
-	if (provider.kind === 'prompt-api') {
-		const status = await getPromptApiStatus()
-		if (status.contextWindow) value = status.contextWindow
-	}
-	contextWindowCache.set(key, value)
+	// The server's own figure beats the catalog guess; the Prompt API reports its window
+	// through a separate call, so that one is asked last and cached.
+	const fallback = modelContextWindow(provider, ref.modelId)
+	if (provider.kind !== 'prompt-api') return fallback
+
+	const key = `${provider.id}:${ref.modelId}`
+	const cached = promptApiWindowCache.get(key)
+	if (cached) return cached
+	const status = await getPromptApiStatus()
+	const value = status.contextWindow ?? fallback
+	promptApiWindowCache.set(key, value)
 	return value
 }
 
@@ -229,8 +237,14 @@ function publishContext(
 	toolsEnabledOverride?: boolean,
 ): { messages: ModelMessage[]; system: string; budget: TokenBudget; totalTokens: number } {
 	const resolved = selection ?? resolveSelectionQuietly(settings, conversation)
-	const window = resolved ? contextWindowCache.get(`${resolved.provider.id}:${resolved.ref.modelId}`) : undefined
-	const contextWindow = resolved?.provider.contextWindowOverride ?? window ?? 8192
+	// `publishContext` is synchronous, so it can only read the Prompt API window the run
+	// already resolved; every other provider is answered straight from the settings.
+	const window = resolved
+		? (resolved.provider.contextWindowOverride ??
+			promptApiWindowCache.get(`${resolved.provider.id}:${resolved.ref.modelId}`) ??
+			modelContextWindow(resolved.provider, resolved.ref.modelId))
+		: 8192
+	const contextWindow = window
 	const budget = createBudget(
 		contextWindow,
 		settings.context.outputReserveRatio,
@@ -483,7 +497,11 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			context = publishContext(working, settings, selection)
 		}
 
-		const thinking = normalizeThinking(settings.modelDefaults.thinking, selection.provider.kind, selection.info)
+		const thinking = normalizeThinking(
+			thinkingForModel(selection.provider, selection.ref.modelId, settings.modelDefaults.thinking),
+			selection.provider.kind,
+			selection.info,
+		)
 		const model = await createLanguageModel(selection.provider, selection.ref.modelId, {
 			temperature: settings.modelDefaults.temperature,
 			thinking,

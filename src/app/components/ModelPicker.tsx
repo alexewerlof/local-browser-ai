@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Check, ChevronDown, Sparkles } from 'lucide-react'
 import type { AppSettings, ModelRef } from '../../core/types'
-import { getModelInfo } from '../../providers/catalog'
+import { modelContextWindow } from '../../providers/catalog'
 import { formatTokens } from '../../core/util'
 import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
@@ -32,7 +32,7 @@ export function ModelPicker({
 					)
 					.map((modelId) => ({
 						modelId,
-						info: getModelInfo(provider.kind, modelId),
+						contextWindow: modelContextWindow(provider, modelId),
 					})),
 			}))
 			.filter((group) => group.models.length > 0)
@@ -78,7 +78,7 @@ export function ModelPicker({
 				{groups.map(({ provider, models }) => (
 					<div key={provider.id} className="popover__group">
 						<div className="popover__group-label">{provider.label}</div>
-						{models.map(({ modelId, info }) => {
+						{models.map(({ modelId, contextWindow }) => {
 							const selected = current?.providerId === provider.id && current.modelId === modelId
 							return (
 								<button
@@ -93,7 +93,7 @@ export function ModelPicker({
 									<span className="popover__item-main">
 										{provider.kind === 'prompt-api' ? 'Built-in browser model' : modelId}
 									</span>
-									<span className="badge">{formatTokens(info.contextWindow)}</span>
+									<span className="badge">{formatTokens(contextWindow)}</span>
 									{selected && <Check size={13} />}
 								</button>
 							)

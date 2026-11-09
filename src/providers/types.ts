@@ -32,7 +32,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
 		kind: 'openai-compatible',
 		label: 'Local server (OpenAI-compatible)',
 		description: 'llama.cpp, Ollama, LM Studio, vLLM, or anything else serving POST /v1/chat/completions.',
-		defaultBaseURL: 'http://localhost:8080/v1',
+		defaultBaseURL: 'http://localhost:9931/v1',
 		needsKey: false,
 		needsBaseURL: true,
 	},
