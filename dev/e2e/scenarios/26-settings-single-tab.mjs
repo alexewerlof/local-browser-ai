@@ -36,10 +36,10 @@ export async function run(ctx) {
 
 	// A different section navigates the same tab.
 	await page.locator('.chip:has-text("Tools")').click()
-	await page.locator('button[aria-label="Manage MCP servers"]').click()
+	await page.locator('button[aria-label="Manage tools"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 3)
 	last = (await updates()).at(-1)
-	assert.match(String(last.url), /\/settings\.html#mcp$/)
+	assert.match(String(last.url), /\/settings\.html#tools$/)
 	assert.equal(await opened(), 0)
 
 	// The header gear passes no section, so the tab keeps the one the user was reading.

@@ -8,6 +8,7 @@ const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 	headers: {},
 	enabled: true,
 	autoApprove: false,
+	autoApproveTools: [],
 	disabledTools: [],
 	stripOrigin: false,
 	...overrides,
@@ -240,6 +241,24 @@ describe('normalizeSettings', () => {
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.tools.mcp[0]?.stripOrigin).toBe(false)
+	})
+
+	it('defaults a server written before per-tool auto-approve to none approved', () => {
+		const { autoApproveTools: _omitted, ...legacy } = mcpServer()
+		const stored = {
+			...defaultSettings(),
+			tools: { enabled: [], autoApprove: [], mcp: [legacy] },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings.tools.mcp[0]?.autoApproveTools).toEqual([])
+	})
+
+	it('keeps the per-tool auto-approve list of a server', () => {
+		const stored = {
+			...defaultSettings(),
+			tools: { enabled: [], autoApprove: [], mcp: [mcpServer({ autoApproveTools: ['echo'] })] },
+		}
+		expect(normalizeSettings(stored).tools.mcp[0]?.autoApproveTools).toEqual(['echo'])
 	})
 
 	it('drops a malformed MCP server without resetting the rest of the document', () => {

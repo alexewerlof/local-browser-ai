@@ -18,6 +18,10 @@ Local rules:
 - `ContextPart.id` is a closed union shared with the meter; a page block is counted by the `page` part, not by
   `history`.
 - Settings are versioned; a new default-on field needs a `SETTINGS_VERSION` bump and, for tools, a `TOOLS_ADDED_IN` row.
+- `tool-selection.ts` is the one place that decides what "on" means for a tool set (the built-in set or one MCP server):
+  the tri-state for a group, the writes behind a checkbox, and which MCP tool skips approval. The composer tree and
+  Settings → Tools both call it; a new rule belongs here, not in a component. It may take tool **names**, never a
+  catalog entry — this layer does not know about discovery.
 - `src/providers/catalog.ts` is the model catalog; `McpCatalogEntry` is the MCP catalog. Always qualify "catalog".
 
 See `../AGENTS.md` for architecture and `../../ontology.yml` for names.

@@ -151,11 +151,14 @@ export function Switch({
 	label,
 	checked,
 	disabled,
+	title,
 	onChange,
 }: {
 	label: string
 	checked: boolean
 	disabled?: boolean
+	/** Tooltip and visible-short-caption pairing: the caption says less than this. */
+	title?: string
 	onChange: (checked: boolean) => void
 }) {
 	return (
@@ -164,6 +167,7 @@ export function Switch({
 			role="switch"
 			aria-checked={checked}
 			aria-label={label}
+			title={title}
 			className="switch"
 			disabled={disabled}
 			onClick={() => onChange(!checked)}

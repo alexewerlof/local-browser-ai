@@ -13,8 +13,8 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 8
-    updated: 2026-11-08
+    version: 9
+    updated: 2026-11-09
     status: contract
     shipped: false
 
@@ -112,13 +112,14 @@ models:
 # Capabilities the model may call, local and remote.
 tools:
     tool: a capability the model may call; code ToolSet, buildTools, buildMcpTools, enabledBuiltInTools; ui Tools, Tools the model may use; not function, command, plugin, action
-    built-in-tool: a tool implemented inside the extension; code TOOL_DEFINITIONS, ACTION_TOOL_IDS, tools.ts; ui Built-in Tools, Built-in tools; not browser tool, local tool, native tool
+    built-in-tool: a tool implemented inside the extension; code TOOL_DEFINITIONS, ACTION_TOOL_IDS, tools.ts, BUILT_IN_TOOL_IDS; ui Built-in tools, Built-in; not browser tool, local tool, native tool
+    tool-set: one switchable group of tools, the built-in tools or one MCP server; code BuiltInToolsCard, McpServerCard, ToolRow, tool-selection.ts; ui Built-in tools, Auto-approve, No MCP servers yet., Off, Not checked, Not checked yet., Not checked yet. Refresh to list the tools this server offers., Checking…, Unreachable, No tools., This server offers no tools., The tools are unknown while the server cannot be reached., {n} of {n} tools enabled; not tool group, category, plugin
     tool-call: one invocation by the model, with input, output and state; code ToolCallPart, ToolCallState, running, complete, error; ui waiting, running, done, failed, denied; not invocation, tool use
     tool-output: what a tool returns, clipped and treated as untrusted; code MAX_TOOL_CHARS, clipToolText, tool-text.ts; ui Output, Error, truncated; not payload, body, result payload
     approval: the inline question before an action tool runs; code requestApproval, resolveApproval, approvalsStore; ui Allow this action?, Allow, Deny; not confirmation, permission, consent
-    auto-approve: the switch that lets a tool or server skip that question; code autoApprove, TOOLS_ADDED_IN; ui Run without asking, Run {tool} without asking, Run MCP tools from {server} without asking; not always allow, trust, whitelist
+    auto-approve: the control that lets a tool or a whole tool set skip that question; code autoApprove, autoApproveTools, TOOLS_ADDED_IN, setMcpToolAutoApprove; ui Auto-approve, Run without asking, Run {tool} without asking, Run {server} tools without asking; not always allow, trust, whitelist, autorun
     mcp: Model Context Protocol, HTTP servers whose tools join the built-ins; code @ai-sdk/mcp, mcp.ts, net-rules.ts; ui MCP, MCP servers; not connector, plugin system, integration
-    mcp-server: one configured Streamable HTTP endpoint; code McpServerSettings, tools.mcp, mcpServerKey; ui MCP servers, Add MCP server, URL, Headers; not remote server, tool server, endpoint
+    mcp-server: one configured Streamable HTTP endpoint, shown as one tool set; code McpServerSettings, McpServerCard, tools.mcp, mcpServerKey; ui MCP servers, Add MCP server, URL, Headers, Refresh, Edit, Remove; not remote server, tool server, endpoint
     mcp-server-editor: the form that adds or edits one server in place of its row; code McpServerEditor, mcp-editor; ui Add an MCP server, Edit {server}, Add server, Save server, Test connection, Cancel; not panel, dialog, modal
     mcp-header: one Name/Value pair sent with every request to that server; code HeaderRow, headersToRows, rowsToHeaders, mcp-header; ui Headers, Name, Value, Add header, Remove header; not attribute, parameter, key-value
     mcp-tool: a tool discovered from that server, offered under a namespaced name; code McpDiscoveredTool, buildMcpTools; ui MCP · {server}; not remote tool, server tool, external tool
@@ -153,7 +154,7 @@ ui:
             chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
             chip-count: the bare number at the end of a chip, as on the page counter; code chip__count; ui 6; not badge, pill, counter
             skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Search skills, No skills match., Manage skills; not skill button
-            tools-chip: the chip listing built-in tools and MCP servers; code ToolsMenu, enabledCount, chip__count; ui Tools, Built-in tools, MCP servers, No MCP servers yet., Manage built-in tools, Manage MCP servers; not tool button, plugin menu
+            tools-chip: the chip opening the tree of tool sets; code ToolsMenu, ToolTree, countEnabledTools, chip__count; ui Tools, Built-in, No MCP servers yet., Manage tools; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
@@ -173,22 +174,24 @@ ui:
         typing-indicator: the three dots shown while the answer has no text yet, including the wait after tool results; code typing, waiting, answered; ui The model is responding, Waiting for the model to read the tool results; not spinner, loader, thinking dots
         aborted-badge: the marker on a stopped message; code badge, MessageStatus.aborted; ui stopped; not cancelled badge
         reasoning-block: the collapsible row holding the model's reasoning inside the steps group; code ReasoningBlock, reasoning__toggle, reasoning__body; ui Thinking…, Thought process, ~N tokens; not thinking block, chain of thought
-        tool-card: the step row for one tool call: icon, activity, argument, state badge and detail; code ToolCallCard, tool__head, tool__body, tool__approval, data-state; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
+        tool-card: the step row for one tool call, with icon, activity, argument, state badge and detail; code ToolCallCard, tool__head, tool__body, tool__approval, data-state; ui Allow this action?, Allow, Deny, Input, Output; not tool bubble, tool message
         step-group: the reasoning and tool calls of one answer as a single flow, folded into one line once the run ends; code StepsGroup, steps, steps__summary, steps__list, steps__item, isStepPart, countSteps, describeSteps, ChatMessage.steps, ChatMessage.durationMs; ui Completed 3 steps in 12.4 s · ~1.2k tokens; not run summary, activity log, trace, timeline
     numbers:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
-        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage built-in tools, Manage MCP servers, Manage models; not cog, settings link, configure icon
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage tools, Manage models; not cog, settings link, configure icon
 
 # The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
     settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Appearance, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context; not tab, panel
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Appearance, Providers, Models, Skills, Tools, Memory, Context; not tab, panel
     settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#skills; ui hash, settings.html#skills; not query string, path, tab
-    settings-card: a titled group of related controls; code SettingsCard, group__title, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
+    settings-card: a titled group of related controls; code SettingsCard, group__title, group__head, group__actions, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
-    switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Run without asking, Enable memory, Send requests without an Origin header; not toggle, checkbox, slider
+    switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Auto-approve, Run without asking, Enable memory, Send requests without an Origin header; not toggle, checkbox, slider
+    checkbox: the availability control, full, empty or dashed when a tool set is partly on; code Checkbox, checkbox, indeterminate, SelectionState; ui Enable {tool}, Enable {server}, Enable every built-in tool, Run every built-in tool without asking, Run {server} tools without asking; not toggle, tickbox
+    tool-tree: the expandable tree of tool sets in the composer's Tools menu; code ToolTree, tool-tree__group, tool-tree__toggle, tool-tree__row, mcpServerSelection; ui Tools, Built-in, Expand, Collapse, Manage tools; not accordion, dropdown list, submenu
     settings-version: the schema version that migrates fields and tools once; code SETTINGS_VERSION, migrateSettings, TOOLS_ADDED_IN; not schema version, config version
     platform-settings: this extension's own entry in Chrome's Extensions page, opened from the rail footer; shortcuts, site access and update controls live there and no extension can reproduce them; code openPlatformSettings, platformSettingsUrl, settings__nav-action, settings__footer; ui Platform Settings…, Keyboard shortcuts, site access and updates live in Chrome., Available in the installed extension.; not extension settings, browser settings, options page
 
@@ -207,7 +210,7 @@ errors:
 #              regression; delete the line only if the decision itself is reversed.
 # An empty list is the goal for `pending`, not for `decision`.
 drift:
-    mcp-server: MCP servers have their own section and their own gear, which opens Settings → MCP; the Tools menu never sends the user to Built-in Tools for them. decision
+    mcp-server: Built-in tools and MCP servers are one thing to the user — one Tools section and one composer tree, where the built-in set is the first tool set. decision
     tool-card: the row is a flat step now, not a card; the id and `ToolCallCard` keep the name. decision
     conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision

@@ -12,7 +12,7 @@ Local rules:
 - Component name is the concept: `Composer`, `SkillMenu`, `ToolCallCard`, `ContextMeter`. No `Widget`/`Panel` suffixes
   except `Header`, `Transcript`, `HistoryPanel`.
 - Classes are BEM-ish with a block per component: `.composer__toolbar`, `.tool__head`, `.meter__segment`. Shared atoms
-  are bare blocks: `.chip`, `.badge`, `.popover`, `.field`, `.button`.
+  are bare blocks: `.chip`, `.badge`, `.popover`, `.field`, `.button`, `.checkbox`.
 - `.composer__topbar` is not the panel `header`; it is the strip inside the composer box holding the page list. The bar
   itself stays one line: `PageListToggle` shows the hint, or — from the first page on — a page icon and count. That
   count opens `PageList`: a stacked `ol` above the box, so the list grows upwards and never squeezes the prompt. An add
@@ -26,6 +26,11 @@ Local rules:
 - `StepsGroup` owns the transcript's steps: `ReasoningBlock` and `ToolCallCard` are rows inside it, flat (no card border
   or background), and the whole group folds into one `.steps__summary` line once the run ends — unless a row still needs
   the user. The rail in `.steps__list` is what makes the rows one flow; do not give a row its own surface again.
+- The Tools chip opens `ToolTree`, one expandable tree of **tool sets**: the built-in set and each MCP server are peers,
+  a group head is a tri-state `Checkbox` plus a disclosure button, and a tool is a checkbox with its name above its
+  description (the name and description stay stacked — never side by side). Expansion is in-memory `useState`, all
+  collapsed on open. The menu only switches availability; auto-approve is Settings → Tools. All group maths comes from
+  `src/core/tool-selection.ts`, which Settings imports too.
 - UI strings are quoted verbatim in the ontology. Change the string and the entry together.
 - `HistoryPanel` renders the **chats drawer**; the UI word is "Chats", never "History panel".
 

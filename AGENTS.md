@@ -10,7 +10,7 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | Layer       | Location           | Responsibility                                                                                                 |
 | ----------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.                        |
-| Settings UI | `src/settings/`    | Full-page providers, models, skills, built-in tools, MCP, memory, context and general.                         |
+| Settings UI | `src/settings/`    | Full-page providers, models, skills, tools, memory, context and general.                                       |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction, omnibox prompt. |
 | Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.                       |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                                      |
@@ -335,14 +335,15 @@ both. The wording and the fallback count live in `core/steps.ts`.
   and the tools forbid saving page or tool output as a memory. Only the user can make a memory always-on; the tools
   accept `auto` and `tool` only.
 - **MCP servers are HTTP-only and live in the panel.** `@ai-sdk/mcp` is imported only by `src/state/mcp.ts`; the service
-  worker must stay free of it (no process to spawn, so stdio servers cannot be supported). MCP has its own settings
-  section (`src/settings/McpSection.tsx`), separate from Built-in Tools. Each turn connects fresh, lists tools, and
-  closes every client when the run ends. A server that is down is a dismissible warning, never a failed turn. Tools are
-  namespaced (`mcp_<server>_<tool>`), clipped to `MAX_TOOL_CHARS`, and their output is treated as untrusted data — it
-  never becomes instructions. Do not commit a real endpoint or use a live server in tests; use
+  worker must stay free of it (no process to spawn, so stdio servers cannot be supported). MCP shares the **Tools**
+  settings section (`src/settings/ToolsSection.tsx`) with the built-in tools: the built-in set is the first card and
+  every MCP server is another card with the same rows, checkbox and auto-approve control. Each turn connects fresh,
+  lists tools, and closes every client when the run ends. A server that is down is a dismissible warning, never a failed
+  turn. Tools are namespaced (`mcp_<server>_<tool>`), clipped to `MAX_TOOL_CHARS`, and their output is treated as
+  untrusted data — it never becomes instructions. Do not commit a real endpoint or use a live server in tests; use
   `dev/e2e/mock-mcp-server.mjs`. Pass an explicit `fetch` wrapper to the transport: browsers reject a `fetch` whose
   receiver is not the global scope ("Illegal invocation"). A server is edited in place in the list (`McpServerEditor`, a
-  `.mcp-editor` child of `.rows`), never in a second card, and its headers are Name/Value rows
+  `.mcp-editor` child of its card), never in a second card, and its headers are Name/Value rows
   (`headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`) rather than a textarea.
 - **A server that rejects browser origins is handled in the browser, not the header.** Many MCP servers answer 403 to
   any request carrying `Origin` (DNS-rebinding protection), and `Origin` is a forbidden header no script can drop. A
@@ -418,9 +419,9 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   `onClick={() => void save()}`, never `onClick={async () => …}`.
 - Silencing a rule needs `// eslint-disable-next-line <rule>` immediately under a comment that says why. The baseline is
   down to three, each explained in place: `no-control-regex` in `src/core/memory.ts` (stripping control characters is
-  the point) and the two deliberate hook dependency lists (`ComposerMenus`, `McpServersCard`) that refresh MCP catalog
-  entries when a menu opens, not on every settings keystroke. A bare disable, or a new one without a reason, is a review
-  comment.
+  the point) and the two deliberate hook dependency lists (`ToolTree`, `ToolsSection`) that refresh MCP catalog entries
+  when a menu or the section is opened, not on every settings keystroke. A bare disable, or a new one without a reason,
+  is a review comment.
 - `dev/e2e/**` is linted with Node **and** browser globals because every `page.evaluate()` callback is serialized into
   the page; adding a global there is a config change in `eslint.config.js`, not a `no-undef` disable in a scenario.
 - Names come from `ontology.yml`; a new concept, control or pipeline stage gets an entry there in the same change.
@@ -434,12 +435,13 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
 - Settings sections are hash-routed (`settings.html#skills`; General is the bare page). `SETTINGS_SECTIONS` in
-  `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. Settings is a
-  **single tab**: the function queries open tabs (hence the `tabs` permission), focuses the window, and moves the
-  existing tab to the section instead of opening another one; with no section it keeps the section already on screen. A
-  menu that points at Settings uses the `SettingsButton` gear rather than a sentence. The section cannot live in the
-  path — Chrome's extension loader resolves a URL path verbatim to a file, so `settings/models` is a 404 — and the
-  fragment is the only part of the URL it leaves alone.
+  `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. `#mcp` is an
+  **alias** that resolves to `tools`, because MCP no longer has a section of its own; `SettingsApp` rewrites it to the
+  canonical fragment. Settings is a **single tab**: the function queries open tabs (hence the `tabs` permission),
+  focuses the window, and moves the existing tab to the section instead of opening another one; with no section it keeps
+  the section already on screen. A menu that points at Settings uses the `SettingsButton` gear rather than a sentence.
+  The section cannot live in the path — Chrome's extension loader resolves a URL path verbatim to a file, so
+  `settings/models` is a 404 — and the fragment is the only part of the URL it leaves alone.
 - Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
   the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`
@@ -457,6 +459,13 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   costs its schema and its prompt line on every request. When a tool would only differ in _what part_ of the thing it
   returns, make it a `mode`; when it would differ in _what it does_, it is a second tool. Adding a variant inside a tool
   must not change how the tool is approved — `read_page` asks only for the `url` form, which opens a tab.
+- **Built-in tools and MCP servers are one tool set in the UI.** The composer's Tools menu is one tree (`ToolTree`) and
+  Settings → Tools is one page (`ToolsSection`): the built-in set is the first node, each server is another, and a
+  built-in tool and an MCP tool render the same row. All selection maths is `src/core/tool-selection.ts`, which both
+  surfaces import — never re-derive a group's all/some/none state in a component. Availability is a `Checkbox` (a
+  tri-state one for a whole set); auto-approve is a `Switch` captioned `Auto-approve` with the tooltip
+  `Run without asking`. Per-server approval is `McpServerSettings.autoApprove` (all tools, wins over the list) plus
+  `autoApproveTools` (the tools of a partly approved server).
 - **Hitting the tool-step cap is a question, not an ending.** `stopWhen: stepCountIs(maxToolSteps)` stops the loop while
   the model still wants tools; the run then finishes with tool cards and no answer, which is indistinguishable from a
   hang. `finishReason === 'tool-calls'` is that signal, so `runTurn` sets `stepLimitStore` and the panel shows a banner

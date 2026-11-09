@@ -47,14 +47,10 @@ export async function run(ctx) {
 	// Opening Settings dismisses the popover.
 	assert.equal(await page.locator('.popover').count(), 0)
 
-	// Built-in tools and MCP each have their own gear in the group heading.
+	// Built-in tools and MCP servers share one Tools section, so they share one gear.
 	await page.locator('.chip:has-text("Tools")').click()
-	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage built-in tools"]').click())
+	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage tools"]').click())
 	assert.deepEqual(result, { created: false, hash: '#tools' })
-
-	await page.locator('.chip:has-text("Tools")').click()
-	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage MCP servers"]').click())
-	assert.deepEqual(result, { created: false, hash: '#mcp' })
 
 	// Models: the gear sits beside the search row at the top of the picker.
 	await page.locator('.chip--model').click()
@@ -69,7 +65,7 @@ export async function run(ctx) {
 	// The header gear asks for no section, so the tab keeps the section on screen.
 	await page.locator('button[aria-label="Settings"]').click()
 	// Four section changes came before it, all on the tab the Skills gear created.
-	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 5)
+	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 4)
 	const last = await page.evaluate(() => window.__LB_AI_TEST__.updatedTabs.at(-1))
 	assert.equal(last.url, undefined)
 	assert.equal(last.active, true)

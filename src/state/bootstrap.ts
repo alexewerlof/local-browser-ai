@@ -79,7 +79,7 @@ function pageReadable(): { ok: true } | { ok: false; message: string } {
 	if (!hasPageTools(enabledBuiltInTools(settings))) {
 		return {
 			ok: false,
-			message: 'The page tools are turned off. Enable them in Settings → Built-in Tools to add pages.',
+			message: 'The page tools are turned off. Enable them in Settings → Tools to add pages.',
 		}
 	}
 	return { ok: true }

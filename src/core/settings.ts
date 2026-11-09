@@ -80,6 +80,7 @@ const mcpServerSchema = z.object({
 	headers: z.record(z.string(), z.string()).default({}),
 	enabled: z.boolean().default(false),
 	autoApprove: z.boolean().default(false),
+	autoApproveTools: z.array(z.string()).default([]),
 	disabledTools: z.array(z.string()).default([]),
 	stripOrigin: z.boolean().default(false),
 })
@@ -144,6 +145,13 @@ export const READ_ONLY_TOOL_IDS = [
 ] as const
 
 export const ACTION_TOOL_IDS = ['remember'] as const
+
+/**
+ * Every built-in tool id. Membership and bulk writes only: the surfaces list tools in the
+ * order `TOOL_DEFINITIONS` declares, which lives in the browser layer and cannot be imported
+ * here.
+ */
+export const BUILT_IN_TOOL_IDS: readonly string[] = [...READ_ONLY_TOOL_IDS, ...ACTION_TOOL_IDS]
 
 export const builtInSkills: Skill[] = [
 	{
@@ -456,7 +464,7 @@ export function normalizeSettings(input: unknown): AppSettings {
 	}
 
 	// Drop tool ids that no longer exist.
-	const knownTools = new Set<string>([...READ_ONLY_TOOL_IDS, ...ACTION_TOOL_IDS])
+	const knownTools = new Set(BUILT_IN_TOOL_IDS)
 	settings.tools.enabled = settings.tools.enabled.filter((id) => knownTools.has(id))
 	settings.tools.autoApprove = settings.tools.autoApprove.filter((id) => knownTools.has(id))
 

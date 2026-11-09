@@ -321,6 +321,28 @@ a:hover {
 	border-radius: var(--radius-md);
 }
 
+/* The checkbox atom, shared by the composer's Tools tree and Settings → Tools. Native, so
+   the tick and a group's partial dash are the browser's; `accent-color` is the only theming
+   a checkbox needs. */
+.checkbox {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+
+.checkbox:disabled {
+	opacity: 0.38;
+	cursor: default;
+}
+
+.checkbox:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
 /* Chrome's cr-toggle: a 26x16 track with a small knob that grows when checked. */
 .switch {
 	position: relative;

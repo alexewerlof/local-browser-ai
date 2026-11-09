@@ -317,23 +317,7 @@ export function Composer({
 
 					<ToolsMenu
 						settings={settings}
-						onChange={(enabled) =>
-							updateSettings((current) => ({
-								...current,
-								tools: { ...current.tools, enabled },
-							}))
-						}
-						onToggleMcp={(serverId, enabled) =>
-							updateSettings((current) => ({
-								...current,
-								tools: {
-									...current.tools,
-									mcp: current.tools.mcp.map((server) =>
-										server.id === serverId ? { ...server, enabled } : server,
-									),
-								},
-							}))
-						}
+						onChange={(tools) => updateSettings((current) => ({ ...current, tools }))}
 						disabledReason={
 							info && !info.capabilities.tools ? 'This model does not support tool calling.' : undefined
 						}

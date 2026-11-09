@@ -28,26 +28,30 @@ export async function run(ctx) {
 		ctx.expectConsoleError(/400 \(Bad Request\)/)
 		const { page } = ctx
 
-		await page.locator('.settings__nav-item:has-text("MCP")').click()
+		await page.locator('.settings__nav-item:has-text("Tools")').click()
 		await page.waitForSelector('.mcp-server')
 
 		// Discovery runs on mount: the server is up, so its two tools are listed.
-		assert.match(await page.locator('.mcp-server').textContent(), /Mock tools/)
-		assert.match(
-			await page.locator('.mcp-server').textContent(),
-			new RegExp(mcp.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
-		)
-		await page.waitForSelector('.mcp-tool')
-		assert.equal(await page.locator('.mcp-tool').count(), 2)
+		const card = page.locator('.group:has(.mcp-server)').first()
+		assert.match(await card.textContent(), /Mock tools/)
+		assert.match(await card.textContent(), new RegExp(mcp.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+		await page.waitForSelector('.mcp-server .row-item--tool')
+		assert.equal(await page.locator('.mcp-server .row-item--tool').count(), 2)
 
-		// Per-tool switches live on the server record.
-		await page.locator('button[role="switch"][aria-label="Enable echo on Mock tools"]').click()
+		// Per-tool availability is a checkbox on the server record, like a built-in tool.
+		await page.locator('input[aria-label="Enable Echo"]').click()
 		await page.waitForFunction(() =>
 			window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.disabledTools?.includes('echo'),
 		)
 
+		// And per-tool auto-approve is the switch on the row.
+		await page.locator('button[role="switch"][aria-label="Run Add without asking"]').click()
+		await page.waitForFunction(() =>
+			window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.autoApproveTools?.includes('add'),
+		)
+
 		// Editing replaces that server's row, in the same card; there is no second panel.
-		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('button[aria-label="Edit Mock tools"]').click()
 		const editor = page.locator('.mcp-editor')
 		await editor.waitFor()
 		assert.equal(await page.locator('.mcp-server').count(), 0)
@@ -73,7 +77,7 @@ export async function run(ctx) {
 		assert.equal(stored.tools.mcp[0].stripOrigin, true)
 
 		// The trash button removes that row only.
-		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('button[aria-label="Edit Mock tools"]').click()
 		await page.locator('button[aria-label="Remove header 2"]').click()
 		await page.locator('.mcp-editor button:has-text("Save server")').click()
 		await page.waitForFunction(
@@ -83,7 +87,7 @@ export async function run(ctx) {
 		assert.deepEqual(stored.tools.mcp[0].headers, { Authorization: 'Bearer abc' })
 
 		// A repeated name is a row error and blocks the save.
-		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('button[aria-label="Edit Mock tools"]').click()
 		await page.locator('.mcp-editor button:has-text("Add header")').click()
 		await page.locator('.mcp-editor input[aria-label="Header 2 name"]').fill('authorization')
 		await page.locator('.mcp-editor input[aria-label="Header 2 value"]').fill('other')
@@ -108,7 +112,7 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.mcp-server').count(), 2)
 
 		// Remove it again; the first server keeps its tool choice.
-		await page.locator('.mcp-server').nth(1).locator('button:has-text("Remove")').click()
+		await page.locator('button[aria-label="Remove Second server"]').click()
 		await page.waitForFunction(() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.length === 1)
 
 		stored = await page.evaluate(() => window.__LB_AI_TEST__.readSettings())

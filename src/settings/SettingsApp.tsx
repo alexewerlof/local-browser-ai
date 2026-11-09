@@ -5,7 +5,6 @@ import {
 	MemoryStick,
 	Notebook,
 	Palette,
-	PocketKnife,
 	Puzzle,
 	Settings,
 	Sparkles,
@@ -24,8 +23,7 @@ import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
 import { ModelsSection } from './ModelsSection'
 import { SkillsSection } from './SkillsSection'
-import { BuiltInToolsSection } from './BuiltInToolsSection'
-import { McpSection } from './McpSection'
+import { ToolsSection } from './ToolsSection'
 import { MemorySection } from './MemorySection'
 import { ContextSection } from './ContextSection'
 import { GeneralSection } from './GeneralSection'
@@ -39,7 +37,6 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	models: Sparkles,
 	skills: GraduationCap,
 	tools: Wrench,
-	mcp: PocketKnife,
 	memory: MemoryStick,
 	context: Notebook,
 }
@@ -154,8 +151,7 @@ export function SettingsApp() {
 					{section === 'providers' && <ProvidersSection settings={settings} />}
 					{section === 'models' && <ModelsSection settings={settings} />}
 					{section === 'skills' && <SkillsSection settings={settings} />}
-					{section === 'tools' && <BuiltInToolsSection settings={settings} />}
-					{section === 'mcp' && <McpSection settings={settings} />}
+					{section === 'tools' && <ToolsSection settings={settings} />}
 					{section === 'memory' && <MemorySection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}
 				</div>

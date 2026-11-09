@@ -213,6 +213,66 @@ body {
 	color: var(--fg);
 }
 
+/* A tool set puts its availability checkbox before the name and its bulk controls on the
+ * trailing edge, so the heading is a row rather than a lone title. The row owns the space
+ * under it; a title without extras keeps its own padding above. */
+.group__head {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-3);
+	padding: 0 0 var(--space-5);
+}
+
+.group__head .group__title {
+	padding: 0;
+}
+
+.group__head > .checkbox {
+	margin-top: 2px;
+}
+
+.group__head-text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.group__head-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+}
+
+/* The endpoint of an MCP server: secondary text under its name, like a provider row. */
+.group__hint {
+	font-size: var(--text-md);
+	line-height: 1.4;
+	color: var(--fg-muted);
+	overflow-wrap: anywhere;
+}
+
+.group__actions {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--space-2);
+	margin-inline-start: auto;
+}
+
+/* The bulk "Auto-approve" control: a tri-state checkbox, so a partly approved set shows a
+ * dash instead of pretending to be either on or off. */
+.group__auto {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	font-size: var(--text-md);
+	color: var(--fg-muted);
+}
+
 .section__intro {
 	max-width: 62ch;
 	font-size: var(--text-md);
@@ -511,30 +571,43 @@ body {
 	padding: 0;
 }
 
-/* An indented sub-control inside a row, like Chrome's dependent settings. */
-.tool-option {
+/* One tool of a tool set: the availability checkbox leads, the auto-approve switch trails. */
+.row-item--tool {
+	gap: var(--space-4);
+	padding: 12px 20px;
+}
+
+.row-item__main {
 	display: flex;
+	flex: 1;
+	align-items: flex-start;
+	gap: var(--space-4);
+	min-width: 0;
+}
+
+.row-item--tool > .row-item__main > .checkbox {
+	margin-top: 2px;
+}
+
+.row-item__control {
+	display: flex;
+	flex: none;
 	align-items: center;
-	gap: var(--space-5);
-	margin-top: var(--space-2);
-	font-size: var(--text-md);
+	gap: var(--space-3);
+	padding-top: 1px;
+}
+
+.row-item__caption {
+	font-size: var(--text-sm);
 	color: var(--fg-muted);
 }
 
-/* Tools discovered on one MCP server, indented under its row. */
-.mcp-tools {
-	padding: 0 20px 12px 32px;
-}
-
-.mcp-tool {
-	display: flex;
-	align-items: center;
-	gap: var(--space-4);
-	padding: 8px 0;
-}
-
-.mcp-tool + .mcp-tool {
-	border-top: 1px solid var(--separator);
+/* An explanation inside a card that is not a control, like the tool-set empty state. */
+.card__note {
+	padding: 12px 20px;
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--fg-muted);
 }
 
 /* The server form replaces that server's row inside the list, so the list and the

@@ -21,6 +21,7 @@ import {
 	toolKey,
 } from '../core/mcp'
 import { Store } from '../core/store'
+import { isMcpToolAutoApproved, isMcpToolEnabled } from '../core/tool-selection'
 
 /** How long connecting and listing tools may take before the server counts as down. */
 const CONNECT_TIMEOUT_MS = 10_000
@@ -82,11 +83,6 @@ export interface McpToolBundle {
 
 export function enabledMcpServers(servers: McpServerSettings[]): McpServerSettings[] {
 	return servers.filter((server) => server.enabled)
-}
-
-/** Tools the user turned off inside an otherwise enabled server. */
-export function isToolEnabled(server: McpServerSettings, toolName: string): boolean {
-	return !server.disabledTools.includes(toolName)
 }
 
 async function connect(server: McpServerSettings, signal?: AbortSignal): Promise<MCPClient> {
@@ -257,7 +253,7 @@ export async function buildMcpTools(
 		for (const discovered of entry.tools) {
 			const modelName = names.get(toolKey(entry.server.id, discovered.name))
 			if (!modelName) continue
-			if (!isToolEnabled(entry.server, discovered.name)) continue
+			if (!isMcpToolEnabled(entry.server, discovered.name)) continue
 
 			const label = discovered.title || discovered.description || discovered.name
 			info.set(modelName, { label, server: entry.server.label })
@@ -294,7 +290,7 @@ function makeTool(
 			const toolCallId = options.toolCallId
 			if (signal.aborted) return { ok: false, error: 'The run was stopped.' }
 
-			if (!entry.server.autoApprove) {
+			if (!isMcpToolAutoApproved(entry.server, discovered.name)) {
 				const approved = await context.requestApproval(toolCallId, modelName, input, options.abortSignal)
 				if (!approved) return { ok: false, error: 'The user declined to run this MCP tool.' }
 			}

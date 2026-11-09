@@ -6,13 +6,13 @@ export const name = '31-platform-settings'
 /**
  * Chrome keeps the extension's keyboard shortcuts, site access and update controls on its own
  * Extensions page, which no extension can reproduce. The rail footer points at it instead — and
- * it is a footer, not a ninth section, so the eight sections and their hash routes are untouched.
+ * it is a footer, not a section, so the eight sections and their hash routes are untouched.
  */
 export async function run(ctx) {
 	await ctx.openSettings({ settings: localSettings('http://127.0.0.1:1/v1') })
 	const { page } = ctx
 
-	assert.equal(await page.locator('.settings__nav-item').count(), 9)
+	assert.equal(await page.locator('.settings__nav-item').count(), 8)
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'General')
 
 	// The action is last in the rail, after every section.

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
-import type { AppSettings, Skill } from '../../core/types'
+import { useState } from 'react'
+import type { AppSettings, Skill, ToolSettings } from '../../core/types'
 import { ChevronDown, GraduationCap, Wrench } from 'lucide-react'
-import { TOOL_DEFINITIONS } from '../../browser/tools'
 import { mcpServerKey } from '../../core/mcp'
-import { mcpCatalogStore, refreshMcpServers } from '../../state/mcp'
+import { enabledBuiltInTools } from '../../core/settings'
+import { isMcpToolEnabled } from '../../core/tool-selection'
+import { mcpCatalogStore, type McpCatalogEntry } from '../../state/mcp'
 import { useStore } from '../useStore'
 import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
+import { ToolTree } from './ToolTree'
 
 export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
 	const [open, setOpen] = useState(false)
@@ -74,40 +76,21 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 export function ToolsMenu({
 	settings,
 	onChange,
-	onToggleMcp,
 	disabledReason,
 }: {
 	settings: AppSettings
-	onChange: (enabled: string[]) => void
-	onToggleMcp: (serverId: string, enabled: boolean) => void
+	onChange: (tools: ToolSettings) => void
 	disabledReason?: string
 }) {
 	const [open, setOpen] = useState(false)
 	const catalog = useStore(mcpCatalogStore)
-	const enabled = new Set(settings.tools.enabled)
-	const servers = settings.tools.mcp
-	const enabledCount = enabled.size + servers.filter((server) => server.enabled).length
-
-	// Opening the menu is a good moment to check which servers are up.
-	useEffect(() => {
-		if (!open || servers.length === 0) return
-		void refreshMcpServers(servers)
-		// Refresh when the menu opens, not on every settings change.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [open])
-
-	const toggle = (id: string) => {
-		const next = new Set(enabled)
-		if (next.has(id)) next.delete(id)
-		else next.add(id)
-		onChange([...next])
-	}
+	const enabledCount = countEnabledTools(settings, catalog)
 
 	return (
 		<Popover
 			open={open}
 			onClose={() => setOpen(false)}
-			width={300}
+			width={320}
 			align="start"
 			trigger={
 				<button
@@ -125,66 +108,25 @@ export function ToolsMenu({
 			{disabledReason ? (
 				<p className="popover__empty">{disabledReason}</p>
 			) : (
-				<>
-					<div className="popover__group">
-						<div className="popover__group-head">
-							<span className="popover__group-label">Built-in tools</span>
-							<SettingsButton
-								section="tools"
-								label="Manage built-in tools"
-								onClose={() => setOpen(false)}
-							/>
-						</div>
-						{TOOL_DEFINITIONS.map((definition) => {
-							const checked = enabled.has(definition.id)
-							return (
-								<label key={definition.id} className="popover__check">
-									<input type="checkbox" checked={checked} onChange={() => toggle(definition.id)} />
-									<span>
-										<span className="popover__item-main">{definition.label}</span>
-										<span className="popover__item-sub">{definition.description}</span>
-									</span>
-								</label>
-							)
-						})}
-					</div>
-
-					<div className="popover__group">
-						<div className="popover__group-head">
-							<span className="popover__group-label">MCP servers</span>
-							<SettingsButton section="mcp" label="Manage MCP servers" onClose={() => setOpen(false)} />
-						</div>
-						{servers.map((server) => (
-							<label key={server.id} className="popover__check">
-								<input
-									type="checkbox"
-									checked={server.enabled}
-									onChange={(event) => onToggleMcp(server.id, event.target.checked)}
-								/>
-								<span>
-									<span className="popover__item-main">{server.label}</span>
-									<span className="popover__item-sub">
-										{mcpStatus(server, catalog[mcpServerKey(server)])}
-									</span>
-								</span>
-							</label>
-						))}
-						{servers.length === 0 && <p className="popover__empty">No MCP servers yet.</p>}
-					</div>
-				</>
+				<ToolTree settings={settings} onChange={onChange} onClose={() => setOpen(false)} />
 			)}
 		</Popover>
 	)
 }
 
-/** One line under a server name: how many of its tools are on, or why they are not. */
-function mcpStatus(
-	server: AppSettings['tools']['mcp'][number],
-	entry: { status: 'idle' | 'loading' | 'ready' | 'error'; tools: Array<{ name: string }> } | undefined,
-): string {
-	if (!entry || entry.status === 'idle') return 'Not checked'
-	if (entry.status === 'loading') return 'Checking…'
-	if (entry.status === 'error') return 'Unreachable'
-	const available = entry.tools.filter((tool) => !server.disabledTools.includes(tool.name)).length
-	return `${available} of ${entry.tools.length} tools enabled`
+/**
+ * What the chip's number counts: every tool the model could call right now. An MCP server
+ * whose tools have not been discovered yet contributes nothing — it is switched on, but
+ * until the server answers there is no tool to count, and counting the server itself would
+ * make a server with all of its tools turned off look the same as one with six.
+ */
+function countEnabledTools(settings: AppSettings, catalog: Record<string, McpCatalogEntry>): number {
+	const builtIn = enabledBuiltInTools(settings).length
+	const remote = settings.tools.mcp.reduce((total, server) => {
+		if (!server.enabled) return total
+		const entry = catalog[mcpServerKey(server)]
+		if (!entry) return total
+		return total + entry.tools.filter((tool) => isMcpToolEnabled(server, tool.name)).length
+	}, 0)
+	return builtIn + remote
 }

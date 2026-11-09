@@ -33,15 +33,15 @@ export async function run(ctx) {
 					},
 				}),
 			},
-			'#mcp',
+			'#tools',
 		)
 		// The client probes `server/discover`; the legacy mock answers 400, which is handled.
 		ctx.expectConsoleError(/400 \(Bad Request\)/)
 		const { page } = ctx
 		await page.setViewportSize({ width: 900, height: 1100 })
-		await page.waitForSelector('.mcp-server')
+		await page.locator('.mcp-server').first().waitFor()
 		await ctx.shot('list')
-		await page.locator('.mcp-server').first().locator('button:has-text("Edit")').click()
+		await page.locator('button[aria-label="Edit Deepseek"]').click()
 		await page.waitForSelector('.mcp-editor')
 		await ctx.shot('editor')
 		const boxes = await page.evaluate(() =>

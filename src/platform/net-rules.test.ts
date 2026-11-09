@@ -27,6 +27,7 @@ const server = (overrides: Partial<McpServerSettings> = {}): McpServerSettings =
 	headers: {},
 	enabled: true,
 	autoApprove: false,
+	autoApproveTools: [],
 	disabledTools: [],
 	stripOrigin: false,
 	...overrides,

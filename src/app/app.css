@@ -1269,15 +1269,11 @@
 }
 
 /* Group heading with its settings gear on the trailing edge. */
-.popover__group-head {
-	display: flex;
-	align-items: center;
+.popover__header {
 	justify-content: space-between;
-	gap: var(--space-2);
-	padding: 0 var(--space-2) 0 var(--space-3);
 }
 
-.popover__group-head .popover__group-label {
+.popover__header .popover__group-label {
 	padding: 0;
 }
 
@@ -1321,28 +1317,107 @@
 	white-space: normal;
 }
 
-.popover__check {
+/* --------------------------------------------------------------- tools tree */
+
+/* One tree of tool sets: the built-in set and each MCP server are peers, so every group
+   head is a checkbox plus a disclosure button, and every tool is a checkbox plus its name
+   and description. The chevron and the name are one button, so the label toggles too. */
+.tool-tree,
+.tool-tree__tools {
 	display: flex;
-	gap: var(--space-3);
-	padding: var(--space-2) var(--space-3);
-	border-radius: var(--radius-sm);
-	cursor: pointer;
-	align-items: flex-start;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 
-.popover__check:hover {
+.tool-tree__head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+}
+
+.tool-tree__head:hover {
 	background: var(--bg-hover);
 }
 
-.popover__check input {
-	margin-top: 3px;
+.tool-tree__toggle {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--fg);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	text-align: start;
+	cursor: pointer;
 }
 
-.popover__check span {
+.tool-tree__toggle:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+	border-radius: var(--radius-sm);
+}
+
+.tool-tree__label {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* Why a server's tools are not there: one short line that must not wrap the row. */
+.tool-tree__meta {
+	flex: none;
+	font-size: var(--text-xs);
+	color: var(--fg-faint);
+}
+
+/* Children hang under the group's name rather than under its checkbox. */
+.tool-tree__tools {
+	padding-inline-start: var(--space-6);
+}
+
+.tool-tree__row {
 	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+
+.tool-tree__row:hover {
+	background: var(--bg-hover);
+}
+
+.tool-tree__row > .checkbox {
+	margin-top: 2px;
+}
+
+.tool-tree__text {
+	display: flex;
+	flex: 1;
 	flex-direction: column;
 	gap: 1px;
 	min-width: 0;
+}
+
+/* A tool name is short and must stay on one line next to its checkbox. */
+.tool-tree__text .popover__item-main {
+	flex: none;
+	font-size: var(--text-sm);
+}
+
+.tool-tree__hint {
+	padding: var(--space-1) var(--space-3);
+	font-size: var(--text-xs);
+	color: var(--fg-faint);
 }
 
 .popover__empty {

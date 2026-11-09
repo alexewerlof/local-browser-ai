@@ -5,15 +5,14 @@ everywhere — UI, docs and code alike (`settings.html`, this directory, `Settin
 of the old name is Chrome's manifest key `options_ui`, which the platform defines and nothing can rename.
 
 Vocabulary for this area lives in `ontology.yml` under `settings` (settings, settings-section, settings-card,
-settings-field, switch) plus the setting entries in their domain groups: `context`, `memory`, `models`, `tools`,
-`skills`, `errors`.
+settings-field, switch, checkbox) plus the setting entries in their domain groups: `context`, `memory`, `models`,
+`tools` (tool-set, auto-approve), `skills`, `errors`.
 
 Local rules:
 
-- Rail order is fixed: General, Appearance, Providers, Models, Skills, Built-in Tools, MCP, Memory, Context. General is
-  the landing section. A new section is a new rail item and a new ontology entry for each card title it adds. The order
-  lives in `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to
-  its icon.
+- Rail order is fixed: General, Appearance, Providers, Models, Skills, Tools, Memory, Context. General is the landing
+  section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
+  `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
 - Ownership follows the domain, not the page a card happened to start on. General keeps the tool-step cap, Data and
   About; Appearance owns everything about how the app looks and renders (theme, submit key, font size, Math, Code
   highlighting); Context owns the system prompt and compaction, because both are what the assembled prompt is made of.
@@ -31,22 +30,31 @@ Local rules:
   and moves it to the section (`tabs.update`), creating the tab only when none is open. That reuse is why the manifest
   requests `tabs`; never open a second Settings tab.
 - A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
-  skills"), not a sentence. The Tools menu carries one gear per group: built-in tools and MCP.
+  skills"), not a sentence. The Tools menu has **one** gear for its one destination, Settings → Tools (`#tools`).
 - The rail footer holds actions that leave Settings, and it is not a section: `Platform Settings…` has no entry in
   `SETTINGS_SECTIONS` and no hash, so it lives in `.settings__footer` and is styled with `.settings__nav-action` rather
   than `.settings__nav-item`. It opens `chrome://extensions/?id=<runtime id>` through `openPlatformSettings`, because
   Chrome owns shortcuts, site access and the update button, and because a `chrome://` URL cannot be an `<a href>` (a
   renderer-initiated navigation to a privileged scheme is blocked) — `chrome.tabs.create` is the only way. Outside an
   extension there is no id, so the action renders disabled.
-- Card title is sentence case (`Built-in tools`, `MCP servers`, `Memory settings`); the rail label alone is title case
-  (`Built-in Tools`).
+- Card title is sentence case (`Built-in tools`, `Memory settings`); the rail label alone is title case (`Tools`). An
+  MCP server's card title is its label, not a section name.
+- **Tools is one section, and a tool set is the unit.** The built-in tools are the first card, then one card per MCP
+  server, all built from `ToolRow` — so a built-in tool and an MCP tool have the same checkbox, badges, description and
+  auto-approve switch. Availability is a **checkbox** (`Checkbox` in `src/app/components/Checkbox.tsx`, shared with the
+  composer tree); auto-approve is the `Switch` on the trailing edge with the caption `Auto-approve` and the tooltip
+  `Run without asking`; a whole set is a tri-state checkbox (`indeterminate`), never a switch.
+- All selection maths lives in `src/core/tool-selection.ts` — `builtInSelection`, `setBuiltInEnabled`,
+  `mcpServerSelection`, `setMcpServerEnabled`, `setMcpToolAutoApprove` and friends. Do not re-derive a group state in a
+  component; the composer tree renders the same rules and the two must not drift.
+- A real setting row must not be a `<label>` wrapping a button (a click would toggle twice); `ToolRow` keeps the
+  checkbox outside the text column for that reason.
 - One control per `.field`, label first, hint second. Reuse `Switch`, `SwitchField`, `RangeField` and `SelectField` from
   `fields.tsx` rather than new controls. `SwitchField` is the label + switch row (`Field` cannot hold a switch: it
   renders a `<label>`, and a button inside a label toggles twice).
-- Editing a list item happens **in place**, not in a second card under the list: `McpServersCard` swaps that server's
-  row for `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the same
-  `.rows` and inherits the card's hairlines. Prefer this for any future list editor; `SkillsSection` and `MemorySection`
-  still open a separate card.
+- Editing a list item happens **in place**, not in a second card under the list: `ToolsSection` replaces that server's
+  card with `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the card.
+  Prefer this for any future list editor; `SkillsSection` and `MemorySection` still open a separate card.
 - The MCP server's headers are `Name`/`Value` rows (`HeaderRow` + `headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`),
   not a textarea: one row per pair with a trash button, and an "Add header" button below. The helpers own validation (a
   fully blank row is dropped; a name without a value, an invalid name and a repeated name are row errors) so the

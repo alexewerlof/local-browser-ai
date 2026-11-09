@@ -40,7 +40,10 @@ export async function run(ctx) {
 	const base = page.url().split('#')[0]
 	await page.goto(`${base}#mcp`)
 	await page.waitForSelector('.settings')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'MCP')
+	// `#mcp` had its own page before the merge; the alias lands on Tools and the fragment
+	// is rewritten, so the URL always names the section on screen.
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Tools')
+	assert.equal(await page.evaluate(() => location.hash), '#tools')
 
 	// A hand-typed name is matched case-insensitively.
 	await page.goto(`${base}#Skills`)

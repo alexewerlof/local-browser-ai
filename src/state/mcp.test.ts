@@ -14,6 +14,7 @@ const server = (overrides: Partial<McpServerSettings> = {}): McpServerSettings =
 	headers: {},
 	enabled: true,
 	autoApprove: false,
+	autoApproveTools: [],
 	disabledTools: [],
 	stripOrigin: false,
 	...overrides,
@@ -123,7 +124,6 @@ describe('buildMcpTools', () => {
 		createMCPClientMock.mockResolvedValue(client)
 		const ctx = context(true)
 		const bundle = await buildMcpTools(ctx, [server({ autoApprove: true })], runSignal)
-
 		const execute = bundle.tools['mcp_local_tools_echo']?.execute as unknown as (
 			input: unknown,
 			options: unknown,
@@ -137,6 +137,39 @@ describe('buildMcpTools', () => {
 			options: { signal: runSignal },
 		})
 		expect(result).toEqual({ ok: true, text: 'hello from mcp', truncated: false })
+	})
+
+	it('skips the prompt for a tool the user approved on its own', async () => {
+		const client = fakeClient()
+		createMCPClientMock.mockResolvedValue(client)
+		const ctx = context(false)
+		const bundle = await buildMcpTools(ctx, [server({ autoApproveTools: ['echo'] })], runSignal)
+
+		const execute = bundle.tools['mcp_local_tools_echo']?.execute as unknown as (
+			input: unknown,
+			options: unknown,
+		) => Promise<unknown>
+		await execute({ value: 'hi' }, runOptions)
+
+		expect(ctx.requestApproval).not.toHaveBeenCalled()
+		expect(client.callTool).toHaveBeenCalled()
+	})
+
+	it('still asks for a tool the user did not approve', async () => {
+		const client = fakeClient()
+		createMCPClientMock.mockResolvedValue(client)
+		const ctx = context(false)
+		const bundle = await buildMcpTools(ctx, [server({ autoApproveTools: ['add'] })], runSignal)
+
+		const execute = bundle.tools['mcp_local_tools_echo']?.execute as unknown as (
+			input: unknown,
+			options: unknown,
+		) => Promise<unknown>
+		const result = await execute({ value: 'hi' }, runOptions)
+
+		expect(ctx.requestApproval).toHaveBeenCalled()
+		expect(client.callTool).not.toHaveBeenCalled()
+		expect(result).toEqual({ ok: false, error: 'The user declined to run this MCP tool.' })
 	})
 
 	it('reports a server error result as a failed tool call', async () => {

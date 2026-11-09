@@ -350,8 +350,10 @@ export interface McpServerSettings {
 	headers: Record<string, string>
 	/** Whether the server's tools are offered to the model at all. */
 	enabled: boolean
-	/** Run this server's tools without asking for approval. */
+	/** Run every tool from this server without asking for approval. */
 	autoApprove: boolean
+	/** Tool names that run without asking while `autoApprove` is off. */
+	autoApproveTools: string[]
 	/** Tool names the user turned off inside an otherwise enabled server. */
 	disabledTools: string[]
 	/**
