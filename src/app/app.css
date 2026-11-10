@@ -1004,6 +1004,14 @@
 	min-height: 18px;
 }
 
+/* The meter hangs off a popover anchor, which shrink-wraps its trigger by default. In the
+   meta row it is the one flexible child, so let the anchor take the free space and the bar
+   can run the full width up to the count. */
+.composer__meta > .popover-anchor {
+	flex: 1;
+	min-width: 0;
+}
+
 /* Square, never squeezed by a wrapped toolbar. */
 .composer__submit {
 	flex: none;
@@ -1157,7 +1165,7 @@
 	display: flex;
 	align-items: stretch;
 	gap: 1px;
-	height: 4px;
+	height: 5px;
 	flex: 1;
 	min-width: 60px;
 	border-radius: var(--radius-pill);
