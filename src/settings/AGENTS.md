@@ -6,18 +6,19 @@ of the old name is Chrome's manifest key `options_ui`, which the platform define
 
 Vocabulary for this area lives in `ontology.yml` under `settings` (settings, settings-section, settings-card,
 settings-field, switch, checkbox) plus the setting entries in their domain groups: `context`, `memory`, `models`,
-`tools` (tool-set, auto-approve), `skills`, `errors`.
+`tools` (tool-set, auto-approve), `prompt-templates`, `errors`.
 
 Local rules:
 
 - Providers is one kind of endpoint: a local OpenAI-compatible server. "Add provider" opens the editor directly (there
   is no preset chooser), the editor's Base URL asks for the host grant on save, and every configured provider can be
   removed. A store with no provider is normal — the panel then shows "No model is configured yet" and points here.
-- Rail order is fixed: General, Appearance, Providers, Skills, Tools, Memory, Context. General is the landing section. A
-  new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
+- Rail order is fixed: General, Appearance, Providers, Prompt templates, Tools, Memory, Context. General is the landing
+  section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
   `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
   There is deliberately **no Models section**: the model list, its facts and its reasoning select all live in the
-  provider editor, and the old `#models` fragment is an alias onto `#providers`.
+  provider editor, and the old `#models` fragment is an alias onto `#providers`. The Prompt templates page was called
+  **Skills** before the rename, so `#skills` is an alias onto `#prompt-templates`.
 - Ownership follows the domain, not the page a card happened to start on. General keeps the tool-step cap, Data and
   About; Appearance owns everything about how the app looks and renders (theme, submit key, font size, Math, Code
   highlighting); Context owns the system prompt and compaction, because both are what the assembled prompt is made of.
@@ -27,15 +28,15 @@ Local rules:
   is what makes a hovered or selected row's fill reach the edge, the way Chrome's own rails behave. Never re-add the
   rail's inline-start padding; it clips the fill.
 - The open section is the URL fragment: General is the bare page and every other section is `#<id>`
-  (`settings.html#skills`) — no slash, because Chrome's extension loader opens a URL path verbatim as a file, so a path
-  segment cannot exist and the slash would only be decoration. The page reads the fragment on mount, normalises an
-  unknown or hand-typed one with `replaceState` (through a `URL`, since an empty hash must remove the fragment), syncs
-  on `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click. `openSettings(section)` in
-  `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then activates the one Settings tab
-  and moves it to the section (`tabs.update`), creating the tab only when none is open. That reuse is why the manifest
-  requests `tabs`; never open a second Settings tab.
-- A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
-  skills"), not a sentence. The Tools menu has **one** gear for its one destination, Settings → Tools (`#tools`).
+  (`settings.html#prompt-templates`) — no slash, because Chrome's extension loader opens a URL path verbatim as a file,
+  so a path segment cannot exist and the slash would only be decoration. The page reads the fragment on mount,
+  normalises an unknown or hand-typed one with `replaceState` (through a `URL`, since an empty hash must remove the
+  fragment), syncs on `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click.
+  `openSettings(section)` in `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then
+  activates the one Settings tab and moves it to the section (`tabs.update`), creating the tab only when none is open.
+  That reuse is why the manifest requests `tabs`; never open a second Settings tab.
+- A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage prompt
+  templates"), not a sentence. The Tools menu has **one** gear for its one destination, Settings → Tools (`#tools`).
 - The two rail links that leave Settings come last, after `.settings__divider`, and neither is a section:
   `Platform Settings…` and `Privacy and security…` have no entry in `SETTINGS_SECTIONS` and no hash, so they are direct
   children of `.settings__nav` styled with `.settings__nav-action` rather than `.settings__nav-item`. There is no footer
@@ -67,7 +68,7 @@ Local rules:
   renders a `<label>`, and a button inside a label toggles twice).
 - Editing a list item happens **in place**, not in a second card under the list: `ToolsSection` replaces that server's
   card with `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the card.
-  Prefer this for any future list editor; `SkillsSection` and `MemorySection` still open a separate card.
+  Prefer this for any future list editor; `PromptTemplatesSection` and `MemorySection` still open a separate card.
 - A provider's models are a **table** (`ProviderModelTable`), not a textarea: one row per id with a **Use** switch,
   `input` and `output` modality glyphs (`ModalityIcon`, shared with the model picker), context, max output and a
   per-model **Reasoning** select. `Refresh` writes `models` (the chat ids the pickers offer) and `modelDetails` (what

@@ -800,7 +800,7 @@ body {
 	color: var(--fg-muted);
 }
 
-/* Fields nested in a row (e.g. a skill prompt) should not draw row padding. */
+/* Fields nested in a row (e.g. a prompt template's prompt) should not draw row padding. */
 .row-item .field {
 	flex-direction: column;
 	align-items: stretch;

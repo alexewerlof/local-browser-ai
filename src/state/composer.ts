@@ -1,7 +1,8 @@
 import { Store } from '../core/store'
 
 export const draftStore = new Store('')
-export const skillStore = new Store<string | null>(null)
+/** The prompt template the draft came from, shown as a badge once the turn is sent. */
+export const promptTemplateStore = new Store<string | null>(null)
 /** Set while a page is being captured, so the UI can show progress. */
 export const addPageBusyStore = new Store(false)
 export const addPageErrorStore = new Store<string | null>(null)
@@ -30,5 +31,5 @@ export function quoteSelection(text: string): void {
 
 export function clearComposer(): void {
 	draftStore.set('')
-	skillStore.set(null)
+	promptTemplateStore.set(null)
 }

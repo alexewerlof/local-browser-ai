@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 12
+    version: 13
     updated: 2026-11-10
     status: contract
     shipped: false
@@ -127,10 +127,13 @@ tools:
     strip-origin: a per-server option that removes the Origin header; code stripOrigin, net-rules.ts; ui Send requests without an Origin header; not CORS bypass, header hack
 
 # Prompt templates the user inserts.
-skills:
-    skill: a reusable prompt template inserted by menu or slash; code Skill, settings.skills, skillStore; ui Skills, Insert a prompt, Add skill; not slash command, macro, recipe
-    built-in-skill: a skill shipped with the extension, editable and resettable; code builtInSkills, summarize-page, critique, compare; ui built-in, Reset; not default skill
-    agent-skill: a coding-agent package under .agents/skills, vendored and hash-locked or written here; code .agents/skills, skills-lock.json, slm-harness; not skill, product skill
+prompt-templates:
+    prompt-template: a saved prompt inserted by menu or slash; code PromptTemplate, settings.promptTemplates, promptTemplateStore; ui Templates, Prompt templates, Insert a prompt, Add template, Manage prompt templates; not skill, slash command, macro, recipe
+    built-in-prompt-template: a template shipped with the extension, editable and resettable; code builtInPromptTemplates, summarize-page, critique, compare; ui built-in, Reset; not default template, built-in skill
+
+# Coding-agent packages in the repo, unrelated to the product's prompt templates.
+agent-skills:
+    agent-skill: a coding-agent package under .agents/skills, vendored and hash-locked or written here; code .agents/skills, skills-lock.json, slm-harness; not prompt template, product template
 
 # Every side-panel element, grouped by where it sits in the panel.
 ui:
@@ -145,21 +148,21 @@ ui:
         composer: the whole input area at the bottom; code Composer, composer, composer--expanded; ui Message; not prompt box, input bar, message box
         composer-box: the bordered box around the input and toolbar; code composer__box, composer__box--streaming; not input box, border
         composer-topbar: the strip inside the top edge holding the page list and the expand toggle; code composer__topbar; ui Pages in this chat; not header, top bar, toolbar
-        composer-input: the auto-growing textarea; code composer__input, composer-input; ui Ask anything, or type / for a skill, Queue another message…; not text field, editor
+        composer-input: the auto-growing textarea; code composer__input, composer-input; ui Ask anything, or type / for a template, Queue another message…; not text field, editor
         composer-toolbar: the row of chips and buttons along the bottom edge; code composer__toolbar, spacer; not button row, footer, action bar
         composer-meta: the row under the box with the meter and draft count; code composer__meta, composer__count; ui Enter to submit, ⌘↵ to submit; not status bar, footer
         queue-row: one queued prompt above the box; code composer__queue-item, composer__queue-text; ui Queued · N, Remove from queue and edit; not pending item, queued message
         chips:
             chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
             chip-count: the bare number at the end of a chip, as on the page counter; code chip__count; ui 6; not badge, pill, counter
-            skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Search skills, No skills match., Manage skills; not skill button
+            prompt-templates-chip: the chip that opens the template list; code PromptTemplateMenu, BookMarked; ui Templates, Prompt templates, Insert a prompt, Search templates, No templates match., Manage prompt templates; not skill button, skill menu
             tools-chip: the chip opening the tree of tool sets; code ToolsMenu, ToolTree, countEnabledTools, chip__count; ui Tools, Built-in, No MCP servers yet., Manage tools; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--fill; not dropdown, menu, modal, dialog
             model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage providers, Reasoning, Context, Max output; not model menu, provider picker, model table
-            slash-menu: the inline skill list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
+            slash-menu: the inline prompt-template list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
             stop: the button that aborts the run and parks the queue; code stopGeneration, activeController, Square; ui Stop generating; not cancel, abort, halt
@@ -168,7 +171,7 @@ ui:
             retry: regenerate the last answer; code regenerate, retried; ui Retry, Generate this answer again; not rerun, try again
     message:
         message-bubble: the container of a user message; code message__bubble, message__text, message__actions; not user bubble
-        skill-badge: the marker showing which skill filled a message; code message__skill, GraduationCap; not chip, tag
+        prompt-template-badge: the marker showing which template filled a message; code message__template, BookMarked; not chip, tag, skill badge
         message-actions: the hover row with save, copy and retry; code message__footer, SaveMemoryButton; ui Save to memory, Copy answer, Retry; not toolbar, message controls
         typing-indicator: the three dots shown while the answer has no text yet, including the wait after tool results; code typing, waiting, answered; ui The model is responding, Waiting for the model to read the tool results; not spinner, loader, thinking dots
         aborted-badge: the marker on a stopped message; code badge, MessageStatus.aborted; ui stopped; not cancelled badge
@@ -179,13 +182,13 @@ ui:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
-        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage tools, Manage providers; not cog, settings link, configure icon
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage prompt templates, Manage tools, Manage providers; not cog, settings link, configure icon
 
 # The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
     settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, SECTION_ALIASES, settings__nav-item; ui General, Appearance, Providers, Skills, Tools, Memory, Context; not tab, panel
-    settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#skills; ui hash, settings.html#skills; not query string, path, tab
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, SECTION_ALIASES, settings__nav-item; ui General, Appearance, Providers, Prompt templates, Tools, Memory, Context; not tab, panel
+    settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#prompt-templates, SECTION_ALIASES; ui hash, settings.html#prompt-templates, #skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, group__head, group__actions, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math; not option, item, input
     switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Auto-approve, Run without asking, Enable memory, Send requests without an Origin header, Use {model id}; not toggle, checkbox, slider

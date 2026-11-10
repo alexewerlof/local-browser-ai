@@ -1,70 +1,70 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import type { AppSettings, Skill } from '../core/types'
-import { builtInSkills } from '../core/settings'
+import type { AppSettings, PromptTemplate } from '../core/types'
+import { builtInPromptTemplates } from '../core/settings'
 import { createId } from '../core/util'
 import { updateSettings } from '../state/settings'
 import { TextAreaField, TextField } from './fields'
 import { SettingsCard } from './SettingsCard'
 
-export function SkillsSection({ settings }: { settings: AppSettings }) {
+export function PromptTemplatesSection({ settings }: { settings: AppSettings }) {
 	const [adding, setAdding] = useState(false)
-	const [draft, setDraft] = useState<Skill>({ id: '', name: '', description: '', prompt: '' })
+	const [draft, setDraft] = useState<PromptTemplate>({ id: '', name: '', description: '', prompt: '' })
 
-	const updateSkill = (skill: Skill) =>
+	const updateTemplate = (template: PromptTemplate) =>
 		updateSettings((current) => ({
 			...current,
-			skills: current.skills.map((entry) => (entry.id === skill.id ? skill : entry)),
+			promptTemplates: current.promptTemplates.map((entry) => (entry.id === template.id ? template : entry)),
 		}))
 
-	const removeSkill = (id: string) =>
+	const removeTemplate = (id: string) =>
 		updateSettings((current) => ({
 			...current,
-			skills: current.skills.filter((entry) => entry.id !== id),
+			promptTemplates: current.promptTemplates.filter((entry) => entry.id !== id),
 		}))
 
 	return (
 		<div className="section">
 			<p className="section__intro">
-				Skills are prompt templates. They appear in the composer under Skills and in the{' '}
-				<code className="inline-code">/</code> menu. A skill fills the message box; the model sees the skill
-				name attached to your message.
+				Prompt templates are saved prompts. They appear in the composer under Templates and in the{' '}
+				<code className="inline-code">/</code> menu. Picking one fills the message box so you can add details
+				before sending; the model receives that text, and the template's name marks the message in this chat.
 			</p>
 
-			<SettingsCard title="Skills">
+			<SettingsCard title="Prompt templates">
 				<div className="rows">
-					{settings.skills.map((skill) => {
-						const original = builtInSkills.find((entry) => entry.id === skill.id)
+					{settings.promptTemplates.map((template) => {
+						const original = builtInPromptTemplates.find((entry) => entry.id === template.id)
 						return (
-							<div key={skill.id} className="row-item">
+							<div key={template.id} className="row-item">
 								<div className="row-item__text">
 									<div className="row-item__title">
-										{skill.name}
-										{skill.builtIn && <span className="badge">built-in</span>}
+										{template.name}
+										{template.builtIn && <span className="badge">built-in</span>}
 									</div>
 									<TextAreaField
 										label="Prompt"
-										value={skill.prompt}
+										value={template.prompt}
 										rows={3}
-										onChange={(prompt) => updateSkill({ ...skill, prompt })}
+										onChange={(prompt) => updateTemplate({ ...template, prompt })}
 									/>
 								</div>
 								<div className="stack" style={{ gap: 'var(--space-2)' }}>
-									{original && skill.prompt !== original.prompt && (
+									{original && template.prompt !== original.prompt && (
 										<button
 											type="button"
 											className="button button--ghost button--sm"
-											onClick={() => updateSkill({ ...skill, prompt: original.prompt })}
+											onClick={() => updateTemplate({ ...template, prompt: original.prompt })}
 										>
 											Reset
 										</button>
 									)}
-									{!skill.builtIn && (
+									{!template.builtIn && (
 										<button
 											type="button"
 											className="button button--ghost button--icon button--sm"
-											onClick={() => removeSkill(skill.id)}
-											title="Delete skill"
+											onClick={() => removeTemplate(template.id)}
+											title="Delete template"
 										>
 											<Trash2 size={13} />
 										</button>
@@ -77,7 +77,7 @@ export function SkillsSection({ settings }: { settings: AppSettings }) {
 			</SettingsCard>
 
 			{adding ? (
-				<SettingsCard title="New skill">
+				<SettingsCard title="New prompt template">
 					<TextField label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
 					<TextField
 						label="Description"
@@ -99,13 +99,16 @@ export function SkillsSection({ settings }: { settings: AppSettings }) {
 							onClick={() => {
 								updateSettings((current) => ({
 									...current,
-									skills: [...current.skills, { ...draft, id: createId('skill') }],
+									promptTemplates: [
+										...current.promptTemplates,
+										{ ...draft, id: createId('template') },
+									],
 								}))
 								setDraft({ id: '', name: '', description: '', prompt: '' })
 								setAdding(false)
 							}}
 						>
-							Add skill
+							Add template
 						</button>
 						<button type="button" className="button button--ghost" onClick={() => setAdding(false)}>
 							Cancel
@@ -116,7 +119,7 @@ export function SkillsSection({ settings }: { settings: AppSettings }) {
 				<div className="section__action">
 					<button type="button" className="button" onClick={() => setAdding(true)}>
 						<Plus size={18} />
-						Add skill
+						Add template
 					</button>
 				</div>
 			)}

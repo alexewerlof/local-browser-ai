@@ -38,7 +38,8 @@ or anything else that serves an OpenAI-compatible API.
 - **Context budgeting and compaction.** A meter below the composer shows what the system prompt, the page outlines,
   summary and history cost. When usage crosses the threshold, the oldest turns are summarized so the conversation keeps
   going; the page outlines of those turns move into the prompt instead of being lost.
-- **Skills.** Reusable prompt templates, available from the Skills menu or with `/`.
+- **Prompt templates.** Saved prompts, available from the Templates menu or with `/`. Picking one fills the message box;
+  edit your own in **Settings → Prompt templates**.
 - **Rendering.** Answers are rendered as streaming markdown (Streamdown), with GFM tables, task lists and copyable code
   blocks. Math is typeset with KaTeX and code highlighting uses Shiki; both are switched in **Settings → General →
   Rendering** because each loads a large chunk on demand. Math is on by default, highlighting is not.

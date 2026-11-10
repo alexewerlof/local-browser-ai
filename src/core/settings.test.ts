@@ -61,10 +61,26 @@ describe('normalizeSettings', () => {
 		expect(settings.defaultModel).toEqual({ providerId: 'local', modelId: 'llama' })
 	})
 
-	it('re-adds built-in skills that were removed or edited away', () => {
-		const stored = { ...defaultSettings(), skills: [] }
+	it('re-adds built-in prompt templates that were removed or edited away', () => {
+		const stored = { ...defaultSettings(), promptTemplates: [] }
 		const settings = normalizeSettings(stored)
-		expect(settings.skills.map((skill) => skill.id)).toContain('summarize-page')
+		expect(settings.promptTemplates.map((template) => template.id)).toContain('summarize-page')
+	})
+
+	it('drops the retired skills list without losing the rest of the document', () => {
+		const stored: Record<string, unknown> = {
+			...defaultSettings(),
+			version: 12,
+			providers: [{ id: 'local', label: 'Local', baseURL: 'http://localhost:9931/v1', models: ['llama'] }],
+			skills: [{ id: 'mine', name: 'Mine', prompt: 'Do a thing.' }],
+		}
+		delete stored.promptTemplates
+		const settings = normalizeSettings(stored)
+		// The rename is a clean break: the user's own templates and stored edits are gone, but
+		// the provider is not a casualty of a schema failure, and the built-ins come back.
+		expect(settings.providers.map((provider) => provider.id)).toEqual(['local'])
+		expect(settings.promptTemplates.map((template) => template.id)).not.toContain('mine')
+		expect(settings.promptTemplates.map((template) => template.id)).toContain('summarize-page')
 	})
 
 	it('ignores a stale provider kind instead of resetting the document', () => {
@@ -313,7 +329,7 @@ describe('normalizeSettings', () => {
 		const settings = normalizeSettings(stored)
 		expect(settings.tools.mcp.map((server) => server.id)).toEqual(['mcp_1'])
 		expect(settings.tools.enabled).toEqual(['get_selection'])
-		expect(settings.skills.length).toBeGreaterThan(0)
+		expect(settings.promptTemplates.length).toBeGreaterThan(0)
 	})
 
 	it('drops duplicate MCP server ids', () => {

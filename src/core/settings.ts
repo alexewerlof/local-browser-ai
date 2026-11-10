@@ -4,9 +4,9 @@ import type {
 	FontSize,
 	MemorySettings,
 	ModelRef,
+	PromptTemplate,
 	ProviderSettings,
 	RenderingSettings,
-	Skill,
 	ThinkingSelection,
 	ToolSettings,
 	UiSettings,
@@ -15,7 +15,7 @@ import { isHttpUrl } from './mcp'
 import { isMemoryToolId } from './memory'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 12
+export const SETTINGS_VERSION = 13
 
 /**
  * Text sizes offered for the panel, mirroring Chrome's own font-size setting. `medium`
@@ -72,7 +72,7 @@ const providerSchema = z.object({
 	maxOutputTokensOverride: z.number().int().positive().optional(),
 })
 
-const skillSchema = z.object({
+const promptTemplateSchema = z.object({
 	id: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
@@ -130,7 +130,7 @@ export const settingsSchema = z.object({
 		autoApprove: z.array(z.string()),
 		mcp: z.array(mcpServerSchema).default([]),
 	}),
-	skills: z.array(skillSchema),
+	promptTemplates: z.array(promptTemplateSchema),
 	memory: z.object({
 		enabled: z.boolean().default(true),
 		injectShare: z.number().min(0.05).max(0.4).default(0.15),
@@ -159,7 +159,7 @@ export const ACTION_TOOL_IDS = ['remember'] as const
  */
 export const BUILT_IN_TOOL_IDS: readonly string[] = [...READ_ONLY_TOOL_IDS, ...ACTION_TOOL_IDS]
 
-export const builtInSkills: Skill[] = [
+export const builtInPromptTemplates: PromptTemplate[] = [
 	{
 		id: 'summarize-page',
 		name: 'Summarize page',
@@ -235,7 +235,7 @@ export const defaultSettings = (): AppSettings => ({
 		autoApprove: [...READ_ONLY_TOOL_IDS],
 		mcp: [],
 	},
-	skills: builtInSkills,
+	promptTemplates: builtInPromptTemplates,
 	memory: {
 		enabled: true,
 		injectShare: 0.15,
@@ -295,6 +295,15 @@ function migrateSettings(input: unknown): unknown {
 	if (version < 12) {
 		const next = { ...stored }
 		delete next.modelDefaults
+		stored = next
+	}
+
+	// v13 renamed `skills` to `promptTemplates`, because a skill here was only ever a saved
+	// prompt. The old list is dropped rather than carried over: the six built-ins are restored
+	// by `normalizeSettings`, and the stored edits and user copies were the price of the rename.
+	if (version < 13) {
+		const next = { ...stored }
+		delete next.skills
 		stored = next
 	}
 
@@ -414,8 +423,8 @@ function sanitizeUiSettings(value: unknown, fallback: UiSettings): UiSettings {
 /**
  * Turn whatever was stored into a valid settings object.
  *
- * Built-in skills are always present (user copies are kept alongside them), and the
- * default model is dropped rather than kept when its provider is gone.
+ * Built-in prompt templates are always present (user copies are kept alongside them), and
+ * the default model is dropped rather than kept when its provider is gone.
  */
 export function normalizeSettings(input: unknown): AppSettings {
 	const defaults = defaultSettings()
@@ -450,9 +459,9 @@ export function normalizeSettings(input: unknown): AppSettings {
 
 	const settings = parsed.data as AppSettings
 
-	const skillIds = new Set(settings.skills.map((skill) => skill.id))
-	for (const skill of builtInSkills) {
-		if (!skillIds.has(skill.id)) settings.skills.push(skill)
+	const templateIds = new Set(settings.promptTemplates.map((template) => template.id))
+	for (const template of builtInPromptTemplates) {
+		if (!templateIds.has(template.id)) settings.promptTemplates.push(template)
 	}
 
 	// A reference nobody offers fails every run, so a stale default is repaired here rather

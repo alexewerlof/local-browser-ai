@@ -93,8 +93,8 @@ export interface ChatMessage {
 	steps?: number
 	/** Wall-clock time spent on this answer, across every run that added to it. */
 	durationMs?: number
-	/** The skill that was applied when this user message was sent. */
-	skillId?: string
+	/** The prompt template that filled the draft when this user message was sent. */
+	promptTemplateId?: string
 }
 
 /* --------------------------------------------------------------- page context */
@@ -213,14 +213,19 @@ export interface Conversation {
 export interface QueuedPrompt {
 	id: string
 	text: string
-	/** The skill that was active when the prompt was queued, so draining keeps it. */
-	skillId?: string
+	/** The template that was active when the prompt was queued, so draining keeps it. */
+	promptTemplateId?: string
 	createdAt: number
 }
 
-/* -------------------------------------------------------------------- skills */
+/* ---------------------------------------------------------- prompt templates */
 
-export interface Skill {
+/**
+ * A reusable prompt the user inserts into the composer, from the Templates menu or the
+ * `/` menu. Selecting one fills the draft; the model receives that text and nothing else,
+ * so this is a saved prompt rather than a skill.
+ */
+export interface PromptTemplate {
 	id: string
 	name: string
 	description?: string
@@ -403,12 +408,12 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 12
+	version: 13
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	context: ContextSettings
 	tools: ToolSettings
-	skills: Skill[]
+	promptTemplates: PromptTemplate[]
 	memory: MemorySettings
 	rendering: RenderingSettings
 	ui: UiSettings

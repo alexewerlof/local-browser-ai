@@ -223,7 +223,7 @@
 	overflow-wrap: anywhere;
 }
 
-.message__skill {
+.message__template {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -1070,7 +1070,7 @@
 	color: var(--fg-muted);
 }
 
-.composer__queue-skill {
+.composer__queue-template {
 	flex: none;
 	margin-top: 2px;
 	color: var(--accent-strong);

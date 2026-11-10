@@ -4,8 +4,8 @@ Pure domain: types, settings schema, token budget, context assembly, compaction,
 `chrome.*`, no React.
 
 Vocabulary for this area lives in `ontology.yml` under `harness` (conversation, turn, run, step, answer, prompt),
-`context`, `page`, `memory`, `models`, `tools`, `skills`, `errors` and `settings`. Add the term there before adding the
-type here.
+`context`, `page`, `memory`, `models`, `tools`, `prompt-templates`, `errors` and `settings`. Add the term there before
+adding the type here.
 
 Local rules:
 

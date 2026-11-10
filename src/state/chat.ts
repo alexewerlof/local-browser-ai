@@ -796,7 +796,7 @@ async function claimPendingPages(messageId: string): Promise<PageSnapshot[]> {
 }
 
 /** Append a user turn plus its empty assistant answer and run it. Assumes idle. */
-async function startTurn(content: string, skillId?: string): Promise<void> {
+async function startTurn(content: string, promptTemplateId?: string): Promise<void> {
 	const conversation = conversationStore.get()
 	const userMessageId = createId('msg')
 	// Pages added since the last turn join this one. The block is written into the prompt
@@ -811,7 +811,7 @@ async function startTurn(content: string, skillId?: string): Promise<void> {
 		],
 		createdAt: now(),
 		status: 'complete',
-		skillId,
+		promptTemplateId,
 	}
 	const assistantMessage: ChatMessage = {
 		id: createId('msg'),
@@ -838,21 +838,21 @@ async function startTurn(content: string, skillId?: string): Promise<void> {
  * loop once it goes idle, so the panel can accept the next message while a local model
  * is still thinking.
  */
-export async function submitPrompt(text: string, skillId?: string): Promise<void> {
+export async function submitPrompt(text: string, promptTemplateId?: string): Promise<void> {
 	const content = text.trim()
 	if (!content) return
 	// Typing and sending is an explicit intent to keep the loop moving.
 	queuePausedStore.set(false)
 
 	if (draining || runStore.get().status !== 'idle') {
-		await enqueuePrompt(conversationStore.get().id, content, skillId)
+		await enqueuePrompt(conversationStore.get().id, content, promptTemplateId)
 		// The run may have gone idle while the queue write was in flight, and its own
 		// drain has already passed. Ask for another pass; a live drain ignores this.
 		void drainQueue()
 		return
 	}
 
-	await startTurn(content, skillId)
+	await startTurn(content, promptTemplateId)
 }
 
 /**
@@ -882,7 +882,7 @@ async function drainQueue(): Promise<void> {
 				await restorePromptFront(conversationId, next)
 				break
 			}
-			await startTurn(next.text, next.skillId)
+			await startTurn(next.text, next.promptTemplateId)
 		}
 	} finally {
 		draining = false

@@ -27,7 +27,7 @@ export function localSettings(endpoint, overrides = {}) {
 			maxToolSteps: 4,
 		},
 		tools: { enabled: ALL_TOOLS, autoApprove: AUTO_APPROVED_TOOLS, mcp: [] },
-		skills: [],
+		promptTemplates: [],
 		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
 		rendering: { math: true, codeHighlighting: false },
 		ui: { theme: 'light', submitKey: 'enter', fontSize: 'medium' },

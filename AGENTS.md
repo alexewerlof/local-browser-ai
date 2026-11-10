@@ -2,7 +2,7 @@
 
 A Chrome/Edge (MV3) side-panel chat harness. It talks to a local OpenAI-compatible server (llama.cpp, Ollama, LM Studio,
 Jan, vLLM) and to nothing else: there is no hosted provider and no built-in browser model. A domain layer owns
-conversations, the context budget, compaction, skills and built-in tools; the provider is one adapter over the
+conversations, the context budget, compaction, prompt templates and built-in tools; the provider is one adapter over the
 [Vercel AI SDK](https://ai-sdk.dev).
 
 ## Architecture
@@ -10,7 +10,7 @@ conversations, the context budget, compaction, skills and built-in tools; the pr
 | Layer       | Location           | Responsibility                                                                                                 |
 | ----------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.                        |
-| Settings UI | `src/settings/`    | Full-page providers, skills, tools, memory, context, appearance and general.                                   |
+| Settings UI | `src/settings/`    | Full-page providers, prompt templates, tools, memory, context, appearance and general.                         |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction, omnibox prompt. |
 | Providers   | `src/providers/`   | The AI SDK adapter, model catalog (context windows, reasoning), discovery, error mapping.                      |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                                      |
@@ -242,7 +242,7 @@ call `drainQueue`, and three flags keep it single-owner: `draining` (a nested tu
 `switchingConversation` (set across `openConversation`, so an aborted run cannot drain one chat's queue into another; a
 prompt taken in that window is handed back with `restorePromptFront`) and `queuePausedStore`. A prompt leaves the queue
 before its turn starts, so a failing answer cannot replay the same entry forever. Removing a queued prompt **replaces**
-the draft and restores its skill, so the text stays editable instead of being thrown away.
+the draft and restores its prompt template, so the text stays editable instead of being thrown away.
 
 ## Reopening the panel
 
@@ -435,23 +435,24 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
-- Settings sections are hash-routed (`settings.html#skills`; General is the bare page). `SETTINGS_SECTIONS` in
-  `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. `#mcp` is an
-  **alias** that resolves to `tools`, because MCP no longer has a section of its own; `SettingsApp` rewrites it to the
-  canonical fragment. Settings is a **single tab**: the function queries open tabs (hence the `tabs` permission),
-  focuses the window, and moves the existing tab to the section instead of opening another one; with no section it keeps
-  the section already on screen. A menu that points at Settings uses the `SettingsButton` gear rather than a sentence.
-  The section cannot live in the path — Chrome's extension loader resolves a URL path verbatim to a file, so
-  `settings/providers` is a 404 — and the fragment is the only part of the URL it leaves alone.
+- Settings sections are hash-routed (`settings.html#prompt-templates`; General is the bare page). `SETTINGS_SECTIONS` in
+  `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. `SECTION_ALIASES`
+  holds the retired fragments — `#mcp` onto `tools`, `#models` onto `providers` and `#skills` onto `prompt-templates` —
+  and `SettingsApp` rewrites each to the canonical fragment. Settings is a **single tab**: the function queries open
+  tabs (hence the `tabs` permission), focuses the window, and moves the existing tab to the section instead of opening
+  another one; with no section it keeps the section already on screen. A menu that points at Settings uses the
+  `SettingsButton` gear rather than a sentence. The section cannot live in the path — Chrome's extension loader resolves
+  a URL path verbatim to a file, so `settings/providers` is a 404 — and the fragment is the only part of the URL it
+  leaves alone.
 - Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
   the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`
   scale in `tokens.css`. `medium` renders exactly the designed pixels, and nothing but type scales — controls use
   `min-height`, so they only grow when the text needs it.
-- Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in skills and clears a default
-  model whose provider is gone, so a corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove`
-  for built-ins and `mcp` for remote servers; a malformed MCP entry is dropped on its own instead of resetting the
-  document.
+- Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in prompt templates and clears a
+  default model whose provider is gone, so a corrupted store cannot brick the panel. Tool settings carry
+  `enabled`/`autoApprove` for built-ins and `mcp` for remote servers; a malformed MCP entry is dropped on its own
+  instead of resetting the document.
 - Adding a default-on tool means three edits in `src/core/settings.ts`: the id list (`READ_ONLY_TOOL_IDS` /
   `ACTION_TOOL_IDS`), a `TOOLS_ADDED_IN` entry with the version it shipped in (add an `autoApprove` list when only some
   of those ids should run without asking), and a `SETTINGS_VERSION` bump. Existing stores only receive the id when their

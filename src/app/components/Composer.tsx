@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	ArrowUp,
-	GraduationCap,
+	BookMarked,
 	ListOrdered,
 	PanelBottomClose,
 	PanelBottomOpen,
@@ -20,7 +20,7 @@ import type {
 	ThinkingSelection,
 } from '../../core/types'
 import type { ContextSnapshot, RunState } from '../../state/chat'
-import { clearComposer, draftStore, setDraft, skillStore } from '../../state/composer'
+import { clearComposer, draftStore, promptTemplateStore, setDraft } from '../../state/composer'
 import { queueStore, removeQueuedPrompt } from '../../state/queue'
 import { lastPageAddedStore } from '../../state/pages'
 import { updateSettings } from '../../state/settings'
@@ -30,7 +30,7 @@ import { formatTokens } from '../../core/util'
 import { getModelInfo } from '../../providers/catalog'
 import { ContextMeter } from './ContextMeter'
 import { PageList, PageListToggle } from './PageList'
-import { SkillMenu, ToolsMenu } from './ComposerMenus'
+import { PromptTemplateMenu, ToolsMenu } from './ComposerMenus'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
 import { useStore } from '../useStore'
@@ -74,7 +74,7 @@ export function Composer({
 	addPageError: string | null
 	/** True when the user stopped the loop with prompts still queued. */
 	queuePaused: boolean
-	onSubmit: (text: string, skillId?: string) => void
+	onSubmit: (text: string, promptTemplateId?: string) => void
 	onStop: () => void
 	onContinue: () => void
 	onOpenPage: (page: PageSnapshot) => void
@@ -84,7 +84,7 @@ export function Composer({
 	onModelChange: (ref: ModelRef) => void
 }) {
 	const draft = useStore(draftStore)
-	const activeSkill = useStore(skillStore)
+	const activeTemplate = useStore(promptTemplateStore)
 	const queue = useStore(queueStore)
 	const lastPageAdded = useStore(lastPageAddedStore)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -112,7 +112,9 @@ export function Composer({
 
 	const slashQuery = draft.startsWith('/') && !draft.includes('\n') ? draft.slice(1).toLowerCase() : null
 	const slashMatches =
-		slashQuery === null ? [] : settings.skills.filter((skill) => skill.name.toLowerCase().includes(slashQuery))
+		slashQuery === null
+			? []
+			: settings.promptTemplates.filter((template) => template.name.toLowerCase().includes(slashQuery))
 
 	useEffect(() => {
 		const textarea = textareaRef.current
@@ -146,7 +148,7 @@ export function Composer({
 	const submit = () => {
 		const text = draftStore.get().trim()
 		if (!text) return
-		onSubmit(text, activeSkill ?? undefined)
+		onSubmit(text, activeTemplate ?? undefined)
 		clearComposer()
 		setSlashOpen(false)
 	}
@@ -159,7 +161,7 @@ export function Composer({
 		const removed = await removeQueuedPrompt(conversation.id, item.id)
 		if (!removed) return
 		setDraft(removed.text)
-		skillStore.set(removed.skillId ?? null)
+		promptTemplateStore.set(removed.promptTemplateId ?? null)
 		setSlashOpen(false)
 		// After React has written the new value, focus and put the caret at the end.
 		requestAnimationFrame(() => {
@@ -203,11 +205,11 @@ export function Composer({
 		textarea.setSelectionRange(end, end)
 	}
 
-	const applySkill = (skillId: string) => {
-		const skill = settings.skills.find((entry) => entry.id === skillId)
-		if (!skill) return
-		skillStore.set(skill.id)
-		setDraft(skill.prompt)
+	const applyTemplate = (promptTemplateId: string) => {
+		const template = settings.promptTemplates.find((entry) => entry.id === promptTemplateId)
+		if (!template) return
+		promptTemplateStore.set(template.id)
+		setDraft(template.prompt)
 		setSlashOpen(false)
 		textareaRef.current?.focus()
 	}
@@ -245,8 +247,8 @@ export function Composer({
 						<span>Queued · {queue.length}</span>
 					</div>
 					{queue.map((item) => {
-						const skill = item.skillId
-							? settings.skills.find((entry) => entry.id === item.skillId)
+						const template = item.promptTemplateId
+							? settings.promptTemplates.find((entry) => entry.id === item.promptTemplateId)
 							: undefined
 						return (
 							<div key={item.id} className="composer__queue-item">
@@ -259,7 +261,7 @@ export function Composer({
 								>
 									<Trash2 size={12} />
 								</button>
-								{skill && <GraduationCap size={12} className="composer__queue-skill" />}
+								{template && <BookMarked size={12} className="composer__queue-template" />}
 								<span className="composer__queue-text">{item.text}</span>
 							</div>
 						)
@@ -306,17 +308,17 @@ export function Composer({
 
 				{slashOpen && (
 					<div className="slash">
-						{slashMatches.map((skill) => (
+						{slashMatches.map((template) => (
 							<button
-								key={skill.id}
+								key={template.id}
 								type="button"
 								className="slash__item"
 								onMouseDown={(event) => event.preventDefault()}
-								onClick={() => applySkill(skill.id)}
+								onClick={() => applyTemplate(template.id)}
 							>
-								<GraduationCap size={12} />
-								<span>{skill.name}</span>
-								{skill.description && <span className="faint">{skill.description}</span>}
+								<BookMarked size={12} />
+								<span>{template.name}</span>
+								{template.description && <span className="faint">{template.description}</span>}
 							</button>
 						))}
 					</div>
@@ -331,24 +333,24 @@ export function Composer({
 							? 'Queue another message…'
 							: hasPages
 								? 'Ask about these pages…'
-								: 'Ask anything, or type / for a skill'
+								: 'Ask anything, or type / for a template'
 					}
 					value={draft}
 					rows={1}
 					onChange={(event) => {
 						setDraft(event.target.value)
-						if (!event.target.value.trim()) skillStore.set(null)
+						if (!event.target.value.trim()) promptTemplateStore.set(null)
 					}}
 					onKeyDown={handleKeyDown}
 					aria-label="Message"
 				/>
 
 				<div className="composer__toolbar">
-					<SkillMenu
-						skills={settings.skills}
-						onSelect={(skill) => {
-							skillStore.set(skill.id)
-							setDraft(skill.prompt)
+					<PromptTemplateMenu
+						templates={settings.promptTemplates}
+						onSelect={(template) => {
+							promptTemplateStore.set(template.id)
+							setDraft(template.prompt)
 							textareaRef.current?.focus()
 						}}
 					/>

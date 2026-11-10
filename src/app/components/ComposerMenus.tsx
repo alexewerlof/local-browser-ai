@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { AppSettings, Skill, ToolSettings } from '../../core/types'
-import { ChevronDown, GraduationCap, Wrench } from 'lucide-react'
+import type { AppSettings, PromptTemplate, ToolSettings } from '../../core/types'
+import { BookMarked, ChevronDown, Wrench } from 'lucide-react'
 import { mcpServerKey } from '../../core/mcp'
 import { enabledBuiltInTools } from '../../core/settings'
 import { isMcpToolEnabled } from '../../core/tool-selection'
@@ -10,20 +10,26 @@ import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
 import { ToolTree } from './ToolTree'
 
-export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (skill: Skill) => void }) {
+export function PromptTemplateMenu({
+	templates,
+	onSelect,
+}: {
+	templates: PromptTemplate[]
+	onSelect: (template: PromptTemplate) => void
+}) {
 	const [open, setOpen] = useState(false)
 	const [query, setQuery] = useState('')
 
-	if (skills.length === 0) return null
+	if (templates.length === 0) return null
 
 	const needle = query.trim().toLowerCase()
 	const matches = needle
-		? skills.filter(
-				(skill) =>
-					skill.name.toLowerCase().includes(needle) ||
-					(skill.description ?? '').toLowerCase().includes(needle),
+		? templates.filter(
+				(template) =>
+					template.name.toLowerCase().includes(needle) ||
+					(template.description ?? '').toLowerCase().includes(needle),
 			)
-		: skills
+		: templates
 
 	return (
 		<Popover
@@ -32,9 +38,14 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 			width={300}
 			align="start"
 			trigger={
-				<button type="button" className="chip" onClick={() => setOpen((value) => !value)} title="Skills">
-					<GraduationCap size={12} />
-					<span className="chip__text">Skills</span>
+				<button
+					type="button"
+					className="chip"
+					onClick={() => setOpen((value) => !value)}
+					title="Prompt templates"
+				>
+					<BookMarked size={12} />
+					<span className="chip__text">Templates</span>
 					<ChevronDown size={12} />
 				</button>
 			}
@@ -42,29 +53,33 @@ export function SkillMenu({ skills, onSelect }: { skills: Skill[]; onSelect: (sk
 			<div className="popover__header">
 				<input
 					className="input input--compact"
-					placeholder="Search skills"
+					placeholder="Search templates"
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
 					autoFocus
 				/>
-				<SettingsButton section="skills" label="Manage skills" onClose={() => setOpen(false)} />
+				<SettingsButton
+					section="prompt-templates"
+					label="Manage prompt templates"
+					onClose={() => setOpen(false)}
+				/>
 			</div>
 			<div className="popover__list">
 				<div className="popover__group">
 					<div className="popover__group-label">Insert a prompt</div>
-					{matches.length === 0 && <p className="popover__empty">No skills match.</p>}
-					{matches.map((skill) => (
+					{matches.length === 0 && <p className="popover__empty">No templates match.</p>}
+					{matches.map((template) => (
 						<button
-							key={skill.id}
+							key={template.id}
 							type="button"
 							className="popover__item popover__item--stacked"
 							onClick={() => {
-								onSelect(skill)
+								onSelect(template)
 								setOpen(false)
 							}}
 						>
-							<span className="popover__item-main">{skill.name}</span>
-							{skill.description && <span className="popover__item-sub">{skill.description}</span>}
+							<span className="popover__item-main">{template.name}</span>
+							{template.description && <span className="popover__item-sub">{template.description}</span>}
 						</button>
 					))}
 				</div>

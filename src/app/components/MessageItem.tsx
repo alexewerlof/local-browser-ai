@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, Copy, GraduationCap, MemoryStick, RefreshCw, TriangleAlert } from 'lucide-react'
+import { BookMarked, Check, Copy, MemoryStick, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { ChatMessage, PageSnapshot } from '../../core/types'
 import { describeModel } from '../../core/settings'
 import type { AppSettings } from '../../core/types'
@@ -53,7 +53,9 @@ export function MessageItem({
 	}
 
 	if (message.role === 'user') {
-		const skill = message.skillId ? settings.skills.find((entry) => entry.id === message.skillId) : undefined
+		const template = message.promptTemplateId
+			? settings.promptTemplates.find((entry) => entry.id === message.promptTemplateId)
+			: undefined
 		// The cards mark where the pages entered the chat; the block itself rides this turn.
 		const attached = message.parts.flatMap((part) => {
 			if (part.type !== 'page-ref') return []
@@ -70,10 +72,10 @@ export function MessageItem({
 					</div>
 				)}
 				<div className="message__bubble">
-					{skill && (
-						<div className="message__skill">
-							<GraduationCap size={12} />
-							{skill.name}
+					{template && (
+						<div className="message__template">
+							<BookMarked size={12} />
+							{template.name}
 						</div>
 					)}
 					<div className="message__text">{plainText}</div>

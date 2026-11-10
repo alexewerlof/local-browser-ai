@@ -195,7 +195,7 @@ export function App() {
 				addPageBusy={addPageBusy}
 				addPageError={addPageError}
 				queuePaused={queuePaused}
-				onSubmit={(text, skillId) => void submitPrompt(text, skillId)}
+				onSubmit={(text, promptTemplateId) => void submitPrompt(text, promptTemplateId)}
 				onStop={stopGeneration}
 				onContinue={resumeQueue}
 				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}

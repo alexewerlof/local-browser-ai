@@ -38,12 +38,12 @@ export async function run(ctx) {
 		}, before)
 	}
 
-	// Skills: the gear sits beside the search row at the top of the menu.
-	await page.locator('.chip:has-text("Skills")').click()
+	// Prompt templates: the gear sits beside the search row at the top of the menu.
+	await page.locator('.chip:has-text("Templates")').click()
 	let result = await clickAndReadSection(() =>
-		page.locator('.popover__header button[aria-label="Manage skills"]').click(),
+		page.locator('.popover__header button[aria-label="Manage prompt templates"]').click(),
 	)
-	assert.deepEqual(result, { created: true, hash: '#skills' })
+	assert.deepEqual(result, { created: true, hash: '#prompt-templates' })
 	// Opening Settings dismisses the popover.
 	assert.equal(await page.locator('.popover').count(), 0)
 
@@ -65,11 +65,11 @@ export async function run(ctx) {
 
 	// The header gear asks for no section, so the tab keeps the section on screen.
 	await page.locator('button[aria-label="Settings"]').click()
-	// Four section changes came before it, all on the tab the Skills gear created.
+	// Four section changes came before it, all on the tab the Templates gear created.
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 4)
 	const last = await page.evaluate(() => window.__LB_AI_TEST__.updatedTabs.at(-1))
 	assert.equal(last.url, undefined)
 	assert.equal(last.active, true)
 	// Only ever one Settings tab.
-	assert.deepEqual(await openedHashes(), ['#skills'])
+	assert.deepEqual(await openedHashes(), ['#prompt-templates'])
 }

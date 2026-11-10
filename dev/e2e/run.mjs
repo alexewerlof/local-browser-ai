@@ -96,7 +96,7 @@ function createContext(page, name) {
 		},
 		/**
 		 * Open the settings page with the same shim, optionally at a section:
-		 * `hash` is the fragment to load, e.g. `'#skills'`.
+		 * `hash` is the fragment to load, e.g. `'#prompt-templates'`.
 		 */
 		async openSettings(config, hash = '') {
 			await page.addInitScript(chromeShim, config ?? {})

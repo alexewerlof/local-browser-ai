@@ -33,9 +33,9 @@ describe('prompt queue', () => {
 		expect(await enqueuePrompt('queue-blank', '   ')).toBeNull()
 		expect(queueStore.get()).toHaveLength(0)
 
-		const item = await enqueuePrompt('queue-blank', '  hello  ', 'skill-1')
+		const item = await enqueuePrompt('queue-blank', '  hello  ', 'template-1')
 		expect(item?.text).toBe('hello')
-		expect(item?.skillId).toBe('skill-1')
+		expect(item?.promptTemplateId).toBe('template-1')
 		expect(texts()).toEqual(['hello'])
 	})
 

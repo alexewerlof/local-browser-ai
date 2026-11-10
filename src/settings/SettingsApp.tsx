@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
+	BookMarked,
 	CpuAi,
-	GraduationCap,
 	MemoryStick,
 	Notebook,
 	Palette,
@@ -29,7 +29,7 @@ import {
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
-import { SkillsSection } from './SkillsSection'
+import { PromptTemplatesSection } from './PromptTemplatesSection'
 import { ToolsSection } from './ToolsSection'
 import { MemorySection } from './MemorySection'
 import { ContextSection } from './ContextSection'
@@ -41,7 +41,7 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	general: Settings,
 	appearance: Palette,
 	providers: CpuAi,
-	skills: GraduationCap,
+	'prompt-templates': BookMarked,
 	tools: Wrench,
 	memory: MemoryStick,
 	context: Notebook,
@@ -185,7 +185,7 @@ export function SettingsApp() {
 					{section === 'general' && <GeneralSection settings={settings} />}
 					{section === 'appearance' && <AppearanceSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
-					{section === 'skills' && <SkillsSection settings={settings} />}
+					{section === 'prompt-templates' && <PromptTemplatesSection settings={settings} />}
 					{section === 'tools' && <ToolsSection settings={settings} />}
 					{section === 'memory' && <MemorySection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}

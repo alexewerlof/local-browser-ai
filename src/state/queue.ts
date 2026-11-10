@@ -51,7 +51,7 @@ function normalizeQueue(value: unknown): QueuedPrompt[] {
 			{
 				id: item.id,
 				text,
-				skillId: typeof item.skillId === 'string' ? item.skillId : undefined,
+				promptTemplateId: typeof item.promptTemplateId === 'string' ? item.promptTemplateId : undefined,
 				createdAt: typeof item.createdAt === 'number' ? item.createdAt : now(),
 			},
 		]
@@ -92,14 +92,14 @@ export async function loadQueueFor(conversationId: string): Promise<void> {
 export async function enqueuePrompt(
 	conversationId: string,
 	text: string,
-	skillId?: string,
+	promptTemplateId?: string,
 ): Promise<QueuedPrompt | null> {
 	const content = text.trim()
 	if (!content) return null
 	if (activeConversationId !== conversationId) return null
 
 	const item: QueuedPrompt = { id: createId('queued'), text: content, createdAt: now() }
-	if (skillId) item.skillId = skillId
+	if (promptTemplateId) item.promptTemplateId = promptTemplateId
 
 	await commitQueue(conversationId, [...queueStore.get(), item])
 	return item
