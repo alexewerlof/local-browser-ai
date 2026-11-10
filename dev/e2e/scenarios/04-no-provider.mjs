@@ -14,12 +14,12 @@ export async function run(ctx) {
 	const banner = await page.locator('.banner').first().textContent()
 	assert.match(banner, /No model is configured yet/i)
 
-	// The setup button opens Settings at Models, where a model is chosen.
+	// The setup button opens Settings at Providers, where a server and its models are added.
 	const before = await page.evaluate(() => window.__LB_AI_TEST__.opened.length)
 	await page.locator('.banner button:has-text("Set up a model")').click()
 	await page.waitForFunction((previous) => window.__LB_AI_TEST__.opened.length > previous, before)
 	const opened = await page.evaluate(() => window.__LB_AI_TEST__.opened.at(-1))
-	assert.equal(new URL(opened).hash, '#models')
+	assert.equal(new URL(opened).hash, '#providers')
 
 	// Providers is empty, and there is no built-in model to fall back on.
 	await ctx.openSettings({}, '#providers')

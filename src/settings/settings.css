@@ -549,6 +549,10 @@ body {
 
 .models-table {
 	width: 100%;
+	/* The fixed columns below add up to 408px; the rest is the model column, which is where
+	 * the id, its loaded marker and the default star live. Without a floor, a panel-width
+	 * window gives that column zero pixels and the ids disappear. */
+	min-width: 520px;
 	border-collapse: collapse;
 	table-layout: fixed;
 	font-size: var(--text-md);
@@ -598,8 +602,8 @@ body {
 	width: 100px;
 }
 
-/* The model column absorbs the remaining width; its text ellipsises instead of
- * forcing the whole table to scroll. */
+/* The model column absorbs the remaining width; its text ellipsises rather than
+ * wrapping the row, and the table's own min-width keeps the id readable. */
 .models-table__model {
 	min-width: 0;
 }
@@ -625,6 +629,20 @@ body {
 	display: inline-flex;
 	flex: none;
 	color: var(--success);
+}
+
+/* The default marker: always visible, because it is a state and not an action. The button
+ * form is a quiet outline star; the filled one is the default itself. */
+.models-table__default {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	color: var(--fg-faint);
+}
+
+.models-table__default--on {
+	color: var(--accent);
 }
 
 /* Only an id the user typed can be removed; the trash can appears on hover so the row

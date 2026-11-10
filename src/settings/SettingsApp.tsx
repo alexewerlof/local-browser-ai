@@ -8,7 +8,6 @@ import {
 	Puzzle,
 	Settings,
 	Shield,
-	Sparkles,
 	SquareArrowOutUpRight,
 	Wrench,
 	type LucideIcon,
@@ -30,7 +29,6 @@ import {
 import { settingsStatusStore, settingsStore } from '../state/settings'
 import { useStore } from '../app/useStore'
 import { ProvidersSection } from './ProvidersSection'
-import { ModelsSection } from './ModelsSection'
 import { SkillsSection } from './SkillsSection'
 import { ToolsSection } from './ToolsSection'
 import { MemorySection } from './MemorySection'
@@ -43,7 +41,6 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	general: Settings,
 	appearance: Palette,
 	providers: CpuAi,
-	models: Sparkles,
 	skills: GraduationCap,
 	tools: Wrench,
 	memory: MemoryStick,
@@ -188,7 +185,6 @@ export function SettingsApp() {
 					{section === 'general' && <GeneralSection settings={settings} />}
 					{section === 'appearance' && <AppearanceSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
-					{section === 'models' && <ModelsSection settings={settings} />}
 					{section === 'skills' && <SkillsSection settings={settings} />}
 					{section === 'tools' && <ToolsSection settings={settings} />}
 					{section === 'memory' && <MemorySection settings={settings} />}

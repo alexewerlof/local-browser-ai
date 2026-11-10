@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 11
+    version: 12
     updated: 2026-11-10
     status: contract
     shipped: false
@@ -105,8 +105,8 @@ models:
     model-details: what a provider's /models endpoint reported about one of its models; code ModelDetails, discoverModels, parseModelEntry, ProviderSettings.modelDetails, modelDetailsFor, modelContextWindow; ui Model, Type, Modalities, Context, Max output; not metadata, properties, model info
     model-type: what kind of model an id names; code ModelType, classifyModel, chat, embedding, speech, image, classifier, rerank; ui Chat, Embedding, Speech, Image, Classifier, Rerank; not category, kind
     modality: the content a model accepts or produces; code ModelModality, inputModalities, outputModalities, ModalityIcon, MODALITY_ICONS; ui text, image, audio, video; not content type, media type
-    model-table: the table of models inside the provider editor; code ProviderModelTable, models-table, models__add; ui Use, Refresh, Add model, Loaded in the server, ~32k; not model list, model textarea
-    default-model: the model reference new chats start with; code settings.defaultModel; ui Default model, Provider, Model; not fallback model, primary model
+    model-table: the table of models inside the provider editor; code ProviderModelTable, models-table, models__add, models-table__default; ui Use, Refresh, Add model, Loaded in the server, ~32k, Make default, Default model; not model list, model textarea
+    default-model: the model reference new chats start with, set by the star in the provider table; code settings.defaultModel, resolveDefaultModel; ui default, Make default, Default model; not fallback model, primary model
 
 # Capabilities the model may call, local and remote.
 tools:
@@ -158,7 +158,7 @@ ui:
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--fill; not dropdown, menu, modal, dialog
-            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage models, Reasoning, Context, Max output; not model menu, provider picker, model table
+            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage providers, Reasoning, Context, Max output; not model menu, provider picker, model table
             slash-menu: the inline skill list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
@@ -179,15 +179,15 @@ ui:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
-        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage tools, Manage models; not cog, settings link, configure icon
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage skills, Manage tools, Manage providers; not cog, settings link, configure icon
 
 # The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
     settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, settings__nav-item; ui General, Appearance, Providers, Models, Skills, Tools, Memory, Context; not tab, panel
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, SECTION_ALIASES, settings__nav-item; ui General, Appearance, Providers, Skills, Tools, Memory, Context; not tab, panel
     settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#skills; ui hash, settings.html#skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, group__head, group__actions, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
-    settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math, Temperature; not option, item, input
+    settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math; not option, item, input
     switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Auto-approve, Run without asking, Enable memory, Send requests without an Origin header; not toggle, checkbox, slider
     checkbox: the availability control, full, empty or dashed when a tool set is partly on; code Checkbox, checkbox, indeterminate, SelectionState; ui Enable {tool}, Enable {server}, Enable every built-in tool, Run every built-in tool without asking, Run {server} tools without asking; not toggle, tickbox
     tool-tree: the expandable tree of tool sets in the composer's Tools menu; code ToolTree, tool-tree__group, tool-tree__toggle, tool-tree__row, mcpServerSelection; ui Tools, Built-in, Expand, Collapse, Manage tools; not accordion, dropdown list, submenu

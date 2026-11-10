@@ -336,7 +336,7 @@ export function Composer({
 					{info && provider && modelRef && (
 						<ThinkingMenu
 							info={info}
-							value={thinkingForModel(provider, modelRef.modelId, settings.modelDefaults.thinking)}
+							value={thinkingForModel(provider, modelRef.modelId)}
 							onChange={setThinking}
 						/>
 					)}

@@ -45,6 +45,12 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Tools')
 	assert.equal(await page.evaluate(() => location.hash), '#tools')
 
+	// The same for the retired Models page, whose model list now lives in the provider editor.
+	await page.goto(`${base}#models`)
+	await page.waitForSelector('.settings')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Providers')
+	assert.equal(await page.evaluate(() => location.hash), '#providers')
+
 	// A hand-typed name is matched case-insensitively.
 	await page.goto(`${base}#Skills`)
 	await page.waitForSelector('.settings')

@@ -198,10 +198,10 @@ interface Selection {
 
 function resolveSelection(settings = settingsStore.get(), conversation = conversationStore.get()): Selection {
 	const ref = conversation.model ?? settings.defaultModel
-	if (!ref) throw new AppError('unsupported', 'Choose a model in Settings before starting a chat.')
+	if (!ref) throw new AppError('unsupported', 'Add a provider in Settings to get a model.')
 	const provider = getProvider(settings, ref.providerId)
 	if (!provider)
-		throw new AppError('unsupported', 'The selected provider was removed. Pick another model in Settings.')
+		throw new AppError('unsupported', 'The selected provider was removed. Pick another model in the composer.')
 	return { ref, provider, info: getModelInfo(ref.modelId) }
 }
 
@@ -473,10 +473,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			context = publishContext(working, settings, selection)
 		}
 
-		const thinking = normalizeThinking(
-			thinkingForModel(selection.provider, selection.ref.modelId, settings.modelDefaults.thinking),
-			selection.info,
-		)
+		const thinking = normalizeThinking(thinkingForModel(selection.provider, selection.ref.modelId), selection.info)
 		const model = await createLanguageModel(selection.provider, selection.ref.modelId)
 
 		const toolsEnabled = hasEnabledTools(settings)
@@ -501,8 +498,9 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			messages: context.messages,
 			tools: Object.keys(tools).length > 0 ? tools : undefined,
 			stopWhen: stepCountIs(maxToolSteps),
-			temperature: settings.modelDefaults.temperature,
-			maxOutputTokens: settings.modelDefaults.maxOutputTokens ?? selection.provider.maxOutputTokensOverride,
+			// No temperature: the server's own default is the only one in play, so the request
+			// leaves the field out. The output cap is the provider's override, if it has one.
+			maxOutputTokens: selection.provider.maxOutputTokensOverride,
 			providerOptions: buildProviderOptions(selection.provider, selection.ref.modelId, thinking, selection.info),
 			abortSignal: controller.signal,
 		})

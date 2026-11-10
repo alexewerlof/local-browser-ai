@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { SETTINGS_VERSION, defaultSettings, enabledBuiltInTools, hasEnabledTools, normalizeSettings } from './settings'
+import type { ProviderSettings } from './types'
+import {
+	SETTINGS_VERSION,
+	defaultSettings,
+	enabledBuiltInTools,
+	hasEnabledTools,
+	normalizeSettings,
+	resolveDefaultModel,
+} from './settings'
 
 const mcpServer = (overrides: Record<string, unknown> = {}) => ({
 	id: 'mcp_1',
@@ -63,14 +71,23 @@ describe('normalizeSettings', () => {
 		const stored = {
 			...defaultSettings(),
 			providers: [{ id: 'weird', kind: 'wat', label: 'Weird', models: [] }],
-			modelDefaults: { temperature: 0.3, thinking: { level: 'off' } },
 		}
 		const settings = normalizeSettings(stored)
 		// The kind is no longer a field: it is stripped, and the entry survives with the
 		// rest of the document rather than failing the whole parse.
 		expect(settings.providers.map((provider) => provider.id)).toEqual(['weird'])
 		expect(settings.providers[0]).not.toHaveProperty('kind')
-		expect(settings.modelDefaults.temperature).toBe(0.3)
+	})
+
+	it('drops the generation defaults that v12 removed', () => {
+		const stored = {
+			...defaultSettings(),
+			version: 11,
+			modelDefaults: { temperature: 0.3, thinking: { level: 'off' } },
+		}
+		const settings = normalizeSettings(stored)
+		expect(settings).not.toHaveProperty('modelDefaults')
+		expect(settings.version).toBe(SETTINGS_VERSION)
 	})
 
 	it('drops unknown tool ids', () => {
@@ -389,5 +406,61 @@ describe('hasEnabledTools', () => {
 			tools: { ...memoryOnly.tools, enabled: ['remember', 'recall', 'read_page'] },
 		}
 		expect(enabledBuiltInTools(withPageTools)).toEqual(['read_page'])
+	})
+})
+
+describe('resolveDefaultModel', () => {
+	const local = (models: string[]): ProviderSettings => ({ id: 'local', label: 'Local', models })
+	const other = (models: string[]): ProviderSettings => ({ id: 'other', label: 'Other', models })
+
+	it('takes an explicit choice the provider still offers', () => {
+		expect(
+			resolveDefaultModel(
+				[local(['a', 'b'])],
+				{ providerId: 'local', modelId: 'a' },
+				{ providerId: 'local', modelId: 'b' },
+			),
+		).toEqual({ providerId: 'local', modelId: 'b' })
+	})
+
+	it('ignores a request for a model nobody offers', () => {
+		expect(
+			resolveDefaultModel(
+				[local(['a'])],
+				{ providerId: 'local', modelId: 'a' },
+				{ providerId: 'local', modelId: 'gone' },
+			),
+		).toEqual({ providerId: 'local', modelId: 'a' })
+	})
+
+	it('keeps the current default when no choice was asked for', () => {
+		expect(resolveDefaultModel([local(['a']), other(['b'])], { providerId: 'other', modelId: 'b' }, null)).toEqual({
+			providerId: 'other',
+			modelId: 'b',
+		})
+	})
+
+	it('re-defaults when the current model is no longer offered', () => {
+		expect(resolveDefaultModel([local(['a', 'b'])], { providerId: 'local', modelId: 'removed' })).toEqual({
+			providerId: 'local',
+			modelId: 'a',
+		})
+		// The provider itself is gone, so its model cannot survive either.
+		expect(resolveDefaultModel([other(['b'])], { providerId: 'local', modelId: 'a' })).toEqual({
+			providerId: 'other',
+			modelId: 'b',
+		})
+	})
+
+	it('falls back to the first provider that offers any model', () => {
+		expect(resolveDefaultModel([local([]), other(['b']), local(['c'])], null)).toEqual({
+			providerId: 'other',
+			modelId: 'b',
+		})
+	})
+
+	it('has no default when nothing is offered', () => {
+		expect(resolveDefaultModel([local([])], null)).toBeNull()
+		expect(resolveDefaultModel([], null)).toBeNull()
 	})
 })

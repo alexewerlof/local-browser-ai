@@ -3,6 +3,7 @@ import type {
 	AppSettings,
 	FontSize,
 	MemorySettings,
+	ModelRef,
 	ProviderSettings,
 	RenderingSettings,
 	Skill,
@@ -14,7 +15,7 @@ import { isHttpUrl } from './mcp'
 import { isMemoryToolId } from './memory'
 
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 11
+export const SETTINGS_VERSION = 12
 
 /**
  * Text sizes offered for the panel, mirroring Chrome's own font-size setting. `medium`
@@ -118,13 +119,6 @@ export const settingsSchema = z.object({
 	version: z.literal(SETTINGS_VERSION),
 	providers: z.array(providerSchema),
 	defaultModel: modelRefSchema.nullable(),
-	modelDefaults: z.object({
-		temperature: z.number().min(0).max(2),
-		maxOutputTokens: z.number().int().positive().optional(),
-		// A level this build no longer offers (v11 dropped `custom`) must not fail the whole
-		// document: that would drop the providers and keys with it.
-		thinking: thinkingSchema.catch({ level: 'auto' }),
-	}),
 	context: z.object({
 		compactionThreshold: z.number().min(0.5).max(0.95),
 		keepRecentTurns: z.number().int().min(1).max(20),
@@ -230,10 +224,6 @@ export const defaultSettings = (): AppSettings => ({
 	version: SETTINGS_VERSION,
 	providers: [],
 	defaultModel: null,
-	modelDefaults: {
-		temperature: 0.7,
-		thinking: { level: 'auto' },
-	},
 	context: {
 		compactionThreshold: 0.75,
 		keepRecentTurns: 4,
@@ -297,6 +287,15 @@ function migrateSettings(input: unknown): unknown {
 			const { sendKey, ...rest } = ui as Record<string, unknown>
 			stored = { ...stored, ui: { ...rest, submitKey: rest.submitKey ?? sendKey } }
 		}
+	}
+
+	// v12 dropped the global generation defaults: temperature is no longer sent at all, and
+	// the output cap is each provider's own override. The schema would strip the key anyway;
+	// deleting it keeps the stored document honest between writes.
+	if (version < 12) {
+		const next = { ...stored }
+		delete next.modelDefaults
+		stored = next
 	}
 
 	const tools = stored.tools
@@ -456,14 +455,9 @@ export function normalizeSettings(input: unknown): AppSettings {
 		if (!skillIds.has(skill.id)) settings.skills.push(skill)
 	}
 
-	// A default model whose provider is gone would fail every run, so the panel asks the
-	// user to pick one instead.
-	if (
-		settings.defaultModel &&
-		!settings.providers.some((provider) => provider.id === settings.defaultModel?.providerId)
-	) {
-		settings.defaultModel = null
-	}
+	// A reference nobody offers fails every run, so a stale default is repaired here rather
+	// than left for the first prompt to trip over.
+	settings.defaultModel = resolveDefaultModel(settings.providers, settings.defaultModel)
 
 	// Drop tool ids that no longer exist.
 	const knownTools = new Set(BUILT_IN_TOOL_IDS)
@@ -490,13 +484,45 @@ export function getProvider(settings: AppSettings, providerId: string): Provider
 	return settings.providers.find((provider) => provider.id === providerId)
 }
 
-/** The reasoning effort for one model: its own choice, else the shared default. */
-export function thinkingForModel(
-	provider: ProviderSettings,
-	modelId: string,
-	fallback: ThinkingSelection,
-): ThinkingSelection {
-	return provider.modelThinking?.[modelId] ?? fallback
+/** A reference is usable only while its provider exists and still offers that id. */
+function isOfferedModel(providers: ProviderSettings[], ref: ModelRef | null): ref is ModelRef {
+	return (
+		ref !== null &&
+		providers.some((provider) => provider.id === ref.providerId && provider.models.includes(ref.modelId))
+	)
+}
+
+/**
+ * The model new chats start with.
+ *
+ * `requested` is an explicit choice (the provider table's star, or the first model of a
+ * provider just added) and wins whenever it is still offered. Otherwise the current default
+ * survives, so an unrelated edit never moves it. The last resort is the first model of the
+ * first provider that offers any — a chat needs some model, and a reference nobody offers
+ * would fail every run.
+ */
+export function resolveDefaultModel(
+	providers: ProviderSettings[],
+	current: ModelRef | null,
+	requested?: ModelRef | null,
+): ModelRef | null {
+	if (requested && isOfferedModel(providers, requested)) return requested
+	if (isOfferedModel(providers, current)) return current
+	const first = providers.find((provider) => provider.models.length > 0)
+	const modelId = first?.models[0]
+	return first && modelId ? { providerId: first.id, modelId } : null
+}
+
+/**
+ * The effort used when a model carries no choice of its own. There is deliberately no
+ * global setting any more: effort is either this fallback or the model's own entry, and the
+ * composer chip writes that entry.
+ */
+export const DEFAULT_THINKING: ThinkingSelection = { level: 'auto' }
+
+/** The reasoning effort for one model: its own choice, else the shared fallback. */
+export function thinkingForModel(provider: ProviderSettings, modelId: string): ThinkingSelection {
+	return provider.modelThinking?.[modelId] ?? DEFAULT_THINKING
 }
 
 export function describeModel(settings: AppSettings, ref: { providerId: string; modelId: string }): string {

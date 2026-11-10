@@ -59,11 +59,14 @@ export const bootStatusStore = new Store<'loading' | 'ready'>('loading')
 function pageReadable(): { ok: true } | { ok: false; message: string } {
 	const settings = normalizeSettings(settingsStore.get())
 	const ref = conversationStore.get().model ?? settings.defaultModel
-	if (!ref) return { ok: false, message: 'Choose a model in Settings before adding a page.' }
+	if (!ref) return { ok: false, message: 'Add a provider in Settings before adding a page.' }
 
 	const provider = settings.providers.find((entry) => entry.id === ref.providerId)
 	if (!provider) {
-		return { ok: false, message: 'The selected provider was removed. Pick another model in Settings.' }
+		return {
+			ok: false,
+			message: 'The selected provider was removed. Pick another model in the composer.',
+		}
 	}
 
 	if (!hasPageTools(enabledBuiltInTools(settings))) {

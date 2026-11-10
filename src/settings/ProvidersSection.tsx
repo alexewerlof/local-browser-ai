@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CircleAlert, CircleCheck, Plus, RefreshCw } from 'lucide-react'
-import type { AppSettings, ModelDetails, ProviderSettings } from '../core/types'
+import type { AppSettings, ModelDetails, ModelRef, ProviderSettings } from '../core/types'
+import { resolveDefaultModel } from '../core/settings'
 import { createId } from '../core/util'
 import { DEFAULT_BASE_URL } from '../providers/registry'
 import { discoverModels } from '../providers/discovery'
@@ -55,7 +56,12 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 									<span className="provider__label">
 										{provider.label}
 										{settings.defaultModel?.providerId === provider.id && (
-											<span className="badge badge--accent">default</span>
+											<span
+												className="badge badge--accent"
+												title={`New chats start with ${settings.defaultModel.modelId}`}
+											>
+												default
+											</span>
 										)}
 									</span>
 									<span className="provider__meta">
@@ -87,16 +93,13 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 											const providers = current.providers.filter(
 												(entry) => entry.id !== provider.id,
 											)
-											const defaultModel =
-												current.defaultModel?.providerId === provider.id
-													? providers[0]?.models[0]
-														? {
-																providerId: providers[0].id,
-																modelId: providers[0].models[0],
-															}
-														: null
-													: current.defaultModel
-											return { ...current, providers, defaultModel }
+											// A default that lived on this provider is no longer offered, so
+											// the resolver moves it to the first model that is.
+											return {
+												...current,
+												providers,
+												defaultModel: resolveDefaultModel(providers, current.defaultModel),
+											}
 										})
 									}}
 								>
@@ -120,22 +123,26 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 					key={editing.id}
 					provider={editing}
 					isNew={isNew}
+					defaultModel={settings.defaultModel}
 					onCancel={() => setEditing(null)}
-					onSave={(provider) => {
+					onSave={(provider, makeDefaultModelId) => {
 						updateSettings((current) => {
 							const exists = current.providers.some((entry) => entry.id === provider.id)
 							const providers = exists
 								? current.providers.map((entry) => (entry.id === provider.id ? provider : entry))
 								: [...current.providers, provider]
-							// Adding a provider is an intent to use it: make its first model the default.
-							const defaultModel =
-								!exists && provider.models[0]
+							// The star is an explicit choice, and a provider just added is an intent to use
+							// it; anything else leaves the default where the user had it.
+							const requested: ModelRef | null = makeDefaultModelId
+								? { providerId: provider.id, modelId: makeDefaultModelId }
+								: !exists && provider.models[0]
 									? { providerId: provider.id, modelId: provider.models[0] }
-									: (current.defaultModel ??
-										(provider.models[0]
-											? { providerId: provider.id, modelId: provider.models[0] }
-											: null))
-							return { ...current, providers, defaultModel }
+									: null
+							return {
+								...current,
+								providers,
+								defaultModel: resolveDefaultModel(providers, current.defaultModel, requested),
+							}
 						})
 						setEditing(null)
 					}}
@@ -148,15 +155,23 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 function ProviderEditor({
 	provider,
 	isNew,
+	defaultModel,
 	onSave,
 	onCancel,
 }: {
 	provider: ProviderSettings
 	isNew: boolean
-	onSave: (provider: ProviderSettings) => void
+	/** The saved default, which seeds the table's star when it belongs to this provider. */
+	defaultModel: ModelRef | null
+	onSave: (provider: ProviderSettings, makeDefaultModelId: string | null) => void
 	onCancel: () => void
 }) {
 	const [draft, setDraft] = useState<ProviderSettings>(provider)
+	/* The star is a draft like every other field: it only moves the default when the
+	 * provider is saved, so Cancel leaves the app exactly as it was. */
+	const [defaultModelId, setDefaultModelId] = useState<string | null>(() =>
+		defaultModel?.providerId === provider.id ? defaultModel.modelId : null,
+	)
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [granted, setGranted] = useState<boolean | null>(null)
@@ -214,13 +229,18 @@ function ProviderEditor({
 			return
 		}
 		const models = draft.models.map((id) => id.trim()).filter(Boolean)
-		onSave({
-			...draft,
-			label: draft.label.trim() || 'Provider',
-			baseURL: draft.baseURL?.trim(),
-			models: [...new Set(models)],
-			modelDetails: draft.modelDetails ? dedupeDetails(draft.modelDetails) : undefined,
-		})
+		const kept = new Set(models)
+		onSave(
+			{
+				...draft,
+				label: draft.label.trim() || 'Provider',
+				baseURL: draft.baseURL?.trim(),
+				models: [...kept],
+				modelDetails: draft.modelDetails ? dedupeDetails(draft.modelDetails) : undefined,
+			},
+			// A star on a model the save dropped (or one the user retyped) is not a choice.
+			defaultModelId && kept.has(defaultModelId) ? defaultModelId : null,
+		)
 	}
 
 	return (
@@ -325,10 +345,16 @@ function ProviderEditor({
 					<span className="field__label">Models</span>
 					<span className="field__hint">
 						Refresh asks the server what it has. Unticked models stay out of the pickers; a ~ marks a figure
-						the catalog estimated rather than the server’s own.
+						the catalog estimated rather than the server’s own. The star makes a model the default for chats
+						that have not picked one.
 					</span>
 				</span>
-				<ProviderModelTable provider={draft} onChange={patch} />
+				<ProviderModelTable
+					provider={draft}
+					onChange={patch}
+					defaultModelId={defaultModelId}
+					onDefaultModelChange={setDefaultModelId}
+				/>
 			</div>
 
 			<div className="row" style={{ gap: 'var(--space-3)', flexWrap: 'wrap' }}>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, CircleCheck, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, CircleCheck, Plus, Star, Trash2 } from 'lucide-react'
 import type { ModelDetails, ModelModality, ProviderSettings, ThinkingSelection } from '../core/types'
 import { formatTokens } from '../core/util'
 import {
@@ -28,7 +28,8 @@ function ModalityList({ values }: { values: ModelModality[] }) {
 /**
  * The models a provider offers, as a table rather than a textarea. A row carries the
  * facts the `/models` endpoint reported, the Use checkbox that decides whether the
- * pickers offer the model, and a reasoning select per model.
+ * pickers offer the model, a reasoning select per model and the star that makes one of
+ * them the default for new chats.
  *
  * The rows are the union of the ids in `models` and the cached details, so a model the
  * server stopped reporting stays visible until the user removes it. There is no remove
@@ -38,9 +39,14 @@ function ModalityList({ values }: { values: ModelModality[] }) {
 export function ProviderModelTable({
 	provider,
 	onChange,
+	defaultModelId,
+	onDefaultModelChange,
 }: {
 	provider: ProviderSettings
 	onChange: (update: Partial<ProviderSettings>) => void
+	/** The id of this provider's model that is the default, if any. */
+	defaultModelId: string | null
+	onDefaultModelChange: (id: string | null) => void
 }) {
 	const [newModel, setNewModel] = useState('')
 
@@ -50,6 +56,15 @@ export function ProviderModelTable({
 	const setIncluded = (id: string, included: boolean) => {
 		const models = included ? [...provider.models, id] : provider.models.filter((model) => model !== id)
 		onChange({ models: [...new Set(models)] })
+		// A default that is no longer offered would be repaired on the next load anyway; doing
+		// it here means the table shows what will happen.
+		if (!included && defaultModelId === id) onDefaultModelChange(null)
+	}
+
+	const makeDefault = (id: string) => {
+		// Only a ticked model reaches the pickers, so starring one also makes it available.
+		if (!provider.models.includes(id)) onChange({ models: [...provider.models, id] })
+		onDefaultModelChange(id)
 	}
 
 	const remove = (id: string) => {
@@ -57,6 +72,7 @@ export function ProviderModelTable({
 		const modelThinking = { ...(provider.modelThinking ?? {}) }
 		delete modelThinking[id]
 		onChange({ models: provider.models.filter((model) => model !== id), modelDetails, modelThinking })
+		if (defaultModelId === id) onDefaultModelChange(null)
 	}
 
 	const setThinking = (id: string, level: ThinkingSelection['level'] | '') => {
@@ -99,7 +115,9 @@ export function ProviderModelTable({
 									id={id}
 									detail={details.get(id)}
 									included={provider.models.includes(id)}
+									isDefault={defaultModelId === id}
 									onIncludedChange={(included) => setIncluded(id, included)}
+									onDefault={() => makeDefault(id)}
 									onRemove={() => remove(id)}
 									onThinkingChange={(level) => setThinking(id, level)}
 								/>
@@ -140,7 +158,9 @@ function ModelRow({
 	id,
 	detail,
 	included,
+	isDefault,
 	onIncludedChange,
+	onDefault,
 	onRemove,
 	onThinkingChange,
 }: {
@@ -148,7 +168,9 @@ function ModelRow({
 	id: string
 	detail?: ModelDetails
 	included: boolean
+	isDefault: boolean
 	onIncludedChange: (included: boolean) => void
+	onDefault: () => void
 	onRemove: () => void
 	onThinkingChange: (level: ThinkingSelection['level'] | '') => void
 }) {
@@ -180,6 +202,28 @@ function ModelRow({
 						>
 							<CircleCheck size={13} />
 						</span>
+					)}
+					{/* The star is the default marker, so it is always on screen: a state you only see
+					    on hover is a state you cannot check. */}
+					{isDefault ? (
+						<span
+							className="models-table__default models-table__default--on"
+							role="img"
+							aria-label="Default model"
+							title="Default model"
+						>
+							<Star size={13} fill="currentColor" />
+						</span>
+					) : (
+						<button
+							type="button"
+							className="button button--ghost button--icon button--sm models-table__default"
+							title="Make default"
+							aria-label={`Make ${id} the default model`}
+							onClick={onDefault}
+						>
+							<Star size={13} />
+						</button>
 					)}
 					{!detail && (
 						<button

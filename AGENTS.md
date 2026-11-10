@@ -10,7 +10,7 @@ conversations, the context budget, compaction, skills and built-in tools; the pr
 | Layer       | Location           | Responsibility                                                                                                 |
 | ----------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.                        |
-| Settings UI | `src/settings/`    | Full-page providers, models, skills, tools, memory, context and general.                                       |
+| Settings UI | `src/settings/`    | Full-page providers, skills, tools, memory, context, appearance and general.                                   |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction, omnibox prompt. |
 | Providers   | `src/providers/`   | The AI SDK adapter, model catalog (context windows, reasoning), discovery, error mapping.                      |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                                      |
@@ -442,7 +442,7 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   focuses the window, and moves the existing tab to the section instead of opening another one; with no section it keeps
   the section already on screen. A menu that points at Settings uses the `SettingsButton` gear rather than a sentence.
   The section cannot live in the path — Chrome's extension loader resolves a URL path verbatim to a file, so
-  `settings/models` is a 404 — and the fragment is the only part of the URL it leaves alone.
+  `settings/providers` is a 404 — and the fragment is the only part of the URL it leaves alone.
 - Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
   the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`

@@ -326,18 +326,12 @@ export interface ProviderSettings {
 	headers?: Record<string, string>
 	/** Model ids discovered from the provider or entered by hand. */
 	models: string[]
-	/** What the provider reported for its models; the Models table reads it. */
+	/** What the provider reported for its models; the provider table reads it. */
 	modelDetails?: ModelDetails[]
-	/** Reasoning effort chosen per model, overriding `modelDefaults.thinking`. */
+	/** Reasoning effort chosen per model, overriding the shared fallback. */
 	modelThinking?: Record<string, ThinkingSelection>
 	contextWindowOverride?: number
 	maxOutputTokensOverride?: number
-}
-
-export interface ModelDefaults {
-	temperature: number
-	maxOutputTokens?: number
-	thinking: ThinkingSelection
 }
 
 export interface ContextSettings {
@@ -409,10 +403,9 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 11
+	version: 12
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
-	modelDefaults: ModelDefaults
 	context: ContextSettings
 	tools: ToolSettings
 	skills: Skill[]

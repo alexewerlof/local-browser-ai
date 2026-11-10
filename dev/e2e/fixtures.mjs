@@ -8,7 +8,7 @@ export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'remember')
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 11,
+		version: 12,
 		providers: [
 			{
 				id: 'local',
@@ -20,7 +20,6 @@ export function localSettings(endpoint, overrides = {}) {
 			},
 		],
 		defaultModel: { providerId: 'local', modelId: model },
-		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
 		context: {
 			compactionThreshold: 0.75,
 			keepRecentTurns: 4,

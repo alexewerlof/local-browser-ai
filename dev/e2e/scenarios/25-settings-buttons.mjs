@@ -52,10 +52,11 @@ export async function run(ctx) {
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage tools"]').click())
 	assert.deepEqual(result, { created: false, hash: '#tools' })
 
-	// Models: the gear sits beside the search row at the top of the picker.
+	// Providers: the gear sits beside the search row at the top of the picker, because that
+	// is where models and the default are configured.
 	await page.locator('.chip--model').click()
-	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage models"]').click())
-	assert.deepEqual(result, { created: false, hash: '#models' })
+	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage providers"]').click())
+	assert.deepEqual(result, { created: false, hash: '#providers' })
 
 	// The context meter's settings button lands on its own section.
 	await page.locator('.meter').click()

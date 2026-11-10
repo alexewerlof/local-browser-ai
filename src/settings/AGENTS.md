@@ -13,9 +13,11 @@ Local rules:
 - Providers is one kind of endpoint: a local OpenAI-compatible server. "Add provider" opens the editor directly (there
   is no preset chooser), the editor's Base URL asks for the host grant on save, and every configured provider can be
   removed. A store with no provider is normal — the panel then shows "No model is configured yet" and points here.
-- Rail order is fixed: General, Appearance, Providers, Models, Skills, Tools, Memory, Context. General is the landing
-  section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
+- Rail order is fixed: General, Appearance, Providers, Skills, Tools, Memory, Context. General is the landing section. A
+  new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
   `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
+  There is deliberately **no Models section**: the model list, its facts and its reasoning select all live in the
+  provider editor, and the old `#models` fragment is an alias onto `#providers`.
 - Ownership follows the domain, not the page a card happened to start on. General keeps the tool-step cap, Data and
   About; Appearance owns everything about how the app looks and renders (theme, submit key, font size, Math, Code
   highlighting); Context owns the system prompt and compaction, because both are what the assembled prompt is made of.
@@ -73,8 +75,17 @@ Local rules:
   rather than the server's own figure. Only an id the user typed by hand gets a Remove button (on hover) — the server's
   own models cannot be deleted from here, which is what the Use checkbox is for. A loaded preset shows a green check
   with the tooltip `Loaded in the server`, never a word. Per-model reasoning lives in `ProviderSettings.modelThinking`
-  and falls back to `modelDefaults.thinking` through `thinkingForModel`. Nothing in the table is inferred from an id:
-  `Refresh` only seeds `models` while that list is still empty, and afterwards the ticks are the user's.
+  and falls back to `DEFAULT_THINKING` (`auto`) through `thinkingForModel`; the composer chip writes that entry, so
+  there is no global reasoning setting. Nothing in the table is inferred from an id: `Refresh` only seeds `models` while
+  that list is still empty, and afterwards the ticks are the user's.
+- **The default model is a star in that table**, not a separate selector: filled `Star` (`--accent`, `role="img"`,
+  `aria-label="Default model"`) on the default row, a ghost button `Make {id} the default model` on every other.
+  Starring also ticks **Use**, because only a ticked model reaches the pickers, and unticking or removing the starred
+  row clears the local star. The star is draft state in `ProviderEditor` (`defaultModelId`), so it only moves
+  `settings.defaultModel` on Save — Cancel leaves it alone. Every write goes through
+  `resolveDefaultModel(providers, current, requested)` in `src/core/settings.ts`, which keeps the current default unless
+  it is no longer offered, so removing a provider or an id re-defaults instead of leaving a reference that would fail
+  every run. The composer's model picker is **per chat** and never writes the default.
 - **Site access belongs to the Base URL, not to the model list.** The Base URL row is a stacked `.field` holding
   `.url-row` (input + `Check site access`) and, underneath, the answer (`Host access granted.` or
   `Chrome has not granted access to {host}.` with `Grant host access`). `Refresh` sits alone under the table. The row is

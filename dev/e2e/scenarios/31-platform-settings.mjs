@@ -12,11 +12,11 @@ export async function run(ctx) {
 	await ctx.openSettings({ settings: localSettings('http://127.0.0.1:1/v1') })
 	const { page } = ctx
 
-	assert.equal(await page.locator('.settings__nav-item').count(), 8)
+	assert.equal(await page.locator('.settings__nav-item').count(), 7)
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'General')
 
 	// The two leaving rows are the last items of the menu, right after the divider. The rail is
-	// brand + eight sections + divider + two rows, so the divider is third from the end.
+	// brand + seven sections + divider + two rows, so the divider is third from the end.
 	assert.equal(await page.locator('.settings__nav-action').count(), 2)
 	assert.equal(await page.locator('.settings__nav > :nth-last-child(3)').getAttribute('class'), 'settings__divider')
 

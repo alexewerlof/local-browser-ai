@@ -22,7 +22,7 @@ import {
 import { addPageBusyStore, addPageErrorStore } from '../state/composer'
 import { addCurrentPage, allowPageAccess, bootStatusStore, cancelPageAccess, pageAccessStore } from '../state/bootstrap'
 import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
-import { settingsStore, updateSettings } from '../state/settings'
+import { settingsStore } from '../state/settings'
 import { openSettings } from '../platform/chrome'
 import { focusPage, activeTabStore } from '../state/browser'
 import { pagesStore, isPageReference, removePage } from '../state/pages'
@@ -79,7 +79,7 @@ export function App() {
 					<TriangleAlert size={14} />
 					<span>No model is configured yet. Add a provider to get started.</span>
 					<span className="spacer" />
-					<button type="button" className="button button--sm" onClick={() => void openSettings('models')}>
+					<button type="button" className="button button--sm" onClick={() => void openSettings('providers')}>
 						Set up a model
 					</button>
 				</div>
@@ -203,8 +203,9 @@ export function App() {
 				onRemovePage={(page) => void removePage(page)}
 				onCompact={() => void compactNow()}
 				onModelChange={(ref) => {
+					// The picker is about this chat. The default for new chats is the star in
+					// Settings → Providers, so switching models here must not move it.
 					setModel(ref)
-					updateSettings((current) => ({ ...current, defaultModel: ref }))
 				}}
 			/>
 

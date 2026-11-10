@@ -34,6 +34,10 @@ export async function run(ctx) {
 
 		// Usage reporting is requested for streaming responses.
 		assert.equal(body.stream_options?.include_usage, true)
+
+		// No temperature: the server's own default is the only one in play, so the field is
+		// left out of the body rather than sent as a number nobody chose.
+		assert.equal('temperature' in body, false)
 	} finally {
 		await server.close()
 	}

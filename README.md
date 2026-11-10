@@ -7,7 +7,8 @@ or anything else that serves an OpenAI-compatible API.
 ## What it does
 
 - **One engine, any server.** Every model is a local OpenAI-compatible endpoint, reached over the Vercel AI SDK. Add as
-  many servers as you like and switch models per chat; nothing leaves your machine.
+  many servers as you like and switch models per chat; nothing leaves your machine. A new chat starts with the model you
+  were just using, or with the one starred as the default.
 - **Several pages in one chat.** Right-click any page and choose **Add to chat**; with text selected, the same item also
   quotes the passage and brings its page along. Add as many as you need and they stay side by side: compare a product
   across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
@@ -66,6 +67,10 @@ the provider or fetch its models — one prompt per host, and the grant covers e
 usually do not report a context window, so set an override — the default is 8k and the meter and compaction depend on
 it. If the server wants a key, put it in the provider; it is stored in `chrome.storage.local`, never synced, and only
 sent to that endpoint.
+
+Everything about a model lives in the provider editor: the facts the server reported, whether the pickers offer it, its
+reasoning effort, and the star that makes it the default for a new chat. There is no separate model page, and the model
+picker in the composer only switches the chat you are in.
 
 ## How pages reach the model
 

@@ -23,6 +23,11 @@ describe('parseSettingsHash', () => {
 		expect(parseSettingsHash('#/skills')).toBe(DEFAULT_SETTINGS_SECTION)
 		expect(parseSettingsHash('#Skills/')).toBe(DEFAULT_SETTINGS_SECTION)
 	})
+
+	it('lands a retired section on the one that absorbed it', () => {
+		expect(parseSettingsHash('#models')).toBe('providers')
+		expect(parseSettingsHash('#mcp')).toBe('tools')
+	})
 })
 
 describe('settingsSectionHash', () => {
