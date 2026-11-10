@@ -36,6 +36,13 @@ import { ThinkingMenu } from './ThinkingMenu'
 import { useStore } from '../useStore'
 import type { TabInfo } from '../../browser/protocol'
 
+/**
+ * The controls inside the box that own their click. Everything else within the border is
+ * prompt chrome, so clicking it hands focus to the textarea (see `focusPrompt`).
+ */
+const BOX_CONTROL_SELECTOR =
+	'button, a, input, select, textarea, [contenteditable="true"], [role="button"], .popover, .slash'
+
 export function Composer({
 	settings,
 	conversation,
@@ -176,6 +183,26 @@ export function Composer({
 		submit()
 	}
 
+	/**
+	 * The border is the prompt editor, so a click on its own chrome — the space beside the
+	 * topbar buttons, the gap after the last chip — focuses the textarea. Clicking a
+	 * non-focusable element would otherwise drop the caret to <body>, which is why only the
+	 * text itself used to work. A control keeps its own click; the popover and the slash
+	 * menu are excluded because their padding is menu surface, not prompt chrome.
+	 */
+	const focusPrompt = (event: React.MouseEvent<HTMLDivElement>) => {
+		if (event.button !== 0 || event.defaultPrevented) return
+		if ((event.target as HTMLElement).closest(BOX_CONTROL_SELECTOR)) return
+		// Keep focus where it is instead of letting it fall to <body> and back.
+		event.preventDefault()
+		const textarea = textareaRef.current
+		if (!textarea || document.activeElement === textarea) return
+		textarea.focus()
+		// The click was not about placing the caret, so put it after the existing text.
+		const end = textarea.value.length
+		textarea.setSelectionRange(end, end)
+	}
+
 	const applySkill = (skillId: string) => {
 		const skill = settings.skills.find((entry) => entry.id === skillId)
 		if (!skill) return
@@ -242,7 +269,7 @@ export function Composer({
 
 			{pagesOpen && pages.length > 0 && <PageList pages={pages} onOpen={onOpenPage} onRemove={onRemovePage} />}
 
-			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`}>
+			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`} onMouseDown={focusPrompt}>
 				<div className="composer__topbar">
 					<button
 						type="button"

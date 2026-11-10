@@ -914,7 +914,9 @@
 
 /* One gutter on all four sides, and the box owns it: the topbar and the toolbar carry no
    padding of their own, so the buttons above and the chips below sit the same distance
-   from the border. */
+   from the border. The box is the prompt editor, not a frame around it: empty space
+   anywhere inside the border focuses the textarea (see `focusPrompt` in Composer.tsx), so
+   the cursor says text there and the controls below restore the pointer. */
 .composer__box {
 	position: relative;
 	display: flex;
@@ -923,6 +925,7 @@
 	border-radius: var(--radius-lg);
 	background: var(--bg-raised);
 	padding: var(--space-2);
+	cursor: text;
 	transition: border-color var(--duration-fast);
 }
 
@@ -1224,6 +1227,8 @@
 	background: var(--bg-raised);
 	box-shadow: var(--shadow-md);
 	font-size: var(--text-sm);
+	/* A menu is not the prompt: no caret cursor over its own padding. */
+	cursor: default;
 }
 
 .popover--end {
@@ -1583,6 +1588,8 @@
 	background: var(--bg-raised);
 	box-shadow: var(--shadow-md);
 	z-index: 20;
+	/* Same as a popover: menu surface, not prompt chrome. */
+	cursor: default;
 }
 
 .slash__item {

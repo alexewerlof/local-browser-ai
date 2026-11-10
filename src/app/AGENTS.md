@@ -23,6 +23,11 @@ Local rules:
   the toolbar add no `padding-inline` of their own, which is what keeps the buttons above and the chips below the same
   distance from the border. Every control in those two rows is 24px (`.button--sm`, `.chip`): a chip must never be
   taller than its neighbours, so a count inside one is a bare `.chip__count`, never the bordered `.badge` atom.
+- The border is the prompt editor, so a click anywhere inside it focuses the textarea (`focusPrompt` in `Composer.tsx`,
+  guarded by `BOX_CONTROL_SELECTOR`): the empty topbar gap and the space after the last chip would otherwise drop the
+  caret to `<body>`. A control inside the box keeps its own click, and `.popover`/`.slash` are excluded because their
+  padding is menu surface. `.composer__box` carries `cursor: text` for the same reason, which both menus reset to
+  `default`; the caret goes after the existing text, since the click was not about placing it.
 - The model chip opens `ModelPicker` with `align="fill"`: the menu spans `.composer__box` (the anchor goes static, so
   the box is its containing block) instead of hanging off the chip, because a row carries a model's facts and a 320px
   menu was clipping its right edge on the panel. A row is two lines: the id, the `context / max output` figures and the
