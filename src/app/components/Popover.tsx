@@ -1,6 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 
-/** Anchored popover that closes on outside click or Escape. */
+/**
+ * Anchored popover that closes on outside click or Escape.
+ *
+ * `align: 'fill'` stretches the panel across the nearest positioned ancestor instead of
+ * hanging off its trigger — for a menu whose content needs the whole panel width. The
+ * anchor then goes static so that ancestor (the composer box) is the containing block, and
+ * `width` is ignored because the CSS fills both edges.
+ */
 export function Popover({
 	open,
 	onClose,
@@ -13,10 +20,11 @@ export function Popover({
 	onClose: () => void
 	trigger: ReactNode
 	children: ReactNode
-	align?: 'start' | 'end'
+	align?: 'start' | 'end' | 'fill'
 	width?: number
 }) {
 	const anchorRef = useRef<HTMLDivElement>(null)
+	const fill = align === 'fill'
 
 	useEffect(() => {
 		if (!open) return
@@ -36,10 +44,10 @@ export function Popover({
 	}, [open, onClose])
 
 	return (
-		<div className="popover-anchor" ref={anchorRef}>
+		<div className={fill ? 'popover-anchor popover-anchor--fill' : 'popover-anchor'} ref={anchorRef}>
 			{trigger}
 			{open && (
-				<div className={`popover popover--${align}`} style={{ width }}>
+				<div className={`popover popover--${align}`} style={fill ? undefined : { width }}>
 					{children}
 				</div>
 			)}

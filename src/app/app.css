@@ -1223,6 +1223,20 @@
 	right: 0;
 }
 
+/* Fills its container instead of hanging off the trigger, for a menu whose rows carry more
+   than one name. The anchor goes static so the nearest positioned ancestor — the composer
+   box — is the containing block, and both edges are pinned with a gutter inside its border
+   so the panel still reads as a popover and not as a second composer. */
+.popover-anchor--fill {
+	position: static;
+}
+
+.popover--fill {
+	left: var(--space-3);
+	right: var(--space-3);
+	width: auto;
+}
+
 /* Search row, with its settings gear on the trailing edge. */
 .popover__header {
 	display: flex;
@@ -1315,6 +1329,88 @@
 	font-size: var(--text-xs);
 	color: var(--fg-faint);
 	white-space: normal;
+}
+
+/* A model row carries the model's facts, not just its id: the id and the token figures on
+   the first line, the modalities and reasoning support on the second. The facts line is
+   always rendered, so rows keep one height whether or not the server reported anything. */
+.popover__item--model {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-1);
+	padding: var(--space-3);
+}
+
+.popover__item-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+}
+
+.popover__item-row > svg {
+	flex: none;
+}
+
+.popover__item-token {
+	flex: none;
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	color: var(--fg-muted);
+}
+
+.popover__item-facts {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	min-height: 16px;
+	font-size: var(--text-xs);
+	color: var(--fg-muted);
+}
+
+.popover__item-modalities {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	min-width: 0;
+}
+
+.popover__item-modality {
+	display: inline-flex;
+	flex: none;
+}
+
+.popover__item-arrow {
+	flex: none;
+	margin: 0 var(--space-1);
+	color: var(--fg-faint);
+}
+
+.popover__item-muted {
+	color: var(--fg-faint);
+}
+
+/* Capability, not a setting: the picker cannot change the effort, so the chip only says the
+   model reasons. On the selected row it takes the popover's own surface, because the row
+   already carries the accent tint. */
+.popover__item-reasoning {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: var(--space-1);
+	min-height: 16px;
+	padding: 0 var(--space-2);
+	border-radius: var(--radius-pill);
+	background: var(--accent-soft);
+	color: var(--accent-strong);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.popover__item--selected .popover__item-reasoning {
+	background: var(--bg-raised);
 }
 
 /* --------------------------------------------------------------- tools tree */

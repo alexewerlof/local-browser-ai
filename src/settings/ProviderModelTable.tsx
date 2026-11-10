@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { AudioLines, ChevronDown, CircleCheck, Image as ImageIcon, Plus, Trash2, Type, Video } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ChevronDown, CircleCheck, Plus, Trash2 } from 'lucide-react'
 import type { ModelDetails, ModelModality, ProviderSettings, ThinkingSelection } from '../core/types'
 import { formatTokens } from '../core/util'
 import {
@@ -12,28 +11,16 @@ import {
 	thinkingOptions,
 } from '../providers/catalog'
 import { Checkbox } from '../app/components/Checkbox'
-
-/** One glyph per modality: the column is narrow enough that a word would not fit. */
-const MODALITY_ICONS: Record<ModelModality, { icon: LucideIcon; label: string }> = {
-	text: { icon: Type, label: 'text' },
-	image: { icon: ImageIcon, label: 'image' },
-	audio: { icon: AudioLines, label: 'audio' },
-	video: { icon: Video, label: 'video' },
-}
+import { ModalityIcon } from '../app/components/ModalityIcon'
 
 /** The modalities of one direction. Each icon is named in its tooltip and its aria-label. */
 function ModalityList({ values }: { values: ModelModality[] }) {
 	if (values.length === 0) return <span className="models-table__muted">—</span>
 	return (
 		<span className="models-table__modalities">
-			{values.map((value) => {
-				const { icon: Icon, label } = MODALITY_ICONS[value]
-				return (
-					<span key={value} className="models-table__modality" role="img" aria-label={label} title={label}>
-						<Icon size={14} />
-					</span>
-				)
-			})}
+			{values.map((value) => (
+				<ModalityIcon key={value} modality={value} className="models-table__modality" />
+			))}
 		</span>
 	)
 }

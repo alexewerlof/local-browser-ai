@@ -45,7 +45,8 @@ export function getModelInfo(modelId: string): ModelInfo {
 	return { id: modelId, label, ...pattern.info }
 }
 
-function detailsFor(provider: ProviderSettings, modelId: string): ModelDetails | undefined {
+/** What the provider's `/models` endpoint reported about one model, if anything. */
+export function modelDetailsFor(provider: ProviderSettings, modelId: string): ModelDetails | undefined {
 	return provider.modelDetails?.find((model) => model.id === modelId)
 }
 
@@ -57,7 +58,7 @@ function detailsFor(provider: ProviderSettings, modelId: string): ModelDetails |
 export function modelContextWindow(provider: ProviderSettings, modelId: string): number {
 	return (
 		provider.contextWindowOverride ??
-		detailsFor(provider, modelId)?.contextWindow ??
+		modelDetailsFor(provider, modelId)?.contextWindow ??
 		getModelInfo(modelId).contextWindow
 	)
 }
@@ -66,20 +67,23 @@ export function modelContextWindow(provider: ProviderSettings, modelId: string):
 export function modelMaxOutputTokens(provider: ProviderSettings, modelId: string): number {
 	return (
 		provider.maxOutputTokensOverride ??
-		detailsFor(provider, modelId)?.maxOutputTokens ??
+		modelDetailsFor(provider, modelId)?.maxOutputTokens ??
 		getModelInfo(modelId).maxOutputTokens
 	)
 }
 
 /** True when the window came from the catalog rather than the server or an override. */
 export function isContextWindowEstimated(provider: ProviderSettings, modelId: string): boolean {
-	return provider.contextWindowOverride === undefined && detailsFor(provider, modelId)?.contextWindow === undefined
+	return (
+		provider.contextWindowOverride === undefined && modelDetailsFor(provider, modelId)?.contextWindow === undefined
+	)
 }
 
 /** True when the output cap came from the catalog rather than the server or an override. */
 export function isMaxOutputEstimated(provider: ProviderSettings, modelId: string): boolean {
 	return (
-		provider.maxOutputTokensOverride === undefined && detailsFor(provider, modelId)?.maxOutputTokens === undefined
+		provider.maxOutputTokensOverride === undefined &&
+		modelDetailsFor(provider, modelId)?.maxOutputTokens === undefined
 	)
 }
 

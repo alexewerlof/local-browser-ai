@@ -1,10 +1,75 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Sparkles } from 'lucide-react'
-import type { AppSettings, ModelRef } from '../../core/types'
-import { modelContextWindow } from '../../providers/catalog'
+import { ArrowRight, Check, ChevronDown, MessageCircleMore, Sparkles } from 'lucide-react'
+import type { AppSettings, ModelModality, ModelRef } from '../../core/types'
+import {
+	getModelInfo,
+	isContextWindowEstimated,
+	isMaxOutputEstimated,
+	modelContextWindow,
+	modelDetailsFor,
+	modelMaxOutputTokens,
+} from '../../providers/catalog'
 import { formatTokens } from '../../core/util'
+import { ModalityIcon, MODALITY_ICONS } from './ModalityIcon'
 import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
+
+/** A token figure with the catalog's estimate mark, the same one the Settings table uses. */
+function estimatedTokens(tokens: number, estimated: boolean): string {
+	return `${estimated ? '~' : ''}${formatTokens(tokens)}`
+}
+
+/** The figures named in full, and the catalog's guess called a guess. */
+function tokenTitle(context: string, output: string, estimated: boolean): string {
+	const figures = `Context ${context} · Max output ${output}`
+	if (!estimated) return figures
+	return `${figures}. Estimated from the model catalog. Refresh for the server’s own figure.`
+}
+
+/** “Input: text, image · Output: text” — one sentence for the glyphs, read by a screen reader. */
+function describeModalities(input: ModelModality[], output: ModelModality[]): string {
+	const side = (values: ModelModality[]) => values.map((value) => MODALITY_ICONS[value].label).join(', ')
+	return `Input: ${input.length > 0 ? side(input) : 'none'} · Output: ${output.length > 0 ? side(output) : 'none'}`
+}
+
+/**
+ * The input and output modalities, one glyph each with the direction between them. A model
+ * whose server reported nothing shows the dash Settings shows, so a row never guesses.
+ */
+function ModalityPair({ input, output }: { input: ModelModality[]; output: ModelModality[] }) {
+	if (input.length === 0 && output.length === 0) {
+		return (
+			<span className="popover__item-muted" title="The server reported no modalities">
+				—
+			</span>
+		)
+	}
+
+	const label = describeModalities(input, output)
+	return (
+		<span className="popover__item-modalities" role="img" aria-label={label} title={label}>
+			{input.map((modality) => (
+				<ModalityIcon
+					key={modality}
+					modality={modality}
+					size={12}
+					labelled={false}
+					className="popover__item-modality"
+				/>
+			))}
+			<ArrowRight className="popover__item-arrow" size={11} />
+			{output.map((modality) => (
+				<ModalityIcon
+					key={modality}
+					modality={modality}
+					size={12}
+					labelled={false}
+					className="popover__item-modality"
+				/>
+			))}
+		</span>
+	)
+}
 
 export function ModelPicker({
 	settings,
@@ -30,10 +95,18 @@ export function ModelPicker({
 							modelId.toLowerCase().includes(needle) ||
 							provider.label.toLowerCase().includes(needle),
 					)
-					.map((modelId) => ({
-						modelId,
-						contextWindow: modelContextWindow(provider, modelId),
-					})),
+					.map((modelId) => {
+						const details = modelDetailsFor(provider, modelId)
+						return {
+							modelId,
+							details,
+							contextWindow: modelContextWindow(provider, modelId),
+							contextEstimated: isContextWindowEstimated(provider, modelId),
+							maxOutputTokens: modelMaxOutputTokens(provider, modelId),
+							maxOutputEstimated: isMaxOutputEstimated(provider, modelId),
+							reasoning: getModelInfo(modelId).reasoning,
+						}
+					}),
 			}))
 			.filter((group) => group.models.length > 0)
 	}, [settings.providers, query])
@@ -44,8 +117,7 @@ export function ModelPicker({
 		<Popover
 			open={open}
 			onClose={() => setOpen(false)}
-			width={320}
-			align="start"
+			align="fill"
 			trigger={
 				<button
 					type="button"
@@ -74,24 +146,65 @@ export function ModelPicker({
 				{groups.map(({ provider, models }) => (
 					<div key={provider.id} className="popover__group">
 						<div className="popover__group-label">{provider.label}</div>
-						{models.map(({ modelId, contextWindow }) => {
-							const selected = current?.providerId === provider.id && current.modelId === modelId
-							return (
-								<button
-									key={`${provider.id}:${modelId}`}
-									type="button"
-									className={`popover__item${selected ? ' popover__item--selected' : ''}`}
-									onClick={() => {
-										onSelect({ providerId: provider.id, modelId })
-										setOpen(false)
-									}}
-								>
-									<span className="popover__item-main">{modelId}</span>
-									<span className="badge">{formatTokens(contextWindow)}</span>
-									{selected && <Check size={13} />}
-								</button>
-							)
-						})}
+						{models.map(
+							({
+								modelId,
+								details,
+								contextWindow,
+								contextEstimated,
+								maxOutputTokens,
+								maxOutputEstimated,
+								reasoning,
+							}) => {
+								const selected = current?.providerId === provider.id && current.modelId === modelId
+								const context = estimatedTokens(contextWindow, contextEstimated)
+								const output = estimatedTokens(maxOutputTokens, maxOutputEstimated)
+
+								return (
+									<button
+										key={`${provider.id}:${modelId}`}
+										type="button"
+										className={`popover__item popover__item--model${selected ? ' popover__item--selected' : ''}`}
+										onClick={() => {
+											onSelect({ providerId: provider.id, modelId })
+											setOpen(false)
+										}}
+									>
+										<span className="popover__item-row">
+											<span className="popover__item-main" title={modelId}>
+												{modelId}
+											</span>
+											<span
+												className="popover__item-token"
+												title={tokenTitle(
+													context,
+													output,
+													contextEstimated || maxOutputEstimated,
+												)}
+											>
+												{context} / {output}
+											</span>
+											{selected && <Check size={13} />}
+										</span>
+										<span className="popover__item-facts">
+											<ModalityPair
+												input={details?.inputModalities ?? []}
+												output={details?.outputModalities ?? []}
+											/>
+											{reasoning && (
+												<span
+													className="popover__item-reasoning"
+													title="This model has a reasoning effort"
+												>
+													<MessageCircleMore size={12} />
+													Reasoning
+												</span>
+											)}
+										</span>
+									</button>
+								)
+							},
+						)}
 					</div>
 				))}
 			</div>

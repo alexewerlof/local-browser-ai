@@ -102,9 +102,9 @@ models:
     model: one model id reachable through a provider; code ModelRef, modelId, ModelInfo, getModelInfo; ui Model, Models, Change model, Search models; not engine, llm
     model-reference: the provider/model pair a chat or the default uses; code ModelRef, providerId, Conversation.model, settings.defaultModel; not model selection, model choice
     model-catalog: the static facts about known model ids; code catalog.ts, PROVIDER_DEFAULTS, getModelInfo; ui context N, max out N, tools, reasoning; not catalog, registry
-    model-details: what a provider's /models endpoint reported about one of its models; code ModelDetails, discoverModels, parseModelEntry, ProviderSettings.modelDetails, modelContextWindow; ui Model, Type, Modalities, Context, Max output; not metadata, properties, model info
+    model-details: what a provider's /models endpoint reported about one of its models; code ModelDetails, discoverModels, parseModelEntry, ProviderSettings.modelDetails, modelDetailsFor, modelContextWindow; ui Model, Type, Modalities, Context, Max output; not metadata, properties, model info
     model-type: what kind of model an id names; code ModelType, classifyModel, chat, embedding, speech, image, classifier, rerank; ui Chat, Embedding, Speech, Image, Classifier, Rerank; not category, kind
-    modality: the content a model accepts or produces; code ModelModality, inputModalities, outputModalities; ui text, image, audio, video; not content type, media type
+    modality: the content a model accepts or produces; code ModelModality, inputModalities, outputModalities, ModalityIcon, MODALITY_ICONS; ui text, image, audio, video; not content type, media type
     model-table: the table of models inside the provider editor; code ProviderModelTable, models-table, models__add; ui Use, Refresh, Add model, Loaded in the server, ~32k; not model list, model textarea
     default-model: the model reference new chats start with; code settings.defaultModel; ui Default model, Provider, Model; not fallback model, primary model
 
@@ -157,8 +157,8 @@ ui:
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
-            popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item; not dropdown, menu, modal, dialog
-            model-picker: the popover listing models by provider, with search; code ModelPicker, popover__header; ui Search models, No models. Add a provider in Settings., Manage models; not model menu, provider picker
+            popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--fill; not dropdown, menu, modal, dialog
+            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage models, Reasoning, Context, Max output; not model menu, provider picker, model table
             slash-menu: the inline skill list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
