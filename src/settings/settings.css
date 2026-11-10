@@ -549,7 +549,7 @@ body {
 
 .models-table {
 	width: 100%;
-	/* The fixed columns below add up to 408px; the rest is the model column, which is where
+	/* The fixed columns below add up to 424px; the rest is the model column, which is where
 	 * the id, its loaded marker and the default star live. Without a floor, a panel-width
 	 * window gives that column zero pixels and the ids disappear. */
 	min-width: 520px;
@@ -583,7 +583,8 @@ body {
 /* Fixed widths let the model id take whatever space is left and wrap instead of
  * pushing the numeric columns off the card. */
 .models-table__col-use {
-	width: 28px;
+	/* The Use switch is 26px wide; the cell's own inline padding is the rest. */
+	width: 44px;
 }
 
 .models-table__col-type {

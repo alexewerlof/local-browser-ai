@@ -69,9 +69,9 @@ export async function run(ctx) {
 		'beta-model',
 	)
 
-	// Unticking the default and saving re-defaults, instead of leaving a reference no picker offers.
+	// Switching the default off and saving re-defaults, instead of leaving a reference no picker offers.
 	editor = await openEditor()
-	await editor.locator('input[aria-label="Use beta-model"]').click()
+	await editor.locator('button[aria-label="Use beta-model"]').click()
 	await editor.locator('button:has-text("Save provider")').click()
 	await settingsPage.waitForFunction(
 		() => window.__LB_AI_TEST__.currentSettings()?.defaultModel?.modelId === 'alpha-model',

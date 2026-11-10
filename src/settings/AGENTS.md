@@ -68,21 +68,21 @@ Local rules:
 - Editing a list item happens **in place**, not in a second card under the list: `ToolsSection` replaces that server's
   card with `McpServerEditor` and appends the editor for a new one, so the form is a `.mcp-editor` child of the card.
   Prefer this for any future list editor; `SkillsSection` and `MemorySection` still open a separate card.
-- A provider's models are a **table** (`ProviderModelTable`), not a textarea: one row per id with a **Use** checkbox,
+- A provider's models are a **table** (`ProviderModelTable`), not a textarea: one row per id with a **Use** switch,
   `input` and `output` modality glyphs (`ModalityIcon`, shared with the model picker), context, max output and a
   per-model **Reasoning** select. `Refresh` writes `models` (the chat ids the pickers offer) and `modelDetails` (what
-  the server reported); an unticked model stays in the table but out of the pickers. A `~` marks a catalog estimate
-  rather than the server's own figure. Only an id the user typed by hand gets a Remove button (on hover) — the server's
-  own models cannot be deleted from here, which is what the Use checkbox is for. A loaded preset shows a green check
-  with the tooltip `Loaded in the server`, never a word. Per-model reasoning lives in `ProviderSettings.modelThinking`
-  and falls back to `DEFAULT_THINKING` (`auto`) through `thinkingForModel`; the composer chip writes that entry, so
-  there is no global reasoning setting. Nothing in the table is inferred from an id: `Refresh` only seeds `models` while
-  that list is still empty, and afterwards the ticks are the user's.
+  the server reported); a model with Use switched off stays in the table but out of the pickers. A `~` marks a catalog
+  estimate rather than the server's own figure. Only an id the user typed by hand gets a Remove button (on hover) — the
+  server's own models cannot be deleted from here, which is what the Use switch is for. A loaded preset shows a green
+  check with the tooltip `Loaded in the server`, never a word. Per-model reasoning lives in
+  `ProviderSettings.modelThinking` and falls back to `DEFAULT_THINKING` (`auto`) through `thinkingForModel`; the
+  composer chip writes that entry, so there is no global reasoning setting. Nothing in the table is inferred from an id:
+  `Refresh` only seeds `models` while that list is still empty, and afterwards the ticks are the user's.
 - **The default model is a star in that table**, not a separate selector: filled `Star` (`--accent`, `role="img"`,
   `aria-label="Default model"`) on the default row, a ghost button `Make {id} the default model` on every other.
-  Starring also ticks **Use**, because only a ticked model reaches the pickers, and unticking or removing the starred
-  row clears the local star. The star is draft state in `ProviderEditor` (`defaultModelId`), so it only moves
-  `settings.defaultModel` on Save — Cancel leaves it alone. Every write goes through
+  Starring also switches **Use** on, because only a model in use reaches the pickers, and switching Use off or removing
+  the starred row clears the local star. The star is draft state in `ProviderEditor` (`defaultModelId`), so it only
+  moves `settings.defaultModel` on Save — Cancel leaves it alone. Every write goes through
   `resolveDefaultModel(providers, current, requested)` in `src/core/settings.ts`, which keeps the current default unless
   it is no longer offered, so removing a provider or an id re-defaults instead of leaving a reference that would fail
   every run. The composer's model picker is **per chat** and never writes the default.

@@ -344,9 +344,9 @@ function ProviderEditor({
 				<span className="field__text">
 					<span className="field__label">Models</span>
 					<span className="field__hint">
-						Refresh asks the server what it has. Unticked models stay out of the pickers; a ~ marks a figure
-						the catalog estimated rather than the server’s own. The star makes a model the default for chats
-						that have not picked one.
+						Refresh asks the server what it has. A model with Use switched off stays out of the pickers; a ~
+						marks a figure the catalog estimated rather than the server’s own. The star makes a model the
+						default for chats that have not picked one.
 					</span>
 				</span>
 				<ProviderModelTable

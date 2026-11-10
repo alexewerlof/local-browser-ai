@@ -10,8 +10,8 @@ import {
 	modelMaxOutputTokens,
 	thinkingOptions,
 } from '../providers/catalog'
-import { Checkbox } from '../app/components/Checkbox'
 import { ModalityIcon } from '../app/components/ModalityIcon'
+import { Switch } from './fields'
 
 /** The modalities of one direction. Each icon is named in its tooltip and its aria-label. */
 function ModalityList({ values }: { values: ModelModality[] }) {
@@ -27,14 +27,14 @@ function ModalityList({ values }: { values: ModelModality[] }) {
 
 /**
  * The models a provider offers, as a table rather than a textarea. A row carries the
- * facts the `/models` endpoint reported, the Use checkbox that decides whether the
+ * facts the `/models` endpoint reported, the Use switch that decides whether the
  * pickers offer the model, a reasoning select per model and the star that makes one of
  * them the default for new chats.
  *
  * The rows are the union of the ids in `models` and the cached details, so a model the
  * server stopped reporting stays visible until the user removes it. There is no remove
  * button for a model the server reports — those are the server's, not the extension's;
- * unticking **Use** is what keeps one out of the pickers.
+ * switching **Use** off is what keeps one out of the pickers.
  */
 export function ProviderModelTable({
 	provider,
@@ -184,7 +184,7 @@ function ModelRow({
 	return (
 		<tr>
 			<td className="models-table__col-use">
-				<Checkbox label={`Use ${id}`} checked={included} onChange={onIncludedChange} />
+				<Switch label={`Use ${id}`} checked={included} onChange={onIncludedChange} />
 			</td>
 			{/* The id is the fact; the label is only a friendlier name for the same row. A long
 			    id is ellipsised by CSS, and the title carries it in full. */}
