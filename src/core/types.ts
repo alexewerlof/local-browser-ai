@@ -1,7 +1,5 @@
 /** Domain model shared by the side panel, the Settings page and the background worker. */
 
-export type ProviderKind = 'prompt-api' | 'openai' | 'anthropic' | 'deepseek' | 'openai-compatible'
-
 export interface ModelRef {
 	providerId: string
 	modelId: string
@@ -295,9 +293,7 @@ export interface MemorySettings {
 
 export interface ThinkingSelection {
 	/** 'off' disables reasoning output; 'auto' lets the provider decide. */
-	level: 'off' | 'auto' | 'low' | 'medium' | 'high' | 'custom'
-	/** Only used with level === 'custom'; interpreted as a token budget. */
-	tokens?: number
+	level: 'off' | 'auto' | 'low' | 'medium' | 'high'
 }
 
 /** Content a model accepts or produces. */
@@ -324,7 +320,6 @@ export interface ModelDetails {
 
 export interface ProviderSettings {
 	id: string
-	kind: ProviderKind
 	label: string
 	baseURL?: string
 	apiKey?: string
@@ -414,7 +409,7 @@ export interface RenderingSettings {
 }
 
 export interface AppSettings {
-	version: 10
+	version: 11
 	providers: ProviderSettings[]
 	defaultModel: ModelRef | null
 	modelDefaults: ModelDefaults
@@ -428,13 +423,6 @@ export interface AppSettings {
 }
 
 /* --------------------------------------------------------------- capabilities */
-
-export interface ModelCapabilities {
-	tools: boolean
-	reasoning: boolean
-	vision: boolean
-	streaming: boolean
-}
 
 export interface ThinkingOption {
 	value: ThinkingSelection['level']

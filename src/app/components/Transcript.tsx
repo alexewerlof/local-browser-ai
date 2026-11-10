@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Download, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import type { AppSettings, Conversation, PageSnapshot } from '../../core/types'
 import { setDraft } from '../../state/composer'
-import { preparePromptModel, downloadProgressStore, promptStatusStore } from '../../state/prompt'
-import { useStore } from '../useStore'
 import { EXAMPLE_PROMPTS } from '../examples'
 import { MessageItem, StreamingStats } from './MessageItem'
 import type { RunState } from '../../state/chat'
@@ -82,10 +80,6 @@ export function Transcript({
 }
 
 function EmptyState({ hasPages }: { hasPages: boolean }) {
-	const promptStatus = useStore(promptStatusStore)
-	const downloadProgress = useStore(downloadProgressStore)
-	const needsDownload = promptStatus?.availability === 'downloadable'
-
 	return (
 		<div className="empty">
 			<div className="empty__mark">
@@ -97,30 +91,6 @@ function EmptyState({ hasPages }: { hasPages: boolean }) {
 					? 'The pages are in your context. Ask anything, or pick a starting point.'
 					: 'Right-click any page and choose “Add to chat”, then ask. You can also just chat.'}
 			</p>
-
-			{needsDownload && (
-				<div className="empty__download card">
-					<div>
-						<strong>Give the built-in model a moment</strong>
-						<p className="hint">It downloads once, then runs entirely on this device.</p>
-					</div>
-					{downloadProgress === null ? (
-						<button
-							type="button"
-							className="button button--primary"
-							onClick={() => void preparePromptModel()}
-						>
-							<Download size={14} />
-							Download model
-						</button>
-					) : (
-						<div className="empty__progress">
-							<progress value={downloadProgress} max={1} />
-							<span className="hint">{Math.round(downloadProgress * 100)}%</span>
-						</div>
-					)}
-				</div>
-			)}
 
 			<div className="empty__examples">
 				{EXAMPLE_PROMPTS.map((prompt) => (

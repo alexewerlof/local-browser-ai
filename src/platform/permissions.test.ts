@@ -73,10 +73,10 @@ describe('hasHostAccess', () => {
 
 	it('reports false when the grant is missing or the query fails', async () => {
 		stubChrome({ contains: () => Promise.resolve(false) })
-		await expect(hasHostAccess('https://api.deepseek.com/v1')).resolves.toBe(false)
+		await expect(hasHostAccess('https://llm.example.com/v1')).resolves.toBe(false)
 
 		stubChrome({ contains: () => Promise.reject(new Error('no such permission')) })
-		await expect(hasHostAccess('https://api.deepseek.com/v1')).resolves.toBe(false)
+		await expect(hasHostAccess('https://llm.example.com/v1')).resolves.toBe(false)
 	})
 })
 

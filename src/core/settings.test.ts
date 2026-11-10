@@ -18,8 +18,8 @@ describe('normalizeSettings', () => {
 	it('falls back to defaults for garbage input', () => {
 		const settings = normalizeSettings('nope')
 		expect(settings.version).toBe(SETTINGS_VERSION)
-		expect(settings.providers[0]?.kind).toBe('prompt-api')
-		expect(settings.providers[0]?.models).toEqual(['text'])
+		expect(settings.providers).toEqual([])
+		expect(settings.defaultModel).toBeNull()
 	})
 
 	it('adds the system prompt when an older store did not have one', () => {
@@ -29,13 +29,18 @@ describe('normalizeSettings', () => {
 		expect(settings.systemPrompt.length).toBeGreaterThan(20)
 	})
 
-	it('always restores the built-in provider', () => {
+	it('ships with no provider, so the panel asks for one', () => {
+		const settings = normalizeSettings({ ...defaultSettings() })
+		expect(settings.providers).toEqual([])
+		expect(settings.defaultModel).toBeNull()
+	})
+
+	it('keeps a configured provider and its default model', () => {
 		const stored = {
 			...defaultSettings(),
 			providers: [
 				{
 					id: 'local',
-					kind: 'openai-compatible',
 					label: 'Local',
 					baseURL: 'http://localhost:9931/v1',
 					models: ['llama'],
@@ -44,7 +49,7 @@ describe('normalizeSettings', () => {
 			defaultModel: { providerId: 'local', modelId: 'llama' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.providers.map((provider) => provider.id)).toEqual(['prompt-api', 'local'])
+		expect(settings.providers.map((provider) => provider.id)).toEqual(['local'])
 		expect(settings.defaultModel).toEqual({ providerId: 'local', modelId: 'llama' })
 	})
 
@@ -52,6 +57,20 @@ describe('normalizeSettings', () => {
 		const stored = { ...defaultSettings(), skills: [] }
 		const settings = normalizeSettings(stored)
 		expect(settings.skills.map((skill) => skill.id)).toContain('summarize-page')
+	})
+
+	it('ignores a stale provider kind instead of resetting the document', () => {
+		const stored = {
+			...defaultSettings(),
+			providers: [{ id: 'weird', kind: 'wat', label: 'Weird', models: [] }],
+			modelDefaults: { temperature: 0.3, thinking: { level: 'off' } },
+		}
+		const settings = normalizeSettings(stored)
+		// The kind is no longer a field: it is stripped, and the entry survives with the
+		// rest of the document rather than failing the whole parse.
+		expect(settings.providers.map((provider) => provider.id)).toEqual(['weird'])
+		expect(settings.providers[0]).not.toHaveProperty('kind')
+		expect(settings.modelDefaults.temperature).toBe(0.3)
 	})
 
 	it('drops unknown tool ids', () => {
@@ -126,13 +145,13 @@ describe('normalizeSettings', () => {
 		expect(settings.tools.enabled).toEqual(['get_selection'])
 	})
 
-	it('resets the default model when its provider is gone', () => {
+	it('clears the default model when its provider is gone', () => {
 		const stored = {
 			...defaultSettings(),
 			defaultModel: { providerId: 'ghost', modelId: 'x' },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.defaultModel).toEqual({ providerId: 'prompt-api', modelId: 'text' })
+		expect(settings.defaultModel).toBeNull()
 	})
 
 	it('clamps nothing silently: it rejects out-of-range numbers', () => {
@@ -219,7 +238,7 @@ describe('normalizeSettings', () => {
 		}
 		const settings = normalizeSettings(stored)
 		expect(settings.ui.fontSize).toBe('medium')
-		expect(settings.providers[0]?.kind).toBe('prompt-api')
+		expect(settings.tools.enabled).toEqual(defaultSettings().tools.enabled)
 	})
 
 	it('keeps MCP servers across normalization, including a disabled one', () => {
@@ -277,7 +296,7 @@ describe('normalizeSettings', () => {
 		const settings = normalizeSettings(stored)
 		expect(settings.tools.mcp.map((server) => server.id)).toEqual(['mcp_1'])
 		expect(settings.tools.enabled).toEqual(['get_selection'])
-		expect(settings.providers[0]?.kind).toBe('prompt-api')
+		expect(settings.skills.length).toBeGreaterThan(0)
 	})
 
 	it('drops duplicate MCP server ids', () => {
@@ -315,13 +334,13 @@ describe('memory settings', () => {
 		expect(settings.tools.autoApprove).toEqual(['recall', 'read_page'])
 	})
 
-	it('keeps providers when the stored memory policy is malformed', () => {
+	it('keeps the rest of the document when the stored memory policy is malformed', () => {
 		const stored = {
 			...defaultSettings(),
 			memory: { enabled: 'yes', injectShare: 9, autoLimit: -3 },
 		}
 		const settings = normalizeSettings(stored)
-		expect(settings.providers[0]?.kind).toBe('prompt-api')
+		expect(settings.tools.enabled).toEqual(defaultSettings().tools.enabled)
 		expect(settings.memory).toEqual(defaultSettings().memory)
 	})
 

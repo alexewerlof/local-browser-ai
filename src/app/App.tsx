@@ -22,7 +22,6 @@ import {
 import { addPageBusyStore, addPageErrorStore } from '../state/composer'
 import { addCurrentPage, allowPageAccess, bootStatusStore, cancelPageAccess, pageAccessStore } from '../state/bootstrap'
 import { dismissMcpWarning, mcpWarningsStore } from '../state/mcp'
-import { promptStatusStore } from '../state/prompt'
 import { settingsStore, updateSettings } from '../state/settings'
 import { openSettings } from '../platform/chrome'
 import { focusPage, activeTabStore } from '../state/browser'
@@ -54,7 +53,6 @@ export function App() {
 	const activeTab = useStore(activeTabStore)
 	const pageAccess = useStore(pageAccessStore)
 	const mcpWarnings = useStore(mcpWarningsStore)
-	const promptStatus = useStore(promptStatusStore)
 	const [historyOpen, setHistoryOpen] = useState(false)
 
 	if (bootStatus !== 'ready') {
@@ -70,27 +68,16 @@ export function App() {
 	}
 
 	const modelRef = conversation.model ?? settings.defaultModel
-	const provider = modelRef ? settings.providers.find((entry) => entry.id === modelRef.providerId) : undefined
-	const builtInUnavailable =
-		provider?.kind === 'prompt-api' &&
-		promptStatus !== null &&
-		(promptStatus.availability === 'unsupported' || promptStatus.availability === 'unavailable')
 	const noModel = !modelRef
 
 	return (
 		<div className="app">
 			<Header conversation={conversation} onNew={() => newChat()} onHistory={() => setHistoryOpen(true)} />
 
-			{(builtInUnavailable || noModel) && (
+			{noModel && (
 				<div className="banner">
 					<TriangleAlert size={14} />
-					<span>
-						{noModel
-							? 'No model is configured yet.'
-							: promptStatus?.availability === 'unsupported'
-								? 'The built-in model is not available in this browser.'
-								: (promptStatus?.message ?? 'The built-in model is unavailable in this browser.')}
-					</span>
+					<span>No model is configured yet. Add a provider to get started.</span>
 					<span className="spacer" />
 					<button type="button" className="button button--sm" onClick={() => void openSettings('models')}>
 						Set up a model

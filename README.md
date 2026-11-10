@@ -1,14 +1,13 @@
 # Local Browser AI
 
 A browser-aware AI chat harness that lives in your sidebar. It talks to the page you are reading, keeps an honest eye on
-the model's context window, and lets you choose the model: the one built into your browser, a server on your own
-machine, or a hosted API.
+the model's context window, and talks to a model server on your own machine — llama.cpp, Ollama, LM Studio, Jan, vLLM,
+or anything else that serves an OpenAI-compatible API.
 
 ## What it does
 
-- **Any provider, one interface.** Built-in Prompt API, local servers (llama.cpp, Ollama, LM Studio, vLLM) and hosted
-  APIs (OpenAI, Anthropic, DeepSeek) are adapters over the Vercel AI SDK. Add as many as you like and switch models per
-  chat.
+- **One engine, any server.** Every model is a local OpenAI-compatible endpoint, reached over the Vercel AI SDK. Add as
+  many servers as you like and switch models per chat; nothing leaves your machine.
 - **Several pages in one chat.** Right-click any page and choose **Add to chat**; with text selected, the same item also
   quotes the passage and brings its page along. Add as many as you need and they stay side by side: compare a product
   across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
@@ -42,8 +41,8 @@ machine, or a hosted API.
 - **Rendering.** Answers are rendered as streaming markdown (Streamdown), with GFM tables, task lists and copyable code
   blocks. Math is typeset with KaTeX and code highlighting uses Shiki; both are switched in **Settings → General →
   Rendering** because each loads a large chunk on demand. Math is on by default, highlighting is not.
-- **Reasoning controls.** Thinking effort where the provider supports it (Anthropic budgets, OpenAI-style efforts), with
-  collapsible reasoning in the transcript.
+- **Reasoning controls.** Thinking effort for local models that expose one, with collapsible reasoning in the
+  transcript.
 - **Local history.** Conversations live in IndexedDB in your browser profile.
 
 ## Install
@@ -54,15 +53,7 @@ machine, or a hosted API.
 
 ## Providers
 
-### Built-in browser model
-
-Chrome and Edge ship a small model behind the Prompt API. It needs no key and no network after the first download. Open
-the panel and press **Download model** when prompted. Hardware requirements are Chrome's. The built-in model cannot call
-tools, so it cannot read an added page; use a model that supports tools to add pages.
-
-### Local servers
-
-Add a provider in **Settings → Providers → Local server (OpenAI-compatible)**:
+Add a provider in **Settings → Providers → Add provider**:
 
 | Server                     | Base URL                    |
 | -------------------------- | --------------------------- |
@@ -73,13 +64,8 @@ Add a provider in **Settings → Providers → Local server (OpenAI-compatible)*
 Loopback hosts are already allowed. For a server on another machine, Chrome asks for permission the first time you save
 the provider or fetch its models — one prompt per host, and the grant covers every port on that host. Local servers
 usually do not report a context window, so set an override — the default is 8k and the meter and compaction depend on
-it.
-
-### Hosted APIs
-
-OpenAI, Anthropic and DeepSeek presets ask for a base URL and an API key. Keys are stored in `chrome.storage.local`,
-never synced, and only sent to the endpoint you configured. Anthropic requests from a browser need the
-`anthropic-dangerous-direct-browser-access` header, which the adapter sets.
+it. If the server wants a key, put it in the provider; it is stored in `chrome.storage.local`, never synced, and only
+sent to that endpoint.
 
 ## How pages reach the model
 
@@ -114,13 +100,13 @@ whole: the point of adding several pages is that none of them is paid for until 
 
 ## Privacy
 
-Page content is only read when you add a page to a chat, and only sent to the provider you selected. API keys never
-leave the extension's local storage except in requests to that provider. There is no telemetry. See
-[privacy.txt](public/privacy.txt).
+Page content is only read when you add a page to a chat, and only sent to the model you selected: the server you
+configured. A key you enter for a local server never leaves the extension's local storage except in requests to that
+server. There is no telemetry. See [privacy.txt](public/privacy.txt).
 
-Memories are stored in `chrome.storage.local` in this browser profile and are sent to the provider you selected, as part
-of the prompt. They are not synced and not sent anywhere else. **Settings → Memory → Export memories** writes them to a
-JSON file if you want them on another machine; import merges by id and keeps the newest version of each memory.
+Memories are stored in `chrome.storage.local` in this browser profile and are sent to the selected model, as part of the
+prompt. They are not synced and not sent anywhere else. **Settings → Memory → Export memories** writes them to a JSON
+file if you want them on another machine; import merges by id and keeps the newest version of each memory.
 
 ## Development
 

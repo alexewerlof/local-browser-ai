@@ -44,8 +44,8 @@ export async function run(ctx) {
 
 	await page.locator('.settings__nav-item:has-text("Providers")').click()
 	await page.waitForSelector('.provider')
-	// The built-in provider is always present; the configured one must survive too.
+	// Adding a provider is persisted; nothing else is seeded next to it.
 	const providers = await page.locator('.rows').textContent()
 	assert.match(providers, /Fake local server/)
-	assert.match(providers, /Built-in browser model/)
+	assert.equal(await page.locator('.provider').count(), 1)
 }

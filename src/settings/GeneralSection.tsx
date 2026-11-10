@@ -34,7 +34,7 @@ export function GeneralSection({ settings }: { settings: AppSettings }) {
 					onChange={(maxToolSteps) =>
 						updateSettings((current) => ({ ...current, context: { ...current.context, maxToolSteps } }))
 					}
-					hint="Each step is one model call plus the tool calls it requested."
+					hint="Each step is one model call plus the tool calls it requested. Continue on an answer spends another run."
 				/>
 			</SettingsCard>
 

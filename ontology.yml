@@ -13,8 +13,8 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 10
-    updated: 2026-11-09
+    version: 11
+    updated: 2026-11-10
     status: contract
     shipped: false
 
@@ -34,7 +34,6 @@ harness:
     prompt-queue: the per-conversation FIFO filled while a run is busy; code queueStore, drainQueue, QueuedPrompt; ui Queued · N, Queued prompts; not backlog, stack, batch
     queue-pause: the state Stop or a restored chat sets so the queue stays put; code queuePausedStore, resumeQueue, restoreLastConversation; ui Continue, Continue queued prompts; not hold, suspend
     aborted: stopped by the user before it finished; code MessageStatus.aborted, ErrorKind.aborted; ui stopped, Stopped.; not cancelled, interrupted, failed
-    prompt-api: Chrome's built-in on-device model API; code prompt-api, promptStatusStore; ui Built-in browser model; not browser API, local model
     omnibox: the address bar, where the lbai keyword starts a prompt; code manifest omnibox keyword, enterOmniboxPrompt, OMNIBOX_SUGGESTION; ui lbai, Ask Local Browser AI about this page; not search bar, url bar, address bar command
     omnibox-prompt: a prompt accepted in the address bar, which opens a new chat on the current page and sends it; code OmniboxPrompt, prompt.pending, prompt.add, startOmniboxChat; ui Ask Local Browser AI about this page; not quick chat, address chat, one-shot prompt
 
@@ -94,13 +93,9 @@ memory:
 # Providers, the models behind them, and the effort knobs.
 models:
     provider: one configured way to reach models; code ProviderSettings, settings.providers, getProvider; ui Providers, Configured providers, Add a provider; not endpoint, server, adapter
-    provider-kind: the protocol family a provider speaks; code ProviderKind, prompt-api, openai-compatible; ui Type, Local / OpenAI-compatible; not provider type, adapter, protocol
-    provider-preset: the template shown when adding a provider; code ProviderPreset, PROVIDER_PRESETS; ui Built-in browser model, Local server (OpenAI-compatible); not quick add, wizard
-    built-in-browser-model: the model Chrome or Edge ships behind the Prompt API; code PROMPT_API_PROVIDER_ID; ui Built-in browser model, Built-in model; not browser model, local model, on-device model
-    local-server: a model server the user runs, reached over the OpenAI-compatible kind; code openai-compatible, baseURL; ui Local server (OpenAI-compatible); not server, host, backend
-    hosted-api: a commercial model API with a base URL and a key; code openai, anthropic, deepseek; ui OpenAI, Anthropic, DeepSeek; not cloud, remote model
+    local-server: a model server the user runs, reached over the OpenAI-compatible API; code baseURL, DEFAULT_BASE_URL; ui Local server, Base URL; not server, host, backend
     base-url: the address a provider's HTTP API sits at; code ProviderSettings.baseURL, normalizeBaseURL; ui Base URL; not endpoint URL, host
-    api-key: the credential sent to a hosted API, never synced; code ProviderSettings.apiKey, headers; ui API key; not token, secret, password
+    api-key: the credential a model server asks for, never synced; code ProviderSettings.apiKey, headers; ui API key; not token, secret, password
     host-access: the user grant that lets the extension call another origin; code chrome.permissions.request, addHostAccessRequest, attachSearchTab, pageAccessStore, optional_host_permissions; ui Check site access, Grant host access, Allow; not permission, popup
     tool-tab: the tab a tool opened, and the wait until the user decides what happens to it; code attachToolTab, ToolContext.attachTab, accessWaiters, TabAttachment, toolTabsStore, waitForTabLoad; ui Chrome is waiting for you to allow {host} in the address bar., Add page to chat; not approval, confirmation, attachment
     search-tab: the one results tab a search reuses instead of opening another; code planSearch, rememberedSearchTab, SEARCH_TAB_KEY; ui Searching the web; not results window, new tab each time
@@ -159,7 +154,7 @@ ui:
             chip-count: the bare number at the end of a chip, as on the page counter; code chip__count; ui 6; not badge, pill, counter
             skills-chip: the chip that opens the skill list; code SkillMenu, GraduationCap; ui Skills, Insert a prompt, Search skills, No skills match., Manage skills; not skill button
             tools-chip: the chip opening the tree of tool sets; code ToolsMenu, ToolTree, countEnabledTools, chip__count; ui Tools, Built-in, No MCP servers yet., Manage tools; not tool button, plugin menu
-            model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Built-in model, Choose model, Change model; not model selector, model dropdown
+            model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item; not dropdown, menu, modal, dialog
@@ -220,7 +215,6 @@ drift:
     tool-card: the row is a flat step now, not a card; the id and `ToolCallCard` keep the name. decision
     conversation: code says Conversation, UI says Chat, and the drawer component is HistoryPanel; the dual register is approved, the component name is not. decision
     reasoning-effort: code says thinking, UI says Reasoning effort, Thinking… is only a live status; the split is approved. decision
-    built-in-browser-model: Built-in model is approved only in the chip and the message footer; elsewhere use the full form. decision
     tool-card: Settings names the capability, the transcript names the activity; deliberate, do not copy one into the other. decision
     page: '`attachment` is retired everywhere except the UI word Attachment and `PageList`; the model-facing noun is page. decision'
     page-list-toggle: 'the page count is a ghost button with the page icon, not the `.badge` atom, because a badge is never clickable. decision'

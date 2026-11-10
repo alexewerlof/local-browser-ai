@@ -8,11 +8,10 @@ export const AUTO_APPROVED_TOOLS = ALL_TOOLS.filter((id) => id !== 'remember')
 export function localSettings(endpoint, overrides = {}) {
 	const model = overrides.model ?? 'fake-model'
 	return {
-		version: 10,
+		version: 11,
 		providers: [
 			{
 				id: 'local',
-				kind: 'openai-compatible',
 				label: 'Fake local server',
 				baseURL: endpoint,
 				apiKey: '',
@@ -35,27 +34,6 @@ export function localSettings(endpoint, overrides = {}) {
 		ui: { theme: 'light', submitKey: 'enter', fontSize: 'medium' },
 		systemPrompt: 'You are a test assistant. Answer from the added pages.',
 		...overrides,
-	}
-}
-
-export function promptApiOnlySettings() {
-	return {
-		version: 10,
-		providers: [{ id: 'prompt-api', kind: 'prompt-api', label: 'Built-in browser model', models: ['text'] }],
-		defaultModel: { providerId: 'prompt-api', modelId: 'text' },
-		modelDefaults: { temperature: 0.7, thinking: { level: 'off' } },
-		context: {
-			compactionThreshold: 0.75,
-			keepRecentTurns: 4,
-			outputReserveRatio: 0.2,
-			maxToolSteps: 4,
-		},
-		tools: { enabled: [], autoApprove: [], mcp: [] },
-		skills: [],
-		memory: { enabled: true, injectShare: 0.15, autoLimit: 3 },
-		rendering: { math: true, codeHighlighting: false },
-		ui: { theme: 'light', submitKey: 'enter', fontSize: 'medium' },
-		systemPrompt: 'You are a test assistant.',
 	}
 }
 

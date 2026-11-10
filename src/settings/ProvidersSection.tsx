@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { CircleAlert, CircleCheck, Plus, RefreshCw } from 'lucide-react'
-import type { AppSettings, ModelDetails, ProviderSettings, ProviderKind } from '../core/types'
+import type { AppSettings, ModelDetails, ProviderSettings } from '../core/types'
 import { createId } from '../core/util'
-import { PROVIDER_PRESETS, type ProviderPreset } from '../providers/types'
-import { DEFAULT_BASE_URLS } from '../providers/registry'
+import { DEFAULT_BASE_URL } from '../providers/registry'
 import { discoverModels } from '../providers/discovery'
 import { toAppError } from '../providers/errors'
 import { hasHostAccess, hostOf, requestHostAccess } from '../platform/permissions'
 import { updateSettings } from '../state/settings'
-import { Field, SelectField, TextField } from './fields'
+import { Field, TextField } from './fields'
 import { ProviderModelTable } from './ProviderModelTable'
 import { SettingsCard } from './SettingsCard'
 
@@ -22,64 +21,64 @@ function dedupeDetails(details: ModelDetails[]): ModelDetails[] {
 export function ProvidersSection({ settings }: { settings: AppSettings }) {
 	const [editing, setEditing] = useState<ProviderSettings | null>(null)
 	const [isNew, setIsNew] = useState(false)
-	const [presetsOpen, setPresetsOpen] = useState(false)
 
-	const startNew = (preset: ProviderPreset) => {
+	const startNew = () => {
 		setEditing({
 			id: createId('prov'),
-			kind: preset.kind,
-			label: preset.label,
-			baseURL: preset.kind === 'prompt-api' ? undefined : preset.defaultBaseURL,
+			label: 'Local server',
+			baseURL: DEFAULT_BASE_URL,
 			apiKey: '',
-			models: preset.kind === 'prompt-api' ? ['text'] : [],
+			models: [],
 		})
 		setIsNew(true)
-		setPresetsOpen(false)
 	}
 
 	return (
 		<div className="section">
 			<p className="section__intro">
-				Providers are model endpoints. The built-in browser model needs no account. Local servers run on your
-				machine or network; hosted APIs need a key. Everything is stored in this browser profile.
+				Providers are model endpoints. A local server runs on your machine or network: llama.cpp, Ollama, LM
+				Studio, Jan, vLLM, or anything else serving an OpenAI-compatible API. Everything is stored in this
+				browser profile.
 			</p>
 
 			<SettingsCard title="Configured providers">
-				<div className="rows">
-					{settings.providers.map((provider) => (
-						<div key={provider.id} className="provider">
-							<div className="provider__main">
-								<span className="provider__label">
-									{provider.label}
-									<span className="badge">{provider.kind}</span>
-									{settings.defaultModel?.providerId === provider.id && (
-										<span className="badge badge--accent">default</span>
-									)}
-								</span>
-								<span className="provider__meta">
-									{provider.kind === 'prompt-api'
-										? 'On-device model managed by the browser'
-										: `${provider.baseURL ?? '—'} · ${provider.models.length} models`}
-								</span>
-							</div>
-							<button
-								type="button"
-								className="button button--sm"
-								onClick={() => {
-									setEditing({
-										...provider,
-										models: [...provider.models],
-										modelDetails: provider.modelDetails?.map((model) => ({ ...model })),
-										modelThinking: provider.modelThinking
-											? { ...provider.modelThinking }
-											: undefined,
-									})
-									setIsNew(false)
-								}}
-							>
-								Edit
-							</button>
-							{provider.kind !== 'prompt-api' && (
+				{settings.providers.length === 0 ? (
+					<p className="card__note">
+						No provider yet. Add your local model server below; llama.cpp, Ollama, LM Studio, Jan and vLLM
+						all serve an OpenAI-compatible API.
+					</p>
+				) : (
+					<div className="rows">
+						{settings.providers.map((provider) => (
+							<div key={provider.id} className="provider">
+								<div className="provider__main">
+									<span className="provider__label">
+										{provider.label}
+										{settings.defaultModel?.providerId === provider.id && (
+											<span className="badge badge--accent">default</span>
+										)}
+									</span>
+									<span className="provider__meta">
+										{`${provider.baseURL ?? '—'} · ${provider.models.length} models`}
+									</span>
+								</div>
+								<button
+									type="button"
+									className="button button--sm"
+									onClick={() => {
+										setEditing({
+											...provider,
+											models: [...provider.models],
+											modelDetails: provider.modelDetails?.map((model) => ({ ...model })),
+											modelThinking: provider.modelThinking
+												? { ...provider.modelThinking }
+												: undefined,
+										})
+										setIsNew(false)
+									}}
+								>
+									Edit
+								</button>
 								<button
 									type="button"
 									className="button button--danger button--sm"
@@ -103,45 +102,18 @@ export function ProvidersSection({ settings }: { settings: AppSettings }) {
 								>
 									Remove
 								</button>
-							)}
-						</div>
-					))}
-				</div>
-			</SettingsCard>
-
-			{presetsOpen ? (
-				<SettingsCard title="Add a provider">
-					<div className="preset">
-						{PROVIDER_PRESETS.map((preset) => (
-							<button
-								key={preset.kind}
-								type="button"
-								className="preset__item"
-								onClick={() => startNew(preset)}
-							>
-								<span className="preset__label">{preset.label}</span>
-								<span className="preset__desc">{preset.description}</span>
-							</button>
+							</div>
 						))}
 					</div>
-					<div className="row" style={{ gap: 'var(--space-3)' }}>
-						<button
-							type="button"
-							className="button button--ghost button--sm"
-							onClick={() => setPresetsOpen(false)}
-						>
-							Cancel
-						</button>
-					</div>
-				</SettingsCard>
-			) : (
-				<div className="section__action">
-					<button type="button" className="button" onClick={() => setPresetsOpen(true)}>
-						<Plus size={18} />
-						Add provider
-					</button>
-				</div>
-			)}
+				)}
+			</SettingsCard>
+
+			<div className="section__action">
+				<button type="button" className="button" onClick={startNew}>
+					<Plus size={18} />
+					Add provider
+				</button>
+			</div>
 
 			{editing && (
 				<ProviderEditor
@@ -236,7 +208,7 @@ function ProviderEditor({
 	const save = async () => {
 		// Saving is the user asking to use this endpoint, so ask for the grant now, while
 		// the click's gesture is live. Generate-and-send later has no prompt available.
-		if (draft.kind !== 'prompt-api' && draft.baseURL && !(await requestHostAccess(draft.baseURL))) {
+		if (draft.baseURL && !(await requestHostAccess(draft.baseURL))) {
 			setGranted(false)
 			setError(`Chrome did not grant access to ${hostOf(draft.baseURL)}. Use “Grant host access” to try again.`)
 			return
@@ -245,52 +217,15 @@ function ProviderEditor({
 		onSave({
 			...draft,
 			label: draft.label.trim() || 'Provider',
-			baseURL: draft.kind === 'prompt-api' ? undefined : draft.baseURL?.trim(),
-			models: draft.kind === 'prompt-api' ? ['text'] : [...new Set(models)],
+			baseURL: draft.baseURL?.trim(),
+			models: [...new Set(models)],
 			modelDetails: draft.modelDetails ? dedupeDetails(draft.modelDetails) : undefined,
 		})
 	}
 
-	if (draft.kind === 'prompt-api') {
-		return (
-			<SettingsCard title={isNew ? 'Built-in browser model' : draft.label}>
-				<p className="section__intro">
-					Chrome and Edge ship a small model. Nothing leaves the device and no key is needed. Download it from
-					the side panel the first time you use it.
-				</p>
-				<div className="row" style={{ gap: 'var(--space-3)' }}>
-					<button type="button" className="button button--primary" onClick={() => void save()}>
-						{isNew ? 'Add provider' : 'Save'}
-					</button>
-					<button type="button" className="button button--ghost" onClick={onCancel}>
-						Cancel
-					</button>
-				</div>
-			</SettingsCard>
-		)
-	}
-
 	return (
 		<SettingsCard title={isNew ? 'New provider' : `Edit ${draft.label}`}>
-			<div className="grid-2">
-				<TextField label="Name" value={draft.label} onChange={(label) => patch({ label })} />
-				<SelectField
-					label="Type"
-					value={draft.kind}
-					options={[
-						{ value: 'openai-compatible', label: 'Local / OpenAI-compatible' },
-						{ value: 'openai', label: 'OpenAI' },
-						{ value: 'anthropic', label: 'Anthropic' },
-						{ value: 'deepseek', label: 'DeepSeek' },
-					]}
-					onChange={(kind) =>
-						patch({
-							kind: kind as ProviderKind,
-							baseURL: draft.baseURL || DEFAULT_BASE_URLS[kind],
-						})
-					}
-				/>
-			</div>
+			<TextField label="Name" value={draft.label} onChange={(label) => patch({ label })} />
 
 			{/* One host control, under the URL it is about: the grant belongs to this endpoint, not
 			    to the model list. It is a plain div, not `Field`, because a button inside a label
@@ -299,16 +234,15 @@ function ProviderEditor({
 				<span className="field__text">
 					<span className="field__label">Base URL</span>
 					<span className="field__hint">
-						{draft.kind === 'openai-compatible'
-							? 'Examples: llama.cpp http://localhost:9931/v1 · Ollama http://localhost:11434/v1 · LM Studio http://localhost:1234/v1'
-							: 'The /v1 endpoint. Trailing /chat/completions is removed.'}
+						Examples: llama.cpp http://localhost:9931/v1 · Ollama http://localhost:11434/v1 · LM Studio
+						http://localhost:1234/v1
 					</span>
 				</span>
 				<div className="url-row">
 					<input
 						className="input"
 						value={draft.baseURL ?? ''}
-						placeholder={DEFAULT_BASE_URLS[draft.kind]}
+						placeholder={DEFAULT_BASE_URL}
 						aria-label="Base URL"
 						onChange={(event) => patch({ baseURL: event.target.value })}
 						spellCheck={false}

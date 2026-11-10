@@ -28,7 +28,6 @@ import { buildTools, type ToolContext } from '../browser/tools'
 import { getModelInfo, modelContextWindow, normalizeThinking, type ModelInfo } from '../providers/catalog'
 import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
-import { getPromptApiStatus } from '../providers/prompt-status'
 import { settingsStore } from './settings'
 import { requestApproval, recordToolTab, attachTabForTool } from './browser'
 import { memoryAccess, memoryStore } from './memory'
@@ -203,28 +202,12 @@ function resolveSelection(settings = settingsStore.get(), conversation = convers
 	const provider = getProvider(settings, ref.providerId)
 	if (!provider)
 		throw new AppError('unsupported', 'The selected provider was removed. Pick another model in Settings.')
-	const modelId = provider.kind === 'prompt-api' ? 'text' : ref.modelId
-	return { ref: { ...ref, modelId }, provider, info: getModelInfo(provider.kind, modelId) }
+	return { ref, provider, info: getModelInfo(ref.modelId) }
 }
 
-const promptApiWindowCache = new Map<string, number>()
-
-async function contextWindowFor(selection: Selection): Promise<number> {
-	const { provider, ref } = selection
-	if (provider.contextWindowOverride) return provider.contextWindowOverride
-
-	// The server's own figure beats the catalog guess; the Prompt API reports its window
-	// through a separate call, so that one is asked last and cached.
-	const fallback = modelContextWindow(provider, ref.modelId)
-	if (provider.kind !== 'prompt-api') return fallback
-
-	const key = `${provider.id}:${ref.modelId}`
-	const cached = promptApiWindowCache.get(key)
-	if (cached) return cached
-	const status = await getPromptApiStatus()
-	const value = status.contextWindow ?? fallback
-	promptApiWindowCache.set(key, value)
-	return value
+/** The window for one selection: the user's override, else the server's figure, else the catalog. */
+function windowFor(selection: Selection): number {
+	return modelContextWindow(selection.provider, selection.ref.modelId)
 }
 
 /* ------------------------------------------------------------- context meter */
@@ -237,30 +220,24 @@ function publishContext(
 	toolsEnabledOverride?: boolean,
 ): { messages: ModelMessage[]; system: string; budget: TokenBudget; totalTokens: number } {
 	const resolved = selection ?? resolveSelectionQuietly(settings, conversation)
-	// `publishContext` is synchronous, so it can only read the Prompt API window the run
-	// already resolved; every other provider is answered straight from the settings.
-	const window = resolved
-		? (resolved.provider.contextWindowOverride ??
-			promptApiWindowCache.get(`${resolved.provider.id}:${resolved.ref.modelId}`) ??
-			modelContextWindow(resolved.provider, resolved.ref.modelId))
-		: 8192
-	const contextWindow = window
+	const contextWindow = resolved ? windowFor(resolved) : 8192
+	const lastUser = [...conversation.messages].reverse().find((message) => message.role === 'user')
+	const query = lastUser ? messageText(lastUser) : ''
+	// Must match the submit path: a model with tools enabled but none of them available
+	// cannot act on a page outline either.
+	const toolsEnabled = toolsEnabledOverride ?? hasEnabledTools(settings)
 	const budget = createBudget(
 		contextWindow,
 		settings.context.outputReserveRatio,
 		settings.context.compactionThreshold,
 	)
-	const lastUser = [...conversation.messages].reverse().find((message) => message.role === 'user')
-	const query = lastUser ? messageText(lastUser) : ''
 	const assembled = buildContext({
 		conversation,
 		settings,
 		budget,
 		pages: pagesStore.get(),
 		query,
-		// Must match the submit path: a model that supports tools but has none enabled
-		// cannot act on a page outline either.
-		toolsEnabled: toolsEnabledOverride ?? (Boolean(resolved?.info.capabilities.tools) && hasEnabledTools(settings)),
+		toolsEnabled,
 		mcpServers: enabledMcpServers(settings.tools.mcp).map((server) => server.label),
 		memories: memoryStore.get().items,
 		memoryToolsEnabled: settings.memory.enabled && settings.tools.enabled.includes('recall'),
@@ -298,7 +275,7 @@ function resolveSelectionQuietly(
 export function refreshContext(): void {
 	const selection = resolveSelectionQuietly()
 	if (!selection) return
-	void contextWindowFor(selection).then(() => publishContext(conversationStore.get(), settingsStore.get(), selection))
+	publishContext(conversationStore.get(), settingsStore.get(), selection)
 }
 
 /* ------------------------------------------------------------------ actions */
@@ -485,7 +462,6 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 
 	try {
 		const selection = resolveSelection(settings, working)
-		await contextWindowFor(selection)
 
 		let context = publishContext(working, settings, selection)
 
@@ -499,26 +475,17 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 
 		const thinking = normalizeThinking(
 			thinkingForModel(selection.provider, selection.ref.modelId, settings.modelDefaults.thinking),
-			selection.provider.kind,
 			selection.info,
 		)
-		const model = await createLanguageModel(selection.provider, selection.ref.modelId, {
-			temperature: settings.modelDefaults.temperature,
-			thinking,
-			info: selection.info,
-		})
+		const model = await createLanguageModel(selection.provider, selection.ref.modelId)
 
-		const toolsEnabled = selection.info.capabilities.tools && hasEnabledTools(settings)
-		const builtInTools = selection.info.capabilities.tools
-			? buildTools(toolContext, enabledBuiltInTools(settings), settings.tools.autoApprove)
-			: {}
+		const toolsEnabled = hasEnabledTools(settings)
+		const builtInTools = buildTools(toolContext, enabledBuiltInTools(settings), settings.tools.autoApprove)
 
 		// MCP servers connect per turn: a server edited in Settings must never keep
 		// serving yesterday's tools. Failures become warnings, never exceptions.
 		mcpWarningsStore.set([])
-		mcpBundle = selection.info.capabilities.tools
-			? await buildMcpTools(toolContext, settings.tools.mcp, controller.signal)
-			: null
+		mcpBundle = await buildMcpTools(toolContext, settings.tools.mcp, controller.signal)
 		mcpWarningsStore.set(mcpBundle?.warnings ?? [])
 
 		const tools: ToolSet = { ...builtInTools, ...(mcpBundle?.tools ?? {}) }
@@ -527,17 +494,15 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 			context = publishContext(working, settings, selection, false)
 		}
 
+		const maxToolSteps = settings.context.maxToolSteps
 		const result = streamText({
 			model,
 			system: context.system,
 			messages: context.messages,
 			tools: Object.keys(tools).length > 0 ? tools : undefined,
-			stopWhen: stepCountIs(settings.context.maxToolSteps),
+			stopWhen: stepCountIs(maxToolSteps),
 			temperature: settings.modelDefaults.temperature,
-			maxOutputTokens:
-				settings.modelDefaults.maxOutputTokens ??
-				selection.provider.maxOutputTokensOverride ??
-				(selection.provider.kind === 'anthropic' ? Math.min(selection.info.maxOutputTokens, 8192) : undefined),
+			maxOutputTokens: settings.modelDefaults.maxOutputTokens ?? selection.provider.maxOutputTokensOverride,
 			providerOptions: buildProviderOptions(selection.provider, selection.ref.modelId, thinking, selection.info),
 			abortSignal: controller.signal,
 		})
@@ -727,7 +692,7 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		const finishReason = await Promise.resolve(result.finishReason).catch(() => undefined)
 		if (!aborted && finishReason === 'tool-calls') {
 			if (parts.length > seeded) {
-				stepLimitStore.set({ limit: settings.context.maxToolSteps })
+				stepLimitStore.set({ limit: maxToolSteps })
 			} else {
 				// A continuation that added nothing would re-offer the same banner for ever,
 				// which reads as a button that does not work. Say what happened instead.
@@ -996,12 +961,10 @@ async function summarize(
 	}
 
 	try {
-		const model = await createLanguageModel(selection.provider, selection.ref.modelId, {
-			temperature: 0.2,
-			info: selection.info,
-		})
+		const model = await createLanguageModel(selection.provider, selection.ref.modelId)
 		const prompt = buildSummaryPrompt(plan.toSummarize, conversation.summary?.text)
-		const { text } = await generateText({ model, prompt, maxOutputTokens: 900 })
+		// A summary wants the most likely wording, not a lively one.
+		const { text } = await generateText({ model, prompt, temperature: 0.2, maxOutputTokens: 900 })
 		const summary: ConversationSummary = {
 			text: text.trim(),
 			throughMessageId: plan.throughMessageId,

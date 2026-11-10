@@ -165,17 +165,12 @@ function ModelRow({
 	onRemove: () => void
 	onThinkingChange: (level: ThinkingSelection['level'] | '') => void
 }) {
-	const info = getModelInfo(provider.kind, id)
-	const reasoning = info.capabilities.reasoning
+	const info = getModelInfo(id)
+	const reasoning = info.reasoning
 	const context = modelContextWindow(provider, id)
 	const maxOutput = modelMaxOutputTokens(provider, id)
 	const name = detail?.label && detail.label !== id ? `${detail.label} (${id})` : id
-	const options = reasoning
-		? thinkingOptions(provider.kind, {
-				...info,
-				capabilities: { ...info.capabilities, reasoning },
-			})
-		: []
+	const options = reasoning ? thinkingOptions(info) : []
 
 	return (
 		<tr>
@@ -250,13 +245,11 @@ function ModelRow({
 							}
 						>
 							<option value="">Default</option>
-							{options
-								.filter((option) => option.value !== 'custom')
-								.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
+							{options.map((option) => (
+								<option key={option.value} value={option.value}>
+									{option.label}
+								</option>
+							))}
 						</select>
 						<ChevronDown className="select__chevron" size={14} />
 					</span>

@@ -2,8 +2,8 @@
  * One-line description of the user's language environment.
  *
  * Language applies to every answer, so it belongs in the prompt rather than behind a
- * tool: a model that never calls `get_current_datetime` (or a model without tools at all,
- * such as the built-in Prompt API) still has to know which language to answer in.
+ * tool: a model that never calls `get_current_datetime` still has to know which language to
+ * answer in.
  */
 
 export interface EnvironmentInput {

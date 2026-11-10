@@ -75,8 +75,8 @@ export function BuiltInToolsCard({ settings }: { settings: AppSettings }) {
 				})}
 			</div>
 			<p className="card__note">
-				The built-in browser model cannot call tools. When it is selected, page content is placed in the prompt
-				instead, and memories are still injected.
+				Tools are sent in the request itself, so the model can call several in one step. The step cap in General
+				decides how many model calls one answer may spend.
 			</p>
 		</SettingsCard>
 	)

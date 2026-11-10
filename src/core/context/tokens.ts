@@ -68,16 +68,20 @@ export interface TokenBudget {
 	compactionAt: number
 }
 
+/**
+ * Split a window into what the prompt may use and what to keep back.
+ */
 export function createBudget(
 	contextWindow: number,
 	outputReserveRatio: number,
 	compactionThreshold: number,
 ): TokenBudget {
-	const outputReserve = Math.round(contextWindow * outputReserveRatio)
+	const available = Math.max(512, contextWindow)
+	const outputReserve = Math.round(available * outputReserveRatio)
 	return {
 		contextWindow,
 		outputReserve,
-		usable: Math.max(512, contextWindow - outputReserve),
-		compactionAt: Math.round(contextWindow * compactionThreshold),
+		usable: Math.max(512, available - outputReserve),
+		compactionAt: Math.round(available * compactionThreshold),
 	}
 }

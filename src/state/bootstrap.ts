@@ -23,7 +23,6 @@ import {
 import { findAttachedPage, nextPageHandle, pagesStore } from './pages'
 import { initSettings, settingsStore } from './settings'
 import { initMemory, memoryStore } from './memory'
-import { refreshPromptStatus } from './prompt'
 import { Store } from '../core/store'
 import { enabledBuiltInTools, normalizeSettings } from '../core/settings'
 import { freezePage } from '../core/context/page-block'
@@ -32,7 +31,6 @@ import type { PageSource } from '../core/types'
 import type { PageSnapshot } from '../core/types'
 import { hasPageTools, type TabAttachment } from '../browser/tools'
 import type { TabInfo } from '../browser/protocol'
-import { getModelInfo } from '../providers/catalog'
 import { toAppError } from '../providers/errors'
 import {
 	addHostAccessRequest,
@@ -55,9 +53,8 @@ export const bootStatusStore = new Store<'loading' | 'ready'>('loading')
 
 /**
  * Pages are only useful to a model that can read them on demand: the block carries the
- * outline and the handle, and the text stays behind the page tools. A model without
- * them would answer from an outline it cannot expand, so the add is refused instead of
- * silently producing a chat that cannot be grounded.
+ * outline and the handle, and the text stays behind the page tools. An add whose page
+ * tools are off would produce a chat that cannot be grounded, so it is refused.
  */
 function pageReadable(): { ok: true } | { ok: false; message: string } {
 	const settings = normalizeSettings(settingsStore.get())
@@ -69,13 +66,6 @@ function pageReadable(): { ok: true } | { ok: false; message: string } {
 		return { ok: false, message: 'The selected provider was removed. Pick another model in Settings.' }
 	}
 
-	const info = getModelInfo(provider.kind, provider.kind === 'prompt-api' ? 'text' : ref.modelId)
-	if (!info.capabilities.tools) {
-		return {
-			ok: false,
-			message: 'This model cannot call tools, so it could not read a page. Pick a model with tool support.',
-		}
-	}
 	if (!hasPageTools(enabledBuiltInTools(settings))) {
 		return {
 			ok: false,
@@ -528,9 +518,6 @@ export async function bootstrap(): Promise<void> {
 
 	// Pages are bound by the restore above, and a fresh chat starts with none.
 	refreshContext()
-
-	const activeModel = conversationStore.get().model
-	if (activeModel?.providerId === 'prompt-api') void refreshPromptStatus()
 
 	// Last, with settings, the default model and the event wiring in place. An omnibox
 	// prompt wins over a page queued by the context menu: it asks for a new chat, and

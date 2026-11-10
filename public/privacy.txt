@@ -1,14 +1,13 @@
 Local Browser AI does not collect, use or share any user data.
 
-All settings, API keys and conversations are stored locally in your browser profile.
+All settings, keys and conversations are stored locally in your browser profile.
 Page content is only read when you explicitly attach the current tab (from the
-right-click menu, or with a question typed in the address bar), and it is only sent
-to the model provider you configured (a server you run yourself, a remote API you
-hold an account with, or the model built into your browser).
+right-click menu, the add button in the panel, or with a question typed in the
+address bar), and it is only sent to the model server you configured yourself.
 
 The web search tool sends its query to your default search engine, exactly as if you
-had typed it into the address bar. It does not fetch or read the results page for the
-model; the results open in a tab you can read and attach yourself.
+had typed it into the address bar. It reads the results only after you allow the
+site, and that page is treated like any other page you attach.
 
 The extension contains no analytics, no telemetry and no tracking.
 

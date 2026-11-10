@@ -100,7 +100,7 @@ export function Composer({
 	const busy = run.status !== 'idle'
 	const modelRef = conversation.model ?? settings.defaultModel
 	const provider = modelRef ? settings.providers.find((entry) => entry.id === modelRef.providerId) : undefined
-	const info = provider && modelRef ? getModelInfo(provider.kind, modelRef.modelId) : undefined
+	const info = provider && modelRef ? getModelInfo(modelRef.modelId) : undefined
 	const draftTokens = useMemo(() => estimateTokens(draft), [draft])
 
 	const slashQuery = draft.startsWith('/') && !draft.includes('\n') ? draft.slice(1).toLowerCase() : null
@@ -329,16 +329,12 @@ export function Composer({
 					<ToolsMenu
 						settings={settings}
 						onChange={(tools) => updateSettings((current) => ({ ...current, tools }))}
-						disabledReason={
-							info && !info.capabilities.tools ? 'This model does not support tool calling.' : undefined
-						}
 					/>
 
 					<ModelPicker settings={settings} current={modelRef} onSelect={onModelChange} />
 
 					{info && provider && modelRef && (
 						<ThinkingMenu
-							kind={provider.kind}
 							info={info}
 							value={thinkingForModel(provider, modelRef.modelId, settings.modelDefaults.thinking)}
 							onChange={setThinking}

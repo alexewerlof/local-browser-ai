@@ -10,6 +10,9 @@ settings-field, switch, checkbox) plus the setting entries in their domain group
 
 Local rules:
 
+- Providers is one kind of endpoint: a local OpenAI-compatible server. "Add provider" opens the editor directly (there
+  is no preset chooser), the editor's Base URL asks for the host grant on save, and every configured provider can be
+  removed. A store with no provider is normal — the panel then shows "No model is configured yet" and points here.
 - Rail order is fixed: General, Appearance, Providers, Models, Skills, Tools, Memory, Context. General is the landing
   section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
   `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.

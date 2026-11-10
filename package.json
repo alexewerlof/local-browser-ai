@@ -57,13 +57,9 @@
 		"vitest": "^5.1.0"
 	},
 	"dependencies": {
-		"@ai-sdk/anthropic": "^4.0.97",
-		"@ai-sdk/deepseek": "^3.0.80",
 		"@ai-sdk/mcp": "^2.0.91",
-		"@ai-sdk/openai": "^4.0.109",
 		"@ai-sdk/openai-compatible": "^3.0.85",
 		"@ai-sdk/provider-utils": "^5.0.75",
-		"@browser-ai/core": "^3.0.4",
 		"@mozilla/readability": "^0.6.0",
 		"@streamdown/code": "^2.0.0",
 		"@streamdown/math": "^1.0.3",

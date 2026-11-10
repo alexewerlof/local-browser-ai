@@ -14,15 +14,11 @@ import { SettingsCard } from './SettingsCard'
 export function ModelsSection({ settings }: { settings: AppSettings }) {
 	const provider = settings.providers.find((entry) => entry.id === settings.defaultModel?.providerId)
 	const modelId = settings.defaultModel?.modelId ?? ''
-	const info = provider ? getModelInfo(provider.kind, modelId) : null
-	const options = info && provider ? thinkingOptions(provider.kind, info) : [{ value: 'off' as const, label: 'Off' }]
+	const info = provider ? getModelInfo(modelId) : null
+	const options = info ? thinkingOptions(info) : [{ value: 'off' as const, label: 'Off' }]
 	const thinking =
 		info && provider
-			? normalizeThinking(
-					thinkingForModel(provider, modelId, settings.modelDefaults.thinking),
-					provider.kind,
-					info,
-				)
+			? normalizeThinking(thinkingForModel(provider, modelId, settings.modelDefaults.thinking), info)
 			: { level: 'off' as const }
 
 	const updateModel = (providerId: string, nextModelId: string) =>
@@ -66,8 +62,7 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 						<span className="badge">
 							max out {new Intl.NumberFormat().format(modelMaxOutputTokens(provider, modelId))}
 						</span>
-						<span className="badge">{info.capabilities.tools ? 'tools' : 'no tools'}</span>
-						<span className="badge">{info.capabilities.reasoning ? 'reasoning' : 'no reasoning'}</span>
+						<span className="badge">{info.reasoning ? 'reasoning' : 'no reasoning'}</span>
 					</div>
 				)}
 			</SettingsCard>
@@ -127,8 +122,8 @@ export function ModelsSection({ settings }: { settings: AppSettings }) {
 						}))
 					}
 					hint={
-						info?.capabilities.reasoning
-							? 'Stored for this model. Anthropic maps these to thinking budgets; OpenAI-style models map them to reasoning effort.'
+						info?.reasoning
+							? 'Stored for this model. A local server that exposes a reasoning mode maps it to `reasoning_effort`.'
 							: 'This model does not expose a reasoning control.'
 					}
 				/>

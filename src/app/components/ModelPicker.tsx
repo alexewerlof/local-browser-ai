@@ -38,11 +38,7 @@ export function ModelPicker({
 			.filter((group) => group.models.length > 0)
 	}, [settings.providers, query])
 
-	const label = current
-		? current.providerId === 'prompt-api'
-			? 'Built-in model'
-			: current.modelId || 'Choose model'
-		: 'Choose model'
+	const label = current ? current.modelId || 'Choose model' : 'Choose model'
 
 	return (
 		<Popover
@@ -90,9 +86,7 @@ export function ModelPicker({
 										setOpen(false)
 									}}
 								>
-									<span className="popover__item-main">
-										{provider.kind === 'prompt-api' ? 'Built-in browser model' : modelId}
-									</span>
+									<span className="popover__item-main">{modelId}</span>
 									<span className="badge">{formatTokens(contextWindow)}</span>
 									{selected && <Check size={13} />}
 								</button>

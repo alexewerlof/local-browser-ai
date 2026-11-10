@@ -3,23 +3,20 @@ import { Check, ChevronDown, MessageCircleMore } from 'lucide-react'
 import type { ThinkingSelection } from '../../core/types'
 import type { ModelInfo } from '../../providers/catalog'
 import { thinkingOptions } from '../../providers/catalog'
-import type { ProviderKind } from '../../core/types'
 import { Popover } from './Popover'
 
 export function ThinkingMenu({
-	kind,
 	info,
 	value,
 	onChange,
 }: {
-	kind: ProviderKind
 	info: ModelInfo
 	value: ThinkingSelection
 	onChange: (next: ThinkingSelection) => void
 }) {
 	const [open, setOpen] = useState(false)
-	const options = thinkingOptions(kind, info)
-	const supported = info.capabilities.reasoning
+	const options = thinkingOptions(info)
+	const supported = info.reasoning
 
 	if (!supported) return null
 

@@ -13,12 +13,8 @@ import type {
 import { isHttpUrl } from './mcp'
 import { isMemoryToolId } from './memory'
 
-export const PROMPT_API_PROVIDER_ID = 'prompt-api'
-/** The Prompt API exposes a single model; `@browser-ai/core` names it "text". */
-export const PROMPT_API_MODEL_ID = 'text'
-
 /** Version of the settings document this build writes. Bump it with a migration step. */
-export const SETTINGS_VERSION = 10
+export const SETTINGS_VERSION = 11
 
 /**
  * Text sizes offered for the panel, mirroring Chrome's own font-size setting. `medium`
@@ -46,8 +42,7 @@ const modelRefSchema = z.object({
 })
 
 const thinkingSchema = z.object({
-	level: z.enum(['off', 'auto', 'low', 'medium', 'high', 'custom']),
-	tokens: z.number().int().positive().optional(),
+	level: z.enum(['off', 'auto', 'low', 'medium', 'high']),
 })
 
 const modelModalitySchema = z.enum(['text', 'image', 'audio', 'video'])
@@ -64,7 +59,6 @@ const modelDetailsSchema = z.object({
 
 const providerSchema = z.object({
 	id: z.string().min(1),
-	kind: z.enum(['prompt-api', 'openai', 'anthropic', 'deepseek', 'openai-compatible']),
 	label: z.string().min(1),
 	baseURL: z.string().optional(),
 	apiKey: z.string().optional(),
@@ -127,7 +121,9 @@ export const settingsSchema = z.object({
 	modelDefaults: z.object({
 		temperature: z.number().min(0).max(2),
 		maxOutputTokens: z.number().int().positive().optional(),
-		thinking: thinkingSchema,
+		// A level this build no longer offers (v11 dropped `custom`) must not fail the whole
+		// document: that would drop the providers and keys with it.
+		thinking: thinkingSchema.catch({ level: 'auto' }),
 	}),
 	context: z.object({
 		compactionThreshold: z.number().min(0.5).max(0.95),
@@ -214,13 +210,6 @@ export const builtInSkills: Skill[] = [
 	},
 ]
 
-export const defaultProvider = (): ProviderSettings => ({
-	id: PROMPT_API_PROVIDER_ID,
-	kind: 'prompt-api',
-	label: 'Built-in browser model',
-	models: [PROMPT_API_MODEL_ID],
-})
-
 export const defaultSystemPrompt = [
 	'You are Local Browser AI, a chat assistant that runs in the browser sidebar.',
 	'The user adds web pages to the conversation from the page context menu or the add button. Each one appears as a `## Page pN` block with its title, URL, size and outline; the full text stays out of the prompt.',
@@ -239,8 +228,8 @@ export const defaultSystemPrompt = [
 
 export const defaultSettings = (): AppSettings => ({
 	version: SETTINGS_VERSION,
-	providers: [defaultProvider()],
-	defaultModel: { providerId: PROMPT_API_PROVIDER_ID, modelId: PROMPT_API_MODEL_ID },
+	providers: [],
+	defaultModel: null,
 	modelDefaults: {
 		temperature: 0.7,
 		thinking: { level: 'auto' },
@@ -427,7 +416,7 @@ function sanitizeUiSettings(value: unknown, fallback: UiSettings): UiSettings {
  * Turn whatever was stored into a valid settings object.
  *
  * Built-in skills are always present (user copies are kept alongside them), and the
- * default provider/model is re-added when missing so a corrupted store cannot brick the panel.
+ * default model is dropped rather than kept when its provider is gone.
  */
 export function normalizeSettings(input: unknown): AppSettings {
 	const defaults = defaultSettings()
@@ -462,21 +451,18 @@ export function normalizeSettings(input: unknown): AppSettings {
 
 	const settings = parsed.data as AppSettings
 
-	const providerIds = new Set(settings.providers.map((provider) => provider.id))
-	if (!providerIds.has(PROMPT_API_PROVIDER_ID)) {
-		settings.providers.unshift(defaultProvider())
-	}
-
 	const skillIds = new Set(settings.skills.map((skill) => skill.id))
 	for (const skill of builtInSkills) {
 		if (!skillIds.has(skill.id)) settings.skills.push(skill)
 	}
 
+	// A default model whose provider is gone would fail every run, so the panel asks the
+	// user to pick one instead.
 	if (
 		settings.defaultModel &&
 		!settings.providers.some((provider) => provider.id === settings.defaultModel?.providerId)
 	) {
-		settings.defaultModel = defaults.defaultModel
+		settings.defaultModel = null
 	}
 
 	// Drop tool ids that no longer exist.
@@ -516,6 +502,5 @@ export function thinkingForModel(
 export function describeModel(settings: AppSettings, ref: { providerId: string; modelId: string }): string {
 	const provider = getProvider(settings, ref.providerId)
 	if (!provider) return ref.modelId
-	if (provider.kind === 'prompt-api') return 'Built-in model'
 	return ref.modelId || provider.label
 }

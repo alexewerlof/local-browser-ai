@@ -1,9 +1,9 @@
 # Local Browser AI — agent guide
 
-A Chrome/Edge (MV3) side-panel chat harness. The extension is provider-agnostic: the model can be the browser's built-in
-Prompt API, a local server (llama.cpp, Ollama, LM Studio, vLLM), or a hosted API (OpenAI, Anthropic, DeepSeek). A domain
-layer owns conversations, the context budget, compaction, skills and built-in tools; providers are swappable adapters
-over the [Vercel AI SDK](https://ai-sdk.dev).
+A Chrome/Edge (MV3) side-panel chat harness. It talks to a local OpenAI-compatible server (llama.cpp, Ollama, LM Studio,
+Jan, vLLM) and to nothing else: there is no hosted provider and no built-in browser model. A domain layer owns
+conversations, the context budget, compaction, skills and built-in tools; the provider is one adapter over the
+[Vercel AI SDK](https://ai-sdk.dev).
 
 ## Architecture
 
@@ -12,7 +12,7 @@ over the [Vercel AI SDK](https://ai-sdk.dev).
 | UI          | `src/app/`         | React side panel: transcript, composer, model/thinking pickers, context meter, history.                        |
 | Settings UI | `src/settings/`    | Full-page providers, models, skills, tools, memory, context and general.                                       |
 | Domain      | `src/core/`        | Types, settings schema, token budget, page blocks, context assembly, BM25, memory, compaction, omnibox prompt. |
-| Providers   | `src/providers/`   | AI SDK adapters, model catalog (context windows/capabilities), discovery, error mapping.                       |
+| Providers   | `src/providers/`   | The AI SDK adapter, model catalog (context windows, reasoning), discovery, error mapping.                      |
 | MCP         | `src/state/mcp.ts` | Streamable HTTP client, tool discovery cache, approval-wrapped MCP tools.                                      |
 | Browser     | `src/browser/`     | Service worker, typed RPC, injectable extraction, HTML→markdown, built-in tools, omnibox entry.                |
 | State       | `src/state/`       | Settings, conversation, run state, prompt queue, memory, pages, IndexedDB persistence.                         |
@@ -309,8 +309,9 @@ both. The wording and the fallback count live in `core/steps.ts`.
 
 - **The side panel is the only place that talks to a model.** The service worker only extracts pages, opens tabs and
   reports tab lifecycle. All model calls happen in the panel through `src/state/chat.ts`.
-- **Providers are adapters.** Nothing outside `src/providers/` may branch on `ProviderKind` for model behaviour. Add a
-  provider by extending the registry, catalog and settings presets.
+- **Providers are adapters.** Nothing outside `src/providers/` may reach for an AI SDK client. `ProviderSettings` is a
+  server address, a key and a model list; the registry builds the one adapter and the catalog owns the facts about model
+  ids. A second protocol (a Responses API, say) is a new kind there, not a branch in `chat.ts`.
 - **The AI SDK does not know context windows.** Window sizes come from `src/providers/catalog.ts` plus per-provider
   overrides; provider-reported usage is the source of truth once a request completes.
 - **Tab access is `activeTab`, and only for adding a page** — except from the panel, which no click there can grant, so
@@ -393,11 +394,11 @@ migration.
 `npm audit` reports zero vulnerabilities and stays there. `npm run package` is the canary for the packaging toolchain:
 it is the only `archiver` caller and `scripts/` is not typechecked.
 
-- **Upgrade the AI SDK in lockstep.** `ai`, the four adapters and `@ai-sdk/mcp` each pin an exact `@ai-sdk/provider` /
-  `@ai-sdk/provider-utils` pair, so bumping one alone nests a second provider copy. Move the whole family in one change
-  and check `npm ls @ai-sdk/provider` shows a single version (and bump the `@ai-sdk/provider-utils` range with it).
-  `@ai-sdk/mcp` was pinned exactly at 2.0.86 for that reason; 2.0.91 shares `4.0.36`/`5.0.75` with `ai@7.0.163`, so a
-  caret is safe again — re-verify the pairing before re-pinning it.
+- **Upgrade the AI SDK in lockstep.** `ai`, `@ai-sdk/openai-compatible` and `@ai-sdk/mcp` each pin an exact
+  `@ai-sdk/provider` / `@ai-sdk/provider-utils` pair, so bumping one alone nests a second provider copy. Move the whole
+  family in one change and check `npm ls @ai-sdk/provider` shows a single version (and bump the `@ai-sdk/provider-utils`
+  range with it). `@ai-sdk/mcp` was pinned exactly at 2.0.86 for that reason; 2.0.91 shares `4.0.36`/`5.0.75` with
+  `ai@7.0.163`, so a caret is safe again — re-verify the pairing before re-pinning it.
 - **Two `overrides` are deliberate** and close advisories npm cannot fix by moving a dependency: `katex ^0.19.1` (forced
   past `@streamdown/math`'s `^0.16.27`; `17-math` and `18-rendering-off` cover it) and `minimatch ^11.0.4` (forced past
   `eslint` / `typescript-eslint`'s `^10.2.6`). Drop them only when upstream widens its range, and treat a forced major
@@ -447,9 +448,10 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`
   scale in `tokens.css`. `medium` renders exactly the designed pixels, and nothing but type scales — controls use
   `min-height`, so they only grow when the text needs it.
-- Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in provider and skills so a
-  corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove` for built-ins and `mcp` for remote
-  servers; a malformed MCP entry is dropped on its own instead of resetting the document.
+- Settings are versioned and validated with zod; `normalizeSettings` re-adds the built-in skills and clears a default
+  model whose provider is gone, so a corrupted store cannot brick the panel. Tool settings carry `enabled`/`autoApprove`
+  for built-ins and `mcp` for remote servers; a malformed MCP entry is dropped on its own instead of resetting the
+  document.
 - Adding a default-on tool means three edits in `src/core/settings.ts`: the id list (`READ_ONLY_TOOL_IDS` /
   `ACTION_TOOL_IDS`), a `TOOLS_ADDED_IN` entry with the version it shipped in (add an `autoApprove` list when only some
   of those ids should run without asking), and a `SETTINGS_VERSION` bump. Existing stores only receive the id when their

@@ -1,6 +1,6 @@
 import type { ModelDetails, ModelModality, ProviderSettings } from '../core/types'
 import { hasHostAccess, hostOf } from '../platform/permissions'
-import { DEFAULT_BASE_URLS, normalizeBaseURL } from './registry'
+import { DEFAULT_BASE_URL, normalizeBaseURL } from './registry'
 import { AppError, toAppError } from './errors'
 
 /**
@@ -97,13 +97,10 @@ export function parseModelEntry(entry: RawModelEntry): ModelDetails | null {
 /**
  * Fetch the model list of a provider with the attributes the table shows.
  *
- * Every supported provider exposes a `/models` endpoint: OpenAI, DeepSeek and
- * OpenAI-compatible servers use the OpenAI shape, Anthropic returns `{ data: [{ id }] }`.
+ * A local server serves the OpenAI shape at `/models`.
  */
 export async function discoverModels(provider: ProviderSettings): Promise<ModelDetails[]> {
-	if (provider.kind === 'prompt-api') return provider.models.map((id) => ({ id }))
-
-	const baseURL = normalizeBaseURL(provider.baseURL, DEFAULT_BASE_URLS[provider.kind] ?? '')
+	const baseURL = normalizeBaseURL(provider.baseURL, DEFAULT_BASE_URL)
 	if (!(await hasHostAccess(baseURL))) {
 		throw new AppError(
 			'permission',
@@ -112,13 +109,7 @@ export async function discoverModels(provider: ProviderSettings): Promise<ModelD
 	}
 
 	const headers: Record<string, string> = { Accept: 'application/json', ...(provider.headers ?? {}) }
-	if (provider.kind === 'anthropic') {
-		if (provider.apiKey) headers['x-api-key'] = provider.apiKey
-		headers['anthropic-version'] = '2023-06-01'
-		headers['anthropic-dangerous-direct-browser-access'] = 'true'
-	} else if (provider.apiKey) {
-		headers.Authorization = `Bearer ${provider.apiKey}`
-	}
+	if (provider.apiKey) headers.Authorization = `Bearer ${provider.apiKey}`
 
 	let response: Response
 	try {
