@@ -67,6 +67,52 @@
 	opacity: 0.8;
 }
 
+/* The grant question: a sentence to read, then the two ways to answer it, so it is a
+   short block rather than a one-line bar. Sized with the banners it sits beside. */
+.page-access {
+	display: flex;
+	flex: none;
+	align-items: flex-start;
+	gap: var(--space-3);
+	margin: var(--space-3) var(--space-4) var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid color-mix(in oklab, var(--warning) 40%, var(--border));
+	border-radius: var(--radius-md);
+	background: var(--bg-raised);
+	font-size: var(--text-sm);
+}
+
+/* Warning, not alarm: the amber the border is mixed from, at a size the eye lands on
+   before it starts reading the sentence. */
+.page-access__icon {
+	flex: none;
+	margin-top: 1px;
+	color: var(--warning);
+}
+
+.page-access__body {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: var(--space-3);
+	min-width: 0;
+}
+
+.page-access__text {
+	margin: 0;
+}
+
+.page-access__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+.page-access__close {
+	flex: none;
+	margin-top: -2px;
+}
+
 /* A number or word inside a banner sentence that opens the control it comes from. */
 .banner__link {
 	padding: 0;
@@ -765,6 +811,7 @@
 .page-chip--list {
 	flex: 1 1 auto;
 	min-width: 0;
+	gap: var(--space-2);
 	padding: var(--space-1) var(--space-2);
 	border-radius: var(--radius-sm);
 	font-size: var(--text-sm);
@@ -807,6 +854,18 @@
 	flex: none;
 }
 
+/* The stamp follows the title rather than being pushed to the far edge with the host: it
+   is about this row, not about where the page lives. It does not grow, so a short title
+   keeps it close instead of leaving it floating in the middle of the row. */
+.page-chip__stamp {
+	flex: none;
+	margin-inline-start: var(--space-1);
+	color: var(--fg-muted);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
 .page-chip__title {
 	min-width: 0;
 	overflow: hidden;
@@ -815,10 +874,11 @@
 }
 
 .page-chip--list .page-chip__title {
-	flex: 1 1 auto;
+	flex: 0 1 auto;
 }
 
-/* Where the page came from; the full URL stays the row's tooltip. */
+/* Where the page came from; the full URL stays the row's tooltip. It is the trailing end
+   of the row, so it takes the leftover space rather than the title. */
 .page-chip__host {
 	flex: none;
 	max-width: 45%;
@@ -827,6 +887,10 @@
 	text-overflow: ellipsis;
 	color: var(--fg-faint);
 	font-size: var(--text-xs);
+}
+
+.page-chip--list .page-chip__host {
+	margin-inline-start: auto;
 }
 
 .page-card {

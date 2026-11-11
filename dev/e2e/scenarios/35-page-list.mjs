@@ -57,6 +57,36 @@ export async function run(ctx) {
 		])
 		assert.equal(await page.locator('.page-list__item--pending').count(), 2)
 
+		// Each row carries when its page was captured, after the icon and title. Both were
+		// added just now, so the row shows the clock time to the second and no date; the
+		// exact instant travels in the `<time>` element, with the full version as its tooltip.
+		const stamps = await page.locator('.page-chip__stamp').allTextContents()
+		assert.equal(stamps.length, 2)
+		for (const stamp of stamps) {
+			assert.match(stamp, /\d{1,2}[:.]\d{2}[:.]\d{2}/, `expected a clock time with seconds, got “${stamp}”`)
+			assert.doesNotMatch(stamp, /,/, 'today carries no date')
+			// Never relative, so a list left open cannot start lying.
+			assert.doesNotMatch(stamp, /ago|now/i)
+		}
+		const instants = await page
+			.locator('time.page-chip__stamp')
+			.evaluateAll((nodes) =>
+				nodes.map((node) => ({ dateTime: node.getAttribute('datetime'), title: node.getAttribute('title') })),
+			)
+		for (const instant of instants) {
+			assert.match(instant.dateTime ?? '', /^\d{4}-\d{2}-\d{2}T/)
+			// The tooltip is the same moment, spelled out in the user's locale.
+			assert.ok((instant.title ?? '').length > instant.dateTime.length, `tooltip: ${instant.title}`)
+			assert.notEqual(instant.title, instant.dateTime)
+		}
+
+		// The stamp comes after the title, and the host still closes the row.
+		const order = await page
+			.locator('.page-chip--list')
+			.first()
+			.evaluate((row) => [...row.children].map((node) => node.className || node.tagName.toLowerCase()))
+		assert.deepEqual(order.slice(1), ['page-chip__title', 'page-chip__stamp', 'page-chip__host'])
+
 		// A row still brings its page back.
 		await page.locator('.page-chip').nth(1).click()
 		const focused = await page.evaluate(() => window.__LB_AI_TEST__.focusedPages)

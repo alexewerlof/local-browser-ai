@@ -1,5 +1,6 @@
 import { FileText, Trash2 } from 'lucide-react'
 import type { PageSnapshot } from '../../core/types'
+import { stampIso, stampTime, stampTooltip } from '../../core/util'
 
 /** The id the count points at while the list is open (`aria-controls`). */
 const PAGE_LIST_ID = 'page-list-pages'
@@ -21,6 +22,11 @@ function hostOf(url: string): string {
  * A page that has not reached a turn yet is dimmed and carries a trash can: its block is
  * not in any request, so it can still be taken back. Once a turn carries it the page is
  * part of the transcript and only stays openable.
+ *
+ * Each row carries the moment its page was captured, because one chat can hold the same
+ * page more than once and two captures of a document differ only by that stamp. Nothing in
+ * it is relative, so a list left open does not start lying; the tooltip spells the whole
+ * instant out.
  */
 export function PageList({
 	pages,
@@ -31,11 +37,17 @@ export function PageList({
 	onOpen: (page: PageSnapshot) => void
 	onRemove: (page: PageSnapshot) => void
 }) {
+	// A date is only shown for a capture on another day, so this only has to be "now" and
+	// is read once per render — it is not a state change anyone can observe.
+	const reference = Date.now()
+
 	return (
 		<ol className="page-list__panel" id={PAGE_LIST_ID} aria-label="Pages in this chat">
 			{pages.map((page) => {
 				const title = page.title || hostOf(page.url)
 				const pending = !page.messageId
+				const stamp = stampTime(page.capturedAt, reference)
+				const tooltip = stampTooltip(page.capturedAt)
 				return (
 					<li key={page.id} className={`page-list__item${pending ? ' page-list__item--pending' : ''}`}>
 						<button
@@ -43,7 +55,7 @@ export function PageList({
 							className="page-chip page-chip--list"
 							onClick={() => onOpen(page)}
 							title={page.url}
-							aria-label={`Open ${title} — ${page.url}`}
+							aria-label={`Open ${title} — ${page.url}${stamp ? `, added ${stamp}` : ''}`}
 						>
 							{page.faviconUrl ? (
 								<img className="page-chip__icon" src={page.faviconUrl} alt="" width={12} height={12} />
@@ -51,6 +63,11 @@ export function PageList({
 								<FileText size={12} />
 							)}
 							<span className="page-chip__title">{title}</span>
+							{/* `dateTime` is the machine-readable instant; the tooltip spells it out in the
+							    user's own locale, so the row is never the only thing a reader gets. */}
+							<time className="page-chip__stamp" dateTime={stampIso(page.capturedAt)} title={tooltip}>
+								{stamp}
+							</time>
 							<span className="page-chip__host">{hostOf(page.url)}</span>
 						</button>
 						{pending && (

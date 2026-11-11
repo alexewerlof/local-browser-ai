@@ -30,16 +30,19 @@ function log(...args: unknown[]): void {
 /* --------------------------------------------------------------- panel wiring */
 
 /**
- * The toolbar button only shows and hides the panel: pages are added from the context
- * menu. `openPanelOnActionClick: true` is exactly that, so the worker keeps it set
- * rather than trying to take over `action.onClicked`.
+ * The toolbar button adds the page on screen; it is not a panel toggle.
+ *
+ * `openPanelOnActionClick: true` is Chrome's own "show and hide the panel" behavior, and
+ * while it is on `action.onClicked` never fires — so the add needs it *off*, and this has
+ * to run on every worker start because a profile may still carry the v3 setting. Chrome's
+ * own close button already hides the panel, so nothing is lost by dropping the toggle.
  */
-async function ensureToolbarTogglesPanel(): Promise<void> {
+async function ensureToolbarAddsPage(): Promise<void> {
 	try {
 		const behavior = await chrome.sidePanel.getPanelBehavior?.()
-		if (behavior?.openPanelOnActionClick !== true) {
-			await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-			console.info('[lbai] toolbar button toggles the panel')
+		if (behavior?.openPanelOnActionClick !== false) {
+			await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
+			console.info('[lbai] toolbar button adds the page on screen')
 		}
 	} catch (error) {
 		console.warn('[lbai] could not set the side panel behavior', error)
@@ -166,6 +169,44 @@ function addFromMenu(
 	queuePageTab(tabId)
 	void broadcast({ type: 'page.add', tabId })
 	if (selection) void broadcast({ type: 'selection.add', tabId, ...selection })
+}
+
+/**
+ * The toolbar button: add the page on screen, opening the panel on it if it was closed.
+ *
+ * Clicking the action is one of the gestures that grants `activeTab`, so the page is
+ * captured exactly as a context-menu add would capture it — no site permission is asked
+ * for. A restricted page (an internal one, or a file) has nothing to extract, so there the
+ * button only opens the panel, which is still more useful than doing nothing.
+ *
+ * The open has to start inside the gesture, before anything is awaited; the tab is queued
+ * and the panel nudged in the same tick, and a fallback tab is opened only when the panel
+ * refused *and* nothing took the nudge, so an already-open panel is never duplicated.
+ */
+function addFromToolbar(tab: chrome.tabs.Tab | undefined): void {
+	if (tab?.id === undefined) return
+	if (!tab.url || RESTRICTED_URL.test(tab.url)) {
+		log('toolbar button on a page it cannot read')
+		openPanel(tab.windowId)
+		return
+	}
+
+	log('toolbar add requested for tab', tab.id)
+	const opening = openSidePanel(tab.windowId).then(
+		() => true,
+		(error: unknown) => {
+			console.warn('[lbai] sidePanel.open from the toolbar failed', error)
+			return false
+		},
+	)
+
+	queuePageTab(tab.id)
+	void broadcast({ type: 'page.add', tabId: tab.id }).then((delivered) => {
+		if (delivered) return
+		void opening.then((opened) => {
+			if (!opened) void openPanelTab()
+		})
+	})
 }
 
 /* -------------------------------------------------------------------- omnibox */
@@ -585,7 +626,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
  * `contextMenus.onShown` (that event exists only in Firefox). So the label stays the same
  * in both cases and the click decides from `selectionText` what to do.
  *
- * There is no "Open chat" item: the toolbar button already shows and hides the panel.
+ * There is no "Open chat" item: the toolbar button adds the page on screen and opens the
+ * panel with it, which is the same job done with one gesture.
  */
 function createMenus(): void {
 	chrome.contextMenus.removeAll(() => {
@@ -596,13 +638,18 @@ function createMenus(): void {
 chrome.runtime.onInstalled.addListener((details) => {
 	log('installed', details.reason, chrome.runtime.getManifest().version)
 	createMenus()
-	void ensureToolbarTogglesPanel()
+	void ensureToolbarAddsPage()
 })
 chrome.runtime.onStartup.addListener(() => {
 	log('browser startup')
 	createMenus()
-	void ensureToolbarTogglesPanel()
+	void ensureToolbarAddsPage()
 })
+
+// The action has no `default_popup`, so a click reaches this listener instead. It is
+// registered before the toolbar behaviour is set, so the very first click of a session
+// already has somewhere to go.
+chrome.action.onClicked.addListener(addFromToolbar)
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
 	log('menu click', info.menuItemId, tab?.id)
@@ -623,5 +670,5 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Runs on every worker start, so a profile that still carries the old behavior is
 // repaired even before the next install/startup event.
 log('worker started')
-void ensureToolbarTogglesPanel()
+void ensureToolbarAddsPage()
 ensureOmniboxSuggestion()

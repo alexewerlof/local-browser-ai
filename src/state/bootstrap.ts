@@ -27,6 +27,7 @@ import { Store } from '../core/store'
 import { enabledBuiltInTools, normalizeSettings } from '../core/settings'
 import { freezePage } from '../core/context/page-block'
 import type { OmniboxPrompt } from '../core/omnibox'
+import type { PageAccessRequest } from '../core/page-access'
 import type { PageSource } from '../core/types'
 import type { PageSnapshot } from '../core/types'
 import { hasPageTools, type TabAttachment } from '../browser/tools'
@@ -139,27 +140,18 @@ export async function addPage(tabId?: number, options: AddPageOptions = {}): Pro
 /* --------------------------------------------------------------- page access */
 
 /**
- * A page waiting for the user to allow access to its site.
+ * The grant question on screen, if any — what the box above the composer is about.
  *
- * Chrome's chip has no "denied" event: a dismissed chip and an ignored one look the same
- * from here, so the entry stays until the grant arrives or the user cancels it.
+ * One slot on purpose: two questions in one strip would be a wall of text, and the panel
+ * is one chat at a time. `confirm` is the composer's add button, which asks nothing of
+ * Chrome until its Continue is pressed; `waiting` is a capture parked on the grant, and a
+ * tool call can be waiting behind it.
+ *
+ * Chrome's chip has no "denied" event — a dismissed chip and an ignored one look the same
+ * from here — so a `waiting` entry stays until the grant arrives or the user answers the
+ * box. The copy for both kinds lives in `describePageAccess`, next to the reason for it.
  */
-export interface PendingPageAccess {
-	tabId: number
-	url: string
-	/**
-	 * Whether Chrome was handed a chip to show.
-	 *
-	 * `addHostAccessRequest` resolves `void` and reports nothing, so this records the
-	 * attempt rather than a result: the banner offers its own button either way, because
-	 * there is no way to know from here whether anything appeared in the address bar.
-	 */
-	chip: boolean
-	/** Where the page comes from, kept so the grant that finally captures it still knows. */
-	source?: PageSource
-}
-
-export const pageAccessStore = new Store<PendingPageAccess | null>(null)
+export const pageAccessStore = new Store<PageAccessRequest | null>(null)
 
 /**
  * Tools waiting for the user to decide about a tab, by tab id.
@@ -227,8 +219,8 @@ function grantAccess(tabId: number, source: PageSource = 'user'): Promise<TabAtt
  * modal grant only answers while a click's gesture is still live, so by the time we get
  * here there is none left. What remains is the address-bar chip (`addHostAccessRequest`,
  * Chrome 133+), which needs no gesture — and nothing happens when the browser will not
- * show one, which is why the banner carries its own button. The composer's own button
- * does not come through here; see `addCurrentPage`.
+ * show one, which is why the box above the composer carries a Continue of its own. The
+ * composer's add button does not come through here; see `addCurrentPage`.
  */
 export async function addPageWithAccess(tabId: number, url: string): Promise<void> {
 	if (await hasHostAccess(url)) {
@@ -237,7 +229,7 @@ export async function addPageWithAccess(tabId: number, url: string): Promise<voi
 	}
 
 	if (supportsHostAccessRequest() && (await addHostAccessRequest(tabId))) {
-		pageAccessStore.set({ tabId, url, chip: true })
+		pageAccessStore.set({ kind: 'waiting', tabId, url, chip: true })
 		return
 	}
 
@@ -248,18 +240,21 @@ export async function addPageWithAccess(tabId: number, url: string): Promise<voi
 
 	// A browser without a chip can never show anything from here, so the page cannot be
 	// added at all unless the user goes through the context menu instead.
-	pageAccessStore.set({ tabId, url, chip: false })
+	pageAccessStore.set({ kind: 'waiting', tabId, url, chip: false })
 }
 
 /**
  * Add the page on screen — the composer's add button.
  *
- * The click is the only gesture this flow gets, and `permissions.request` has to be the
- * first thing it does: an `await` before the call has already spent the gesture. That is
- * why the panel tracks the active tab (`activeTabStore`) instead of reading it here — the
- * URL is already in hand, so the dialog is the first thing the click does. The dialog is
- * also the only grant the user is guaranteed to see, unlike the address-bar chip, which a
- * browser may quietly decline to show.
+ * The click asks Chrome nothing. A site grant is permanent for every later chat, so a
+ * modal that appears the moment someone presses "+" decides that for them before they
+ * know what they are deciding; the box explains the two routes instead, and its Continue
+ * is a fresh click whose gesture can still open the modal. That is also why the panel
+ * tracks the active tab (`activeTabStore`): nothing here has to be read before asking.
+ *
+ * A site that is already granted is added outright — loopback included, since there is
+ * nothing to decide — and the capture still goes through `grantAccess`, so a tool waiting
+ * on that same tab is settled by it.
  */
 export async function addCurrentPage(): Promise<void> {
 	const tab = activeTabStore.get()
@@ -268,27 +263,50 @@ export async function addCurrentPage(): Promise<void> {
 		return
 	}
 
-	if (await requestHostAccess(tab.url)) {
+	// A tool is already parked on that decision. Replacing the box would hide the only
+	// place that says so, and the tool would wait for an answer nobody was asked for.
+	if (pageAccessStore.get()?.kind === 'waiting') {
+		addPageErrorStore.set('Finish the page request above first.')
+		return
+	}
+
+	const readable = pageReadable()
+	if (!readable.ok) {
+		addPageErrorStore.set(readable.message)
+		return
+	}
+
+	if (await hasHostAccess(tab.url)) {
 		await grantAccess(tab.id)
 		return
 	}
 
-	// No dialog: the user dismissed it, or the browser would not open one from here. The
-	// chip can still be offered, and the banner then carries a button that asks again.
-	await addPageWithAccess(tab.id, tab.url)
+	pageAccessStore.set({ kind: 'confirm', tabId: tab.id, url: tab.url })
 }
 
 /**
- * The pending banner's Allow button.
+ * The box's Continue button: ask Chrome for the site, then act on the answer.
  *
- * Its click is a fresh gesture, so the modal can be asked for again even when the request
- * that opened the banner had none. Nothing is cleared before the answer is known: the
- * banner has to stay on screen when the dialog is dismissed without an answer.
+ * Its click is a fresh gesture, so `requestHostAccess` must be the first await — that is
+ * the whole reason the box exists instead of the modal appearing on the add itself.
+ *
+ * A `confirm` request has nothing waiting behind it: allowing adds the page, declining
+ * only closes the box, because there is no parked capture to abandon. A `waiting` request
+ * keeps its box on a decline — the tool call is still open, so hiding the only control
+ * that can finish it would leave the run silent.
  */
 export async function allowPageAccess(): Promise<void> {
 	const pending = pageAccessStore.get()
 	if (!pending) return
-	if (!(await requestHostAccess(pending.url))) return
+
+	const granted = await requestHostAccess(pending.url)
+	if (pending.kind === 'confirm') {
+		if (pageAccessStore.get() === pending) pageAccessStore.set(null)
+		if (granted) await grantAccess(pending.tabId)
+		return
+	}
+
+	if (!granted) return
 	await removeHostAccessRequest(pending.tabId)
 	await grantAccess(pending.tabId, pending.source)
 }
@@ -297,7 +315,7 @@ export async function allowPageAccess(): Promise<void> {
  * The "Add page to chat" button on a tool card.
  *
  * When the tool is still waiting for access to that tab this is the same decision the
- * banner's Allow button makes — only the control is different. It has to go through
+ * box's Continue makes — only the control is different. It has to go through
  * `allowPageAccess`: offering the chip again would return without settling the waiting
  * call, which is a button that looks dead and a run that never resumes.
  */
@@ -314,11 +332,16 @@ export async function addTabPage(tabId: number): Promise<void> {
 	}
 }
 
-/** Take the request back: the chip disappears, nothing is added, and a waiting tool is told. */
+/**
+ * Take the request back: the chip disappears, nothing is added, and a waiting tool is told.
+ *
+ * The user may still add the page the recommended way — the context menu or the toolbar
+ * button — and that add settles the tool through `addQueuedPage`.
+ */
 export async function cancelPageAccess(): Promise<void> {
 	const pending = pageAccessStore.get()
 	pageAccessStore.set(null)
-	if (!pending) return
+	if (pending?.kind !== 'waiting') return
 	settleAccess(pending.tabId, { attached: false, reason: 'The user did not allow access to that site.' })
 	await removeHostAccessRequest(pending.tabId)
 }
@@ -327,11 +350,13 @@ export async function cancelPageAccess(): Promise<void> {
  * The user allowed a site: add the page that was waiting for it.
  *
  * The origins come from the browser rather than from the request, so they are matched
- * against the pending page's own pattern instead of compared as strings.
+ * against the pending page's own pattern instead of compared as strings. A `confirm`
+ * request is not answered here: it asked Chrome for nothing, so a grant that matches it
+ * came from somewhere else and the box is still the user's to answer.
  */
 async function completePageAccess(origins: string[]): Promise<void> {
 	const pending = pageAccessStore.get()
-	if (!pending || !grantsOrigin(origins, pending.url)) return
+	if (pending?.kind !== 'waiting' || !grantsOrigin(origins, pending.url)) return
 	await grantAccess(pending.tabId, pending.source)
 }
 
@@ -376,7 +401,7 @@ export async function attachToolTab(
 
 	const answer = waitForAccess(tabId, signal)
 	const offered = supportsHostAccessRequest() && (await addHostAccessRequest(tabId))
-	pageAccessStore.set({ tabId, url: info.url, chip: offered, source })
+	pageAccessStore.set({ kind: 'waiting', tabId, url: info.url, chip: offered, source })
 	return answer
 }
 
@@ -414,7 +439,34 @@ function queuePageAdd(tabId: number, options?: AddPageOptions): Promise<PageSnap
 /** Add every page the user asked for while the panel was not listening. */
 async function drainPendingPages(): Promise<void> {
 	const tabIds = await takePendingPageTabs()
-	for (const tabId of tabIds) await queuePageAdd(tabId)
+	for (const tabId of tabIds) await addQueuedPage(tabId)
+}
+
+/**
+ * Add a tab the user asked for from the browser's own UI — the context menu or the
+ * toolbar button.
+ *
+ * Those gestures grant `activeTab`, which is why they need no site permission and are the
+ * route the box recommends. When one of them answers the box for the very tab it is about,
+ * the question is settled: the box goes, and a tool waiting on that tab is finished by the
+ * same capture. Going straight to `queuePageAdd` there would add the page and leave the
+ * tool parked until the run was stopped.
+ */
+async function addQueuedPage(tabId: number): Promise<void> {
+	const pending = pageAccessStore.get()
+	if (pending?.tabId !== tabId) {
+		await queuePageAdd(tabId)
+		return
+	}
+
+	pageAccessStore.set(null)
+	if (pending.kind === 'confirm') {
+		await queuePageAdd(tabId)
+		return
+	}
+
+	await removeHostAccessRequest(tabId)
+	await grantAccess(tabId, pending.source)
 }
 
 /* ------------------------------------------------------------- omnibox prompts */

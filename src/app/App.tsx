@@ -27,9 +27,11 @@ import { openSettings } from '../platform/chrome'
 import { focusPage, activeTabStore } from '../state/browser'
 import { pagesStore, isPageReference, removePage } from '../state/pages'
 import { hostOf } from '../platform/permissions'
+import { describePageAccess } from '../core/page-access'
 import { Composer } from './components/Composer'
 import { Header } from './components/Header'
 import { HistoryPanel } from './components/HistoryPanel'
+import { PageAccessBox } from './components/PageAccessBox'
 import { Transcript } from './components/Transcript'
 import { useStore } from './useStore'
 
@@ -54,6 +56,12 @@ export function App() {
 	const pageAccess = useStore(pageAccessStore)
 	const mcpWarnings = useStore(mcpWarningsStore)
 	const [historyOpen, setHistoryOpen] = useState(false)
+	/**
+	 * The grant question and its wording, or nothing. Both kinds of request — the composer's
+	 * add button and a tool parked on a site — are answered by the same two buttons, so the
+	 * copy is the only thing that differs.
+	 */
+	const pageAccessCopy = pageAccess ? describePageAccess(pageAccess, hostOf(pageAccess.url)) : null
 
 	if (bootStatus !== 'ready') {
 		return (
@@ -118,26 +126,13 @@ export function App() {
 				</div>
 			)}
 
-			{pageAccess && (
-				<div className="banner banner--warn">
-					<TriangleAlert size={14} />
-					<span>
-						{pageAccess.chip
-							? `Chrome is waiting for you to allow ${hostOf(pageAccess.url)} in the address bar.`
-							: `Chrome needs your permission to read ${hostOf(pageAccess.url)}.`}
-					</span>
-					<span className="spacer" />
-					<button type="button" className="button button--sm" onClick={() => void allowPageAccess()}>
-						Allow
-					</button>
-					<button
-						type="button"
-						className="button button--ghost button--sm"
-						onClick={() => void cancelPageAccess()}
-					>
-						Cancel
-					</button>
-				</div>
+			{pageAccessCopy && (
+				<PageAccessBox
+					message={pageAccessCopy.message}
+					recommendPermanent={pageAccessCopy.recommendPermanent}
+					onContinue={() => void allowPageAccess()}
+					onCancel={() => void cancelPageAccess()}
+				/>
 			)}
 
 			{stepLimit && (

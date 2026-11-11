@@ -9,11 +9,14 @@ or anything else that serves an OpenAI-compatible API.
 - **One engine, any server.** Every model is a local OpenAI-compatible endpoint, reached over the Vercel AI SDK. Add as
   many servers as you like and switch models per chat; nothing leaves your machine. A new chat starts with the model you
   were just using, or with the one starred as the default.
-- **Several pages in one chat.** Right-click any page and choose **Add to chat**; with text selected, the same item also
-  quotes the passage and brings its page along. Add as many as you need and they stay side by side: compare a product
-  across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from several
-  sources, or ground a conversation in more than one page. Each page appears in the chat with its title and URL; click
-  it to bring that tab back (the page is reopened if the tab is gone).
+- **Several pages in one chat.** Right-click any page and choose **Add to chat**, click the extension's toolbar button,
+  or press **+** in the composer; with text selected, the menu item also quotes the passage and brings its page along.
+  Adding from the menu or the toolbar needs no site permission: the click itself lets the extension read that one page.
+  **+** asks first — Chrome's dialog grants permanent access to the whole site, so the box explains that and the
+  one-page alternative before anything is requested. Add as many as you need and they stay side by side: compare a
+  product across two shops, pull the FAQ answers of three documentation pages into one answer, draft something new from
+  several sources, or ground a conversation in more than one page. Each page appears in the chat with its title and URL;
+  click it to bring that tab back (the page is reopened if the tab is gone).
 - **Ask from the address bar.** Type `lbai` and a question in the address bar and press Enter: a new chat opens with the
   page you were reading already attached, and the question is sent. Alt+Enter opens it in a tab instead of the sidebar.
 - **The same page, several versions.** Adding a page you already added captures it again as a new version with its own
@@ -29,8 +32,9 @@ or anything else that serves an OpenAI-compatible API.
   whole conversation on every message.
 - **Built-in tools.** The model can read an added page, list its sections, search across every page in the chat, read
   the current selection, check the current date and time, search the web with your default search engine, and open links
-  in a new tab (with your approval). A web search opens the results in a new tab; the model cannot read them, so it asks
-  you to add that page when it needs the content.
+  in a new tab (with your approval). A web search opens the results in a new tab, waits for you to allow that site —
+  granting the search engine permanently is the one grant worth keeping — and then reads them. A page the model opens
+  asks the same way, and you can always answer by adding the page from the right-click menu instead.
 - **Memory.** A flat list of notes that survives across chats. An always-on memory is injected into every turn, an auto
   memory only when your message matches it, and a tool-only memory stays in storage until the model searches for it with
   `recall`. The model saves new memories with `remember` without asking, but changing one it already saved asks first.

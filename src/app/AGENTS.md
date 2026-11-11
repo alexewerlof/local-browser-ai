@@ -23,6 +23,15 @@ Local rules:
   the toolbar add no `padding-inline` of their own, which is what keeps the buttons above and the chips below the same
   distance from the border. Every control in those two rows is 24px (`.button--sm`, `.chip`): a chip must never be
   taller than its neighbours, so a count inside one is a bare `.chip__count`, never the bordered `.badge` atom.
+- The add button (`+`, `.composer__add-page`) asks nothing of Chrome. It opens the grant box above the box — the same
+  `.banner--warn` a parked tool uses — and that box's **Continue** is the click that raises Chrome's modal. Both kinds
+  are stored in `pageAccessStore` and worded by `describePageAccess` in `src/core/page-access.ts`: the panel writes no
+  part of that copy itself, and only a search gets `button--primary` on Continue, because only there is the permanent
+  grant the recommended route.
+- A page row's stamp is absolute, never relative: the clock time to the second, the date only when the capture is on
+  another day (`.page-chip__stamp`, `stampTime`), and the full instant in the `<time>` tooltip (`stampTooltip`). A
+  countdown-style label would start lying the moment the list sat open. Never re-word a stored `capturedAt`; format it
+  at render, in the user's locale, with `Intl` — no date library.
 - The border is the prompt editor, so a click anywhere inside it focuses the textarea (`focusPrompt` in `Composer.tsx`,
   guarded by `BOX_CONTROL_SELECTOR`): the empty topbar gap and the space after the last chip would otherwise drop the
   caret to `<body>`. A control inside the box keeps its own click, and `.popover`/`.slash` are excluded because their

@@ -40,8 +40,12 @@ export async function run(ctx) {
 
 		// The request for the site is on screen, and the tool call is still open.
 		await page.waitForSelector('.tool--running')
-		await page.waitForSelector('.banner--warn')
-		assert.match(await page.locator('.banner--warn').textContent(), /allow www\.google\.com/)
+		await page.waitForSelector('.page-access')
+		const box = page.locator('.page-access')
+		assert.match(await box.textContent(), /search results are on www\.google\.com/)
+		// A search is the one grant worth keeping — the same engine is used by the next
+		// question — so its permanent route is the primary action.
+		assert.equal(await box.locator('button.button--primary').textContent(), 'Continue')
 
 		// The whole point: the model has not been called again while the user decides.
 		// A regression here is what makes the model give up on the page too early.
@@ -87,7 +91,7 @@ export async function run(ctx) {
 
 		// The banner is gone and the page it waited for is in the chat, but a search is not a
 		// reference: the page list stays empty.
-		assert.equal(await page.locator('.banner--warn').count(), 0)
+		assert.equal(await page.locator('.page-access').count(), 0)
 		assert.equal(await page.locator('.page-list__toggle').count(), 0)
 		assert.equal(await page.locator('.page-chip').count(), 0)
 		// The search attached its own page, so opening the folded steps offers no manual add.

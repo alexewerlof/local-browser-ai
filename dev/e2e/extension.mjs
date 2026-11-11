@@ -91,7 +91,7 @@ async function launch(profile) {
 	openContexts.push(context)
 	const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker', { timeout: 20000 }))
 	const extensionId = new URL(worker.url()).host
-	return { context, extensionId }
+	return { context, extensionId, worker }
 }
 
 /** Chromium may still be flushing its profile when we delete it. */
@@ -113,7 +113,7 @@ async function main() {
 	const pageErrors = []
 
 	try {
-		let { context, extensionId } = await launch(profile)
+		let { context, extensionId, worker } = await launch(profile)
 		console.log(`shows up as chrome-extension://${extensionId}`)
 
 		const page = await context.newPage()
@@ -135,11 +135,11 @@ async function main() {
 		assert.equal(await page.locator('.header__name').count(), 0)
 		assert.equal(await page.locator('.header__logo').count(), 0)
 
-		// 1. The toolbar button only shows and hides the panel, so the extension must leave
-		//    Chrome's own `openPanelOnActionClick` behavior on. Adding a page is a context
-		//    menu action instead.
+		// 1. The toolbar button adds the page on screen, so Chrome's own "toggle the panel"
+		//    behavior has to be off and the click has to reach the worker's own listener.
 		const behavior = await page.evaluate(() => chrome.sidePanel.getPanelBehavior())
-		assert.equal(behavior.openPanelOnActionClick, true, 'the worker should let the toolbar button toggle the panel')
+		assert.equal(behavior.openPanelOnActionClick, false, 'the worker should own the toolbar click')
+		assert.equal(await worker.evaluate(() => chrome.action.onClicked.hasListeners()), true)
 
 		// 2. Static assets resolve from the extension root.
 		const iconOk = await page.evaluate(async () => (await fetch('./images/icon-32.png')).ok)
@@ -358,14 +358,14 @@ async function main() {
 		assert.deepEqual(failures, [])
 		await context.close()
 
-		// 6. Migration: a profile left with the old behavior must be brought to the current
-		//    one on start, whatever it was set to.
+		// 6. Migration: a profile left with the v3 behavior (the toolbar button toggling the
+		//    panel) must be brought to the current one on start, whatever it was set to.
 		console.log('simulating a legacy profile…')
 		;({ context, extensionId } = await launch(profile))
 		const legacy = await context.newPage()
 		await legacy.goto(`chrome-extension://${extensionId}/side-panel.html`)
 		await legacy.waitForSelector('.app', { timeout: 20000 })
-		await legacy.evaluate(() => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }))
+		await legacy.evaluate(() => chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }))
 		await context.close()
 		;({ context, extensionId } = await launch(profile))
 		const repaired = await context.newPage()
@@ -373,11 +373,11 @@ async function main() {
 		await repaired.waitForSelector('.settings', { timeout: 20000 })
 		const deadline = Date.now() + 8000
 		let current = await repaired.evaluate(() => chrome.sidePanel.getPanelBehavior())
-		while (!current.openPanelOnActionClick && Date.now() < deadline) {
+		while (current.openPanelOnActionClick && Date.now() < deadline) {
 			await new Promise((done) => setTimeout(done, 200))
 			current = await repaired.evaluate(() => chrome.sidePanel.getPanelBehavior())
 		}
-		assert.equal(current.openPanelOnActionClick, true, 'the worker should restore the toolbar toggle')
+		assert.equal(current.openPanelOnActionClick, false, 'the worker should take over the toolbar click')
 		await context.close()
 
 		console.log('✔ extension: service worker, RPC, panel, Settings, extraction, behavior migration')

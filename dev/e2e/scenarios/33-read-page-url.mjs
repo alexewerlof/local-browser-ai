@@ -62,7 +62,7 @@ export async function run(ctx) {
 		await page.locator('.tool__approval button', { hasText: 'Allow' }).click()
 
 		// The tab opens, and the second decision appears: may the extension read that site?
-		await page.waitForSelector('.banner--warn')
+		await page.waitForSelector('.page-access')
 		const openedUrls = await page.evaluate(() => window.__LB_AI_TEST__.opened)
 		assert.deepEqual(openedUrls, ['https://docs.example.org/permissions'])
 

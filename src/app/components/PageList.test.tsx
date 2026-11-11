@@ -97,6 +97,50 @@ describe('PageListToggle', () => {
 })
 
 describe('PageList', () => {
+	it('trails each row with when the page was captured', () => {
+		const now = Date.now()
+		const today = page({ id: 'page-a', handle: 'p1', capturedAt: now })
+		const earlier = page({ id: 'page-b', handle: 'p2', capturedAt: now - 3 * 24 * 60 * 60 * 1000 })
+		const { container } = render(<PageList pages={[today, earlier]} onOpen={vi.fn()} onRemove={vi.fn()} />)
+
+		const rows = container.querySelectorAll<HTMLButtonElement>('.page-chip--list')
+		const stamps = Array.from(container.querySelectorAll('.page-chip__stamp')).map((node) => node.textContent)
+		expect(stamps).toHaveLength(2)
+		// Today is the clock time alone; another day carries its date too.
+		expect(stamps[0]).not.toContain(',')
+		expect(stamps[1]).toContain(',')
+		expect(stamps[0]).not.toBe(stamps[1])
+		// Never relative: an open list must not keep claiming "2 minutes ago".
+		for (const stamp of stamps) expect(stamp).not.toMatch(/ago|now/i)
+		// A screen reader is told the same thing the stamp shows.
+		expect(rows[0]?.getAttribute('aria-label')).toContain(`, added ${stamps[0]}`)
+	})
+
+	it('puts the stamp after the icon and title, and spells the instant out in the tooltip', () => {
+		const capturedAt = Date.now() - 2 * 60 * 60 * 1000
+		const { container } = render(
+			<PageList
+				pages={[page({ messageId: 'msg-1', capturedAt, faviconUrl: 'https://example.com/favicon.ico' })]}
+				onOpen={vi.fn()}
+				onRemove={vi.fn()}
+			/>,
+		)
+
+		const row = container.querySelector<HTMLButtonElement>('.page-chip--list')
+		const order = Array.from(row?.children ?? []).map((node) => node.className || node.tagName.toLowerCase())
+		expect(order).toEqual(['page-chip__icon', 'page-chip__title', 'page-chip__stamp', 'page-chip__host'])
+
+		const stamp = container.querySelector<HTMLTimeElement>('time.page-chip__stamp')
+		// `<time>` carries the machine-readable instant; the native tooltip is the same
+		// moment written out in the user's own locale.
+		expect(stamp?.dateTime).toBe(new Date(capturedAt).toISOString())
+		expect(stamp?.title).toBe(
+			new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'long' }).format(new Date(capturedAt)),
+		)
+		// The row shows the time to the second; the tooltip is the only place with a year.
+		expect(stamp?.textContent?.split(':')).toHaveLength(3)
+	})
+
 	it('lists every page as a row with its host', () => {
 		const { container } = render(
 			<PageList pages={[page({ messageId: 'msg-1' }), desk]} onOpen={vi.fn()} onRemove={vi.fn()} />,

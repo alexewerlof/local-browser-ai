@@ -56,6 +56,65 @@ export function relativeTime(timestamp: number, reference = Date.now()): string 
 	return new Date(timestamp).toLocaleDateString()
 }
 
+/**
+ * A compact "when" for a row the same thing can appear in twice.
+ *
+ * The clock time always, to the second — two captures of one document can be a minute
+ * apart, so the seconds are the point. The date joins it only once the capture is on
+ * another calendar day; a date repeated down every row added today is noise. Nothing here
+ * is relative: a list left open for a while would keep claiming "2 minutes ago" long after
+ * it stopped being true.
+ *
+ * Both halves come from `Intl`, so the clock convention, the calendar and the wording are
+ * the user's own.
+ */
+export function stampTime(timestamp: number, reference = Date.now()): string {
+	const at = new Date(timestamp)
+	if (Number.isNaN(at.getTime())) return ''
+	const now = new Date(reference)
+
+	const time = at.toLocaleTimeString(undefined, {
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+	})
+	// `toDateString` is locale-independent, which makes this a same-day check rather than
+	// a comparison of two localized date strings.
+	if (at.toDateString() === now.toDateString()) return time
+
+	const sameYear = at.getFullYear() === now.getFullYear()
+	const date = at.toLocaleDateString(undefined, {
+		month: 'short',
+		day: 'numeric',
+		...(sameYear ? {} : { year: 'numeric' }),
+	})
+	return `${date}, ${time}`
+}
+
+/**
+ * The exact instant, in ISO 8601, for the `<time>` element and the tooltip that spells it
+ * out in full — the row itself only shows what has to be there to tell two captures apart.
+ */
+export function stampIso(timestamp: number): string | undefined {
+	const at = new Date(timestamp)
+	// `toISOString` throws on an invalid date, and a stored page may predate the field.
+	return Number.isNaN(at.getTime()) ? undefined : at.toISOString()
+}
+
+/**
+ * The same instant in the user's own locale and calendar, for the native tooltip: a reader
+ * who does not decode ISO 8601 should not need to. `dateStyle: 'full'` spells the weekday
+ * and the year out, which is exactly what the row leaves in the tooltip.
+ */
+let fullFormat: Intl.DateTimeFormat | undefined
+
+export function stampTooltip(timestamp: number): string | undefined {
+	const at = new Date(timestamp)
+	if (Number.isNaN(at.getTime())) return undefined
+	fullFormat ??= new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'long' })
+	return fullFormat.format(at)
+}
+
 /** Debounce a function; the returned function also exposes `flush` and `cancel`. */
 export function debounce<Args extends unknown[]>(
 	fn: (...args: Args) => void,

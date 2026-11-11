@@ -46,28 +46,35 @@ Area files narrow this down: `src/app/AGENTS.md`, `src/core/AGENTS.md`, `src/bro
 
 The primary page-attachment path is the side panel itself: a "Add current page" button sits with the composer and can
 capture the active tab whenever the user clicks it, while the existing context-menu flow stays available as a fallback.
-The page is still captured from the user's chosen tab in one place, and the context menu continues to use the same
-`addPage` pipeline. A page joins a chat **only** from an explicit user action, whether a context-menu item or a panel
-button; the toolbar button itself still only toggles the panel. One item, not two: Chrome collapses two visible items
-from one extension into a parent submenu, and an item cannot be retitled as the menu opens because Chrome has no
-`contextMenus.onShown`. The page is always captured, so the label is literally true, and a selection only adds a quote
-on top of it. The menu handler in the worker opens the panel first (a gesture), queues the tab id in session storage and
-broadcasts `page.add`; the panel drains the queue with `page.pending`, so an add that arrived before the panel loaded is
-not lost and several adds are drained in order. The broadcast is only a **nudge**: both it and the boot drain call
-`drainPendingPages()`, because adding from the event as well would add the same page twice when the two paths land
-together. A selection quotes the text into the draft **and** captures its page, so the model gets the title, URL and
-outline of where the passage came from; a document already in the chat is reused rather than captured again
-(`findAttachedPage`, `addPage(tabId, { reuseExisting: true })`).
+The page is still captured from the user's chosen tab in one place, and the context menu, the toolbar button and the
+panel all use the same `addPage` pipeline. A page joins a chat **only** from an explicit user action — a context-menu
+item, the toolbar button or the panel button. One item, not two: Chrome collapses two visible items from one extension
+into a parent submenu, and an item cannot be retitled as the menu opens because Chrome has no `contextMenus.onShown`.
+The page is always captured, so the label is literally true, and a selection only adds a quote on top of it. The menu
+handler in the worker opens the panel first (a gesture), queues the tab id in session storage and broadcasts `page.add`;
+the panel drains the queue with `page.pending`, so an add that arrived before the panel loaded is not lost and several
+adds are drained in order. The broadcast is only a **nudge**: both it and the boot drain call `drainPendingPages()`,
+because adding from the event as well would add the same page twice when the two paths land together. A selection quotes
+the text into the draft **and** captures its page, so the model gets the title, URL and outline of where the passage
+came from; a document already in the chat is reused rather than captured again (`findAttachedPage`,
+`addPage(tabId, { reuseExisting: true })`).
 
-**A panel add needs a different grant than a menu add.** A click inside the panel cannot obtain `activeTab` — only an
-action, a context-menu item, a `commands` shortcut or an accepted omnibox suggestion can — so the button asks for the
-origin itself, out of `optional_host_permissions`. That is `permissions.request()`, which opens a modal and answers
-true/false but has to be the first `await` of the click; that is precisely why `activeTabStore` tracks the tab in
-advance and `addCurrentPage` does not read it. The address-bar chip (`addHostAccessRequest`, Chrome 133+) is the
-fallback for a path that has already spent its gesture — the "Add page to chat" button on a tool card reads the tab
-first — and it is fire-and-forget: it resolves `void`, and a browser that declines to show anything says nothing.
-`pageAccessStore`'s `chip` flag therefore only words the banner; the banner's own **Allow** button, whose click is a
-fresh gesture, is what guarantees a way in.
+**A panel add asks first, then asks Chrome.** A click inside the panel cannot obtain `activeTab` — only an action, a
+context-menu item, a `commands` shortcut or an accepted omnibox suggestion can — so the panel has to ask for the origin
+itself, out of `optional_host_permissions`, and that grant is permanent for every later chat. `addCurrentPage` therefore
+asks Chrome for nothing: it opens the box (`pageAccessStore`, kind `confirm`) that names both routes, and the box's
+**Continue** — a fresh click, so `requestHostAccess` can still be its first `await` — is what raises the modal. The
+card's **Add page to chat** button and a tool's parked tab take the address-bar chip instead (`addHostAccessRequest`,
+Chrome 133+), because their gesture is already spent; the chip is fire-and-forget, which is why the same box carries a
+button that asks anyway. The wording of all of it is `describePageAccess` in `src/core/page-access.ts`; nothing in the
+panel writes that copy itself.
+
+**The toolbar button adds the page.** It is one of the gestures that grants `activeTab`, so a click captures the tab
+with no site permission — the same add the context menu makes, and the same queue and nudge. `openPanelOnActionClick` is
+`false` on every worker start (`ensureToolbarAddsPage`), because while Chrome's own toggle behavior is on
+`action.onClicked` never fires; with the panel already open the button only adds, and closing the panel is Chrome's X.
+The open starts inside the gesture, before any `await`, and `openPanelTab()` is the fallback only when the open failed
+_and_ nothing took the nudge, so a panel that is already open is never duplicated.
 
 **A search is not finished when Chrome opens the tab.** `search_web` cannot read the results until the user grants that
 site, and a tool result that says "the results are in a tab you cannot read" ends the turn — by the time the grant
@@ -78,6 +85,14 @@ returns and the next step of the same run can read it; a cancel or a Stop settle
 page handle, never the URL. The handler reaches `tools.ts` through `bindTabAttach` in `src/state/browser.ts`, because
 `bootstrap` imports `chat` and the tool context is built there. A search whose site access is granted but whose page
 tools are off is refused outright, since a page nobody can read is not worth asking a site for.
+
+**The answer to a parked tool is often the browser's own UI.** The box says so, and it has to be true: a context-menu
+click or a toolbar click on that exact tab goes through `addQueuedPage`, which sees the waiting request, closes the box,
+takes the chip back and finishes the capture through `grantAccess` — so the tool call settles and the run continues. Do
+not route that drain straight into `queuePageAdd`: it would add the page and leave the tool parked until the run was
+stopped. Only a search gets the permanent grant recommended (its Continue is the primary button): the same engine is
+used by the next question, while every other page is one the user happened to be on. A permanent grant is a per-tab,
+per-document decision for the user, never something the model can cause.
 
 **`read_page` with a URL is the same pipeline, with two decisions.** A `url` read first consults
 `ToolContext.findPageByUrl`, and a document the chat already holds is read from its snapshot: no tab, no approval, no
@@ -156,12 +171,18 @@ the count from the first page on — one control for any number of pages — and
 above `.composer__box`, so the list grows upwards and never squeezes the prompt. **An add opens that list**, because a
 changing count is too quiet a signal and the new row is one click from `removePage`; `lastPageAddedStore` carries that
 signal and only `appendPage` sets it, so a restored chat still starts with the list closed. A row is dimmed and carries
-a trash can until a turn claims the page (`messageId`), because only then is its block in a request. Handles count up
-from the highest live one, so a removed `p1` is never handed to the next capture. A page `search_web` captured is born
-with `source: 'search'` — the tool passes it to `attachTab`, which carries it through the grant into `freezePage` — and
-is filtered out of the list _and_ of the transcript cards (`isPageReference`, applied once in `App.tsx`): the search is
-the extension doing its job, not a reference the user chose, while the model still reads that page like any other. Keep
-the list out of `pagesStore`'s reach — it is a view over the chat's pages, never a second copy.
+a trash can until a turn claims the page (`messageId`), because only then is its block in a request. **Every row carries
+its capture stamp after the title** (`stampTime` over `capturedAt`, which `pipeline.ts` sets when the page is scraped):
+the clock time to the second always, and the calendar date only once the capture is on another day — two captures of one
+document differ only by that stamp, so it is what tells a version from its predecessor. **Nothing in it is relative**
+("2 minutes ago" goes stale in a list left open), and it is a `<time>` whose `dateTime` is the ISO instant and whose
+`title` is `stampTooltip`, the same moment spelled out in the user's locale. Both come from `Intl`; never add a date
+library. Handles count up from the highest live one, so a removed `p1` is never handed to the next capture. A page
+`search_web` captured is born with `source: 'search'` — the tool passes it to `attachTab`, which carries it through the
+grant into `freezePage` — and is filtered out of the list _and_ of the transcript cards (`isPageReference`, applied once
+in `App.tsx`): the search is the extension doing its job, not a reference the user chose, while the model still reads
+that page like any other. Keep the list out of `pagesStore`'s reach — it is a view over the chat's pages, never a second
+copy.
 
 ## Omnibox
 
@@ -315,15 +336,16 @@ both. The wording and the fallback count live in `core/steps.ts`.
 - **The AI SDK does not know context windows.** Window sizes come from `src/providers/catalog.ts` plus per-provider
   overrides; provider-reported usage is the source of truth once a request completes.
 - **Tab access is `activeTab`, and only for adding a page** — except from the panel, which no click there can grant, so
-  it asks for the site itself one origin at a time. A context-menu click grants `activeTab` — and so does accepting an
-  omnibox suggestion — so extraction works for that tab and no install-time host permission is needed for page content.
-  The `tabs` permission is requested only for tab _URLs_ — `openSettings`, `page.focus` and resolving the omnibox's
-  active tab use them — and it grants no page content.
-- **The toolbar button is only a panel toggle.** `openPanelOnActionClick: true` is what makes Chrome show and hide the
-  panel itself, so the worker **sets** that flag on every start (`ensureToolbarTogglesPanel`) and there is deliberately
-  no `action.onClicked` handler. Version 2 did the opposite and had to reset the flag; do not reintroduce that. Adding a
-  page is the context menu's job. `sidePanel.open()` must be the first call in a gesture handler — never `await` before
-  it, or the gesture is lost.
+  it asks for the site itself one origin at a time, after the consent box. A context-menu click grants `activeTab` — and
+  so do the toolbar button and accepting an omnibox suggestion — so extraction works for that tab and no install-time
+  host permission is needed for page content. The `tabs` permission is requested only for tab _URLs_ — `openSettings`,
+  `page.focus` and resolving the omnibox's active tab use them — and it grants no page content.
+- **The toolbar button adds the page, it does not toggle the panel.** `openPanelOnActionClick: false` is what lets
+  `action.onClicked` fire at all, so the worker **resets** that flag on every start (`ensureToolbarAddsPage`) and the
+  listener does the work: closed panel → open it on the captured page, open panel → just add. Chrome's own X closes the
+  panel; do not reintroduce the toggle. `sidePanel.open()` must be the first call in a gesture handler — never `await`
+  before it, or the gesture is lost — and the tab fallback runs only when the open failed _and_ no panel answered the
+  nudge.
 - **Extraction runs in the page.** `src/browser/extract/inject.ts` must stay self-contained (no imports, no module
   helpers) because `chrome.scripting.executeScript({ func })` serializes it.
 - **A page block is frozen, and the transcript is append-only.** A block is rendered once at capture (`renderPageBlock`)
