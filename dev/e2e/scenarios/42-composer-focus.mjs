@@ -53,7 +53,7 @@ export async function run(ctx) {
 
 	// A menu is not prompt chrome either, so neither its chip nor its surface moves focus.
 	await page.locator('.chip--model').click()
-	await page.waitForSelector('.popover--fill')
+	await page.waitForSelector('.popover')
 	assert.equal(await focused(), false, 'opening a menu must not focus the prompt')
 	await page.keyboard.press('Escape')
 	await page.waitForSelector('.popover', { state: 'detached' })

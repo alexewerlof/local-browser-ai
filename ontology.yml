@@ -106,7 +106,7 @@ models:
     model-type: what kind of model an id names; code ModelType, classifyModel, chat, embedding, speech, image, classifier, rerank; ui Chat, Embedding, Speech, Image, Classifier, Rerank; not category, kind
     modality: the content a model accepts or produces; code ModelModality, inputModalities, outputModalities, ModalityIcon, MODALITY_ICONS; ui text, image, audio, video; not content type, media type
     model-table: the table of models inside the provider editor; code ProviderModelTable, models-table, models__add, models-table__default; ui Use, Refresh, Add model, Loaded in the server, ~32k, Make default, Default model; not model list, model textarea
-    default-model: the model reference new chats start with, set by the star in the provider table; code settings.defaultModel, resolveDefaultModel; ui default, Make default, Default model; not fallback model, primary model
+    default-model: the model reference new chats start with, set by the star in the provider table and by the same star in the model picker; code settings.defaultModel, resolveDefaultModel, popover__item-star, popover__item-star--on; ui default, Make default, Default model; not fallback model, primary model
 
 # Capabilities the model may call, local and remote.
 tools:
@@ -160,8 +160,8 @@ ui:
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
-            popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--fill; not dropdown, menu, modal, dialog
-            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage providers, Reasoning, Context, Max output; not model menu, provider picker, model table
+            popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--end, popover--trailing; not dropdown, menu, modal, dialog
+            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__model, popover__model--selected, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, popover__item-loaded, popover__item-star, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage providers, Reasoning, Context, Max output, Loaded in the server, Make default, Default model; not model menu, provider picker, model table
             slash-menu: the inline prompt-template list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run

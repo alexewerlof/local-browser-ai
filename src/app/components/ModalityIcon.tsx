@@ -1,4 +1,4 @@
-import { AudioLines, Image as ImageIcon, Type, Video } from 'lucide-react'
+import { AudioLines, Image as ImageIcon, SquareLetterT, Video } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { ModelModality } from '../../core/types'
 
@@ -8,7 +8,7 @@ import type { ModelModality } from '../../core/types'
  * once rather than twice.
  */
 export const MODALITY_ICONS: Record<ModelModality, { icon: LucideIcon; label: string }> = {
-	text: { icon: Type, label: 'text' },
+	text: { icon: SquareLetterT, label: 'text' },
 	image: { icon: ImageIcon, label: 'image' },
 	audio: { icon: AudioLines, label: 'audio' },
 	video: { icon: Video, label: 'video' },

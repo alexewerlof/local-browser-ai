@@ -16,16 +16,24 @@ function provider(overrides: Partial<ProviderSettings> = {}): ProviderSettings {
 	}
 }
 
-function openPicker(providers: ProviderSettings[], current: ModelRef | null = null) {
-	const settings: AppSettings = { ...defaultSettings(), providers }
+function openPicker(
+	providers: ProviderSettings[],
+	current: ModelRef | null = null,
+	defaultModel: ModelRef | null = null,
+) {
+	const settings: AppSettings = { ...defaultSettings(), providers, defaultModel }
 	const onSelect = vi.fn()
-	const view = render(<ModelPicker settings={settings} current={current} onSelect={onSelect} />)
+	const onDefaultChange = vi.fn()
+	const view = render(
+		<ModelPicker settings={settings} current={current} onSelect={onSelect} onDefaultChange={onDefaultChange} />,
+	)
 	fireEvent.click(view.container.querySelector('.chip--model') as HTMLElement)
-	return { ...view, onSelect }
+	return { ...view, onSelect, onDefaultChange }
 }
 
+/** The row wrappers, which carry the hover and the selected tint. */
 function rows(container: HTMLElement): HTMLElement[] {
-	return [...container.querySelectorAll<HTMLElement>('.popover__item--model')]
+	return [...container.querySelectorAll<HTMLElement>('.popover__model')]
 }
 
 describe('ModelPicker', () => {
@@ -69,10 +77,37 @@ describe('ModelPicker', () => {
 	})
 
 	it('names the reasoning capability only for a model that has one', () => {
-		const { container } = openPicker([provider({ models: ['Qwen3.6-27B-MTP'] })])
+		const { container } = openPicker([
+			provider({
+				models: ['Qwen3.6-27B-MTP'],
+				modelDetails: [{ id: 'Qwen3.6-27B-MTP', inputModalities: ['text'], outputModalities: ['text'] }],
+			}),
+		])
 
 		const [row] = rows(container)
-		expect(row?.querySelector('.popover__item-reasoning')?.textContent).toBe('Reasoning')
+		const reasoning = row?.querySelector('.popover__item-reasoning')
+		// A glyph like the modality ones, so the name lives in the accessibility tree only.
+		expect(reasoning?.textContent).toBe('')
+		expect(reasoning?.getAttribute('aria-label')).toBe('Reasoning')
+		// It trails the output modalities, on the facts line under the model's name.
+		expect(reasoning?.parentElement?.className).toMatch(/popover__item-facts/)
+		expect(reasoning?.previousElementSibling?.className).toMatch(/popover__item-modalities/)
+	})
+
+	it('puts the figures and the glyphs on one line under the name', () => {
+		const { container } = openPicker([
+			provider({
+				models: ['Qwen3.6-27B-MTP'],
+				modelDetails: [{ id: 'Qwen3.6-27B-MTP', inputModalities: ['text'], outputModalities: ['text'] }],
+			}),
+		])
+
+		const [row] = rows(container)
+		const facts = row?.querySelector('.popover__item-facts')
+		// The name stands alone on the first line, with no figures or glyphs beside it.
+		expect(row?.querySelector('.popover__item-row')?.querySelector('.popover__item-token')).toBeNull()
+		expect(facts?.querySelector('.popover__item-token')?.textContent).toBe('~33k / ~4.1k')
+		expect(facts?.querySelector('.popover__item-modalities')).not.toBeNull()
 	})
 
 	it('marks the current model and closes on a pick', () => {
@@ -80,13 +115,63 @@ describe('ModelPicker', () => {
 		const { container, onSelect } = openPicker([provider()], ref)
 
 		const [row] = rows(container)
-		expect(row?.className).toMatch(/popover__item--selected/)
-		// The tick sits on the first line, beside the figures.
-		expect(row?.querySelector('.popover__item-row > svg')).not.toBeNull()
+		expect(row?.className).toMatch(/popover__model--selected/)
+		// The row's own tint is the only "in use" mark: no tick competes with the state icons.
+		expect(row?.querySelector('.popover__item-row > svg')).toBeNull()
 
-		fireEvent.click(row as HTMLElement)
+		fireEvent.click(row?.querySelector('.popover__item--model') as HTMLElement)
 		expect(onSelect).toHaveBeenCalledWith(ref)
 		expect(container.querySelector('.popover')).toBeNull()
+	})
+
+	it('marks a model the server has loaded', () => {
+		const { container } = openPicker([
+			provider({
+				models: ['gemma-4-12B-it', 'Qwen3.6-27B-MTP'],
+				modelDetails: [
+					{ id: 'gemma-4-12B-it', state: 'loaded' },
+					{ id: 'Qwen3.6-27B-MTP', state: 'unloaded' },
+				],
+			}),
+		])
+
+		const [loaded, unloaded] = rows(container)
+		const mark = loaded?.querySelector('.popover__item-loaded')
+		expect(mark?.getAttribute('aria-label')).toBe('Loaded in the server')
+		expect(unloaded?.querySelector('.popover__item-loaded')).toBeNull()
+	})
+
+	it('offers an empty star on every row that is not the default', () => {
+		const { container } = openPicker([provider({ models: ['gemma-4-12B-it', 'Qwen3.6-27B-MTP'] })], null, {
+			providerId: 'local',
+			modelId: 'Qwen3.6-27B-MTP',
+		})
+
+		const [gemma, qwen] = rows(container)
+		const offered = gemma?.querySelector('button.popover__item-star')
+		expect(offered?.getAttribute('aria-label')).toBe('Make gemma-4-12B-it the default model')
+		expect(offered?.getAttribute('title')).toBe('Make default')
+		// The default itself is the filled, read-only star Settings shows.
+		expect(qwen?.querySelector('button.popover__item-star')).toBeNull()
+		expect(qwen?.querySelector('.popover__item-star--on')?.getAttribute('aria-label')).toBe('Default model')
+	})
+
+	it('sets the default with one click, without picking the model or closing the menu', () => {
+		const ref = { providerId: 'local', modelId: 'gemma-4-12B-it' }
+		const { container, onDefaultChange, onSelect } = openPicker([provider()])
+
+		fireEvent.click(container.querySelector('button.popover__item-star') as HTMLElement)
+		expect(onDefaultChange).toHaveBeenCalledWith(ref)
+		// A default is about future chats; it does not move this chat or dismiss the menu.
+		expect(onSelect).not.toHaveBeenCalled()
+		expect(container.querySelector('.popover')).not.toBeNull()
+	})
+
+	it('shows no loaded mark when the server said nothing about the model', () => {
+		const { container } = openPicker([provider({ models: ['mystery-llm'] })])
+
+		const [row] = rows(container)
+		expect(row?.querySelector('.popover__item-loaded')).toBeNull()
 	})
 
 	it('keeps the search filter over the richer rows', () => {

@@ -28,13 +28,22 @@ Local rules:
   caret to `<body>`. A control inside the box keeps its own click, and `.popover`/`.slash` are excluded because their
   padding is menu surface. `.composer__box` carries `cursor: text` for the same reason, which both menus reset to
   `default`; the caret goes after the existing text, since the click was not about placing it.
-- The model chip opens `ModelPicker` with `align="fill"`: the menu spans `.composer__box` (the anchor goes static, so
-  the box is its containing block) instead of hanging off the chip, because a row carries a model's facts and a 320px
-  menu was clipping its right edge on the panel. A row is two lines: the id, the `context / max output` figures and the
-  selected tick on the first, then the modalities as input glyphs `→` output glyphs with a `Reasoning` chip beside them.
-  Each figure carries the catalog's `~` when it is a guess, as in Settings. Glyphs come from `ModalityIcon`, shared with
-  the Settings table; a model whose server reported nothing shows the same `—`, never a guess. The chip states
-  capability only — the effort stays in the Thinking chip next to the model chip.
+- The model chip opens `ModelPicker` above the chip, like every other chip menu, with `align="trailing"`: the chip sits
+  in the middle of the toolbar, so neither of its own edges is at the panel's, and the menu's trailing edge is pinned to
+  the toolbar's instead (`width={300}` keeps it a chip menu, so a long id ellipsizes). A row is a wrapper
+  (`.popover__model`) holding the selecting button and the star, because a button cannot hold a button; the wrapper
+  carries the hover and the tint, so the two still read as one row. The first line is the model's name and its state —
+  `CircleCheck` when the server has it loaded, and the trailing `Star`: filled and read-only for the default model,
+  outlined and clickable on every other row, which is the same pair Settings → Providers has, so the default is set in
+  one click from the picker instead of only from Settings. `onDefaultChange` moves `defaultModel` and nothing else: it
+  does not touch this chat's model or close the menu. The second line is the facts, left-aligned under the name — the
+  `context / max output` figures, the modalities as input glyphs `→` output glyphs, and a `MessageCircleMore` glyph
+  after the output glyphs for a model that reasons, drawn exactly like a modality glyph so the word is only its
+  `aria-label`. The row's own accent tint is the only "this is the one in use" mark; a tick beside the name said the
+  same thing twice and read as a second state icon. Each figure carries the catalog's `~` when it is a guess, as in
+  Settings. Glyphs come from `ModalityIcon`, shared with the Settings table; a model whose server reported nothing shows
+  the same `—`, never a guess. The chip states capability only — the effort stays in the Thinking chip next to the model
+  chip.
 - `StepsGroup` owns the transcript's steps: `ReasoningBlock` and `ToolCallCard` are rows inside it, flat (no card border
   or background), and the whole group folds into one `.steps__summary` line once the run ends — unless a row still needs
   the user. The rail in `.steps__list` is what makes the rows one flow; do not give a row its own surface again.

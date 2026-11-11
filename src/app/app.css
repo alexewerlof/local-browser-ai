@@ -989,8 +989,10 @@
 }
 
 /* No padding-inline: the box gutter positions the first chip and the last button. The top
-   padding is the gap under the prompt text; the bottom one belongs to the box. */
+   padding is the gap under the prompt text; the bottom one belongs to the box. Positioned so
+   a trailing-aligned popover can pin itself to this row's trailing edge, which is the box's. */
 .composer__toolbar {
+	position: relative;
 	display: flex;
 	flex: none;
 	align-items: center;
@@ -1231,23 +1233,26 @@
 	cursor: default;
 }
 
+/* Hangs leftwards from the trigger, for a chip near the trailing edge of the composer: the
+   panel's right edge is pinned to the chip's, so the menu cannot run past the panel. */
 .popover--end {
 	left: auto;
 	right: 0;
 }
 
-/* Fills its container instead of hanging off the trigger, for a menu whose rows carry more
-   than one name. The anchor goes static so the nearest positioned ancestor — the composer
-   box — is the containing block, and both edges are pinned with a gutter inside its border
-   so the panel still reads as a popover and not as a second composer. */
-.popover-anchor--fill {
+/* Pins the panel to the composer toolbar's trailing edge — and so the panel's — instead of
+   to its trigger, for a chip in the middle of the row whose menu still has to line up with
+   the edge the other menus reach. The anchor goes static so the toolbar is the containing
+   block; `bottom` is measured from the toolbar's padding box, whose 4px top padding is
+   taken out of the gap so every chip menu opens the same distance above its chip. */
+.popover-anchor--trailing {
 	position: static;
 }
 
-.popover--fill {
-	left: var(--space-3);
-	right: var(--space-3);
-	width: auto;
+.popover--trailing {
+	left: auto;
+	right: 0;
+	bottom: calc(100% + 6px - var(--space-2));
 }
 
 /* Search row, with its settings gear on the trailing edge. */
@@ -1344,14 +1349,42 @@
 	white-space: normal;
 }
 
-/* A model row carries the model's facts, not just its id: the id and the token figures on
-   the first line, the modalities and reasoning support on the second. The facts line is
-   always rendered, so rows keep one height whether or not the server reported anything. */
+/* A model row carries the model's facts, not just its id: the name and its state on the
+   first line, then the token figures and the capability glyphs on a second line under it.
+   That line is always rendered, so rows keep one height whether or not the server reported
+   anything. */
 .popover__item--model {
 	flex-direction: column;
 	align-items: stretch;
 	gap: var(--space-1);
 	padding: var(--space-3);
+}
+
+/* The row is a wrapper because the star is a control of its own and a button cannot hold a
+   button. The wrapper carries the hover and the tint, so the two still read as one row, and
+   the selecting button inside stays transparent. */
+.popover__model {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	border-radius: var(--radius-sm);
+}
+
+.popover__model:hover:not(.popover__model--selected) {
+	background: var(--bg-hover);
+}
+
+.popover__model--selected {
+	background: var(--accent-soft);
+}
+
+.popover__model .popover__item--model {
+	flex: 1;
+	min-width: 0;
+}
+
+.popover__model .popover__item--model:hover {
+	background: none;
 }
 
 .popover__item-row {
@@ -1361,8 +1394,36 @@
 	min-width: 0;
 }
 
-.popover__item-row > svg {
+/* A model the server has loaded. An icon rather than a word, like the provider table's. */
+.popover__item-loaded {
+	display: inline-flex;
 	flex: none;
+	color: var(--success);
+}
+
+/* The default model, and the offer to make any other row the default: the same square the
+   state glyphs get, so the trailing edge of the row lines up across every row. Filled and
+   read-only for the default itself, outlined and clickable for the rest — the same pair
+   Settings → Providers uses, so one concept never gets two controls. */
+.popover__item-star {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-inline-end: var(--space-1);
+	border-radius: var(--radius-sm);
+	color: var(--fg-faint);
+}
+
+button.popover__item-star:hover {
+	color: var(--accent);
+	background: var(--bg-hover);
+}
+
+.popover__item-star--on {
+	color: var(--accent);
 }
 
 .popover__item-token {
@@ -1373,10 +1434,11 @@
 	color: var(--fg-muted);
 }
 
+/* The figures and the glyphs are one line of facts about the model, so they share a row and
+   start where the model's name does. */
 .popover__item-facts {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	gap: var(--space-3);
 	min-height: 16px;
 	font-size: var(--text-xs);
@@ -1405,25 +1467,12 @@
 	color: var(--fg-faint);
 }
 
-/* Capability, not a setting: the picker cannot change the effort, so the chip only says the
-   model reasons. On the selected row it takes the popover's own surface, because the row
-   already carries the accent tint. */
+/* Capability, not a setting: the picker cannot change the effort, so one glyph trails the
+   output modalities and says the model reasons. It is drawn exactly like a modality glyph —
+   same size, same muted colour, no pill — because it is a fact about the row. */
 .popover__item-reasoning {
 	display: inline-flex;
 	flex: none;
-	align-items: center;
-	gap: var(--space-1);
-	min-height: 16px;
-	padding: 0 var(--space-2);
-	border-radius: var(--radius-pill);
-	background: var(--accent-soft);
-	color: var(--accent-strong);
-	font-weight: 500;
-	white-space: nowrap;
-}
-
-.popover__item--selected .popover__item-reasoning {
-	background: var(--bg-raised);
 }
 
 /* --------------------------------------------------------------- tools tree */

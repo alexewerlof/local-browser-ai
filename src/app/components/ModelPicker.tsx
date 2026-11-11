@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, Check, ChevronDown, MessageCircleMore, Sparkles } from 'lucide-react'
+import { ArrowRight, ChevronDown, CircleCheck, MessageCircleMore, Sparkles, Star } from 'lucide-react'
 import type { AppSettings, ModelModality, ModelRef } from '../../core/types'
 import {
 	getModelInfo,
@@ -75,10 +75,12 @@ export function ModelPicker({
 	settings,
 	current,
 	onSelect,
+	onDefaultChange,
 }: {
 	settings: AppSettings
 	current: ModelRef | null
 	onSelect: (ref: ModelRef) => void
+	onDefaultChange: (ref: ModelRef) => void
 }) {
 	const [open, setOpen] = useState(false)
 	const [query, setQuery] = useState('')
@@ -117,7 +119,8 @@ export function ModelPicker({
 		<Popover
 			open={open}
 			onClose={() => setOpen(false)}
-			align="fill"
+			align="trailing"
+			width={300}
 			trigger={
 				<button
 					type="button"
@@ -157,51 +160,90 @@ export function ModelPicker({
 								reasoning,
 							}) => {
 								const selected = current?.providerId === provider.id && current.modelId === modelId
+								const isDefault =
+									settings.defaultModel?.providerId === provider.id &&
+									settings.defaultModel.modelId === modelId
 								const context = estimatedTokens(contextWindow, contextEstimated)
 								const output = estimatedTokens(maxOutputTokens, maxOutputEstimated)
 
 								return (
-									<button
+									<div
 										key={`${provider.id}:${modelId}`}
-										type="button"
-										className={`popover__item popover__item--model${selected ? ' popover__item--selected' : ''}`}
-										onClick={() => {
-											onSelect({ providerId: provider.id, modelId })
-											setOpen(false)
-										}}
+										className={`popover__model${selected ? ' popover__model--selected' : ''}`}
 									>
-										<span className="popover__item-row">
-											<span className="popover__item-main" title={modelId}>
-												{modelId}
-											</span>
-											<span
-												className="popover__item-token"
-												title={tokenTitle(
-													context,
-													output,
-													contextEstimated || maxOutputEstimated,
-												)}
-											>
-												{context} / {output}
-											</span>
-											{selected && <Check size={13} />}
-										</span>
-										<span className="popover__item-facts">
-											<ModalityPair
-												input={details?.inputModalities ?? []}
-												output={details?.outputModalities ?? []}
-											/>
-											{reasoning && (
-												<span
-													className="popover__item-reasoning"
-													title="This model has a reasoning effort"
-												>
-													<MessageCircleMore size={12} />
-													Reasoning
+										<button
+											type="button"
+											className="popover__item popover__item--model"
+											onClick={() => {
+												onSelect({ providerId: provider.id, modelId })
+												setOpen(false)
+											}}
+										>
+											<span className="popover__item-row">
+												<span className="popover__item-main" title={modelId}>
+													{modelId}
 												</span>
-											)}
-										</span>
-									</button>
+												{details?.state === 'loaded' && (
+													<span
+														className="popover__item-loaded"
+														role="img"
+														aria-label="Loaded in the server"
+														title="Loaded in the server"
+													>
+														<CircleCheck size={13} />
+													</span>
+												)}
+											</span>
+											<span className="popover__item-facts">
+												<span
+													className="popover__item-token"
+													title={tokenTitle(
+														context,
+														output,
+														contextEstimated || maxOutputEstimated,
+													)}
+												>
+													{context} / {output}
+												</span>
+												<ModalityPair
+													input={details?.inputModalities ?? []}
+													output={details?.outputModalities ?? []}
+												/>
+												{reasoning && (
+													<span
+														className="popover__item-reasoning"
+														role="img"
+														aria-label="Reasoning"
+														title="This model has a reasoning effort"
+													>
+														<MessageCircleMore size={12} />
+													</span>
+												)}
+											</span>
+										</button>
+										{/* One click makes this the model new chats start with — the same control the
+										    provider table has, so the default is set where the model is chosen. */}
+										{isDefault ? (
+											<span
+												className="popover__item-star popover__item-star--on"
+												role="img"
+												aria-label="Default model"
+												title="Default model"
+											>
+												<Star size={13} fill="currentColor" />
+											</span>
+										) : (
+											<button
+												type="button"
+												className="popover__item-star"
+												title="Make default"
+												aria-label={`Make ${modelId} the default model`}
+												onClick={() => onDefaultChange({ providerId: provider.id, modelId })}
+											>
+												<Star size={13} />
+											</button>
+										)}
+									</div>
 								)
 							},
 						)}

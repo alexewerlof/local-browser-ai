@@ -3,10 +3,11 @@ import { useEffect, useRef, type ReactNode } from 'react'
 /**
  * Anchored popover that closes on outside click or Escape.
  *
- * `align: 'fill'` stretches the panel across the nearest positioned ancestor instead of
- * hanging off its trigger — for a menu whose content needs the whole panel width. The
- * anchor then goes static so that ancestor (the composer box) is the containing block, and
- * `width` is ignored because the CSS fills both edges.
+ * `align` picks the edge the panel hangs from: `start` grows rightwards from the trigger's
+ * left edge and `end` leftwards from its right edge, both opening above the trigger.
+ * `trailing` pins the panel to the trailing edge of the composer toolbar — a trigger in the
+ * middle of the row has neither of its own edges at the place the menu has to reach, so the
+ * anchor goes static and the toolbar becomes the containing block instead.
  */
 export function Popover({
 	open,
@@ -20,11 +21,11 @@ export function Popover({
 	onClose: () => void
 	trigger: ReactNode
 	children: ReactNode
-	align?: 'start' | 'end' | 'fill'
+	align?: 'start' | 'end' | 'trailing'
 	width?: number
 }) {
 	const anchorRef = useRef<HTMLDivElement>(null)
-	const fill = align === 'fill'
+	const staticAnchor = align === 'trailing'
 
 	useEffect(() => {
 		if (!open) return
@@ -44,10 +45,10 @@ export function Popover({
 	}, [open, onClose])
 
 	return (
-		<div className={fill ? 'popover-anchor popover-anchor--fill' : 'popover-anchor'} ref={anchorRef}>
+		<div className={staticAnchor ? 'popover-anchor popover-anchor--trailing' : 'popover-anchor'} ref={anchorRef}>
 			{trigger}
 			{open && (
-				<div className={`popover popover--${align}`} style={fill ? undefined : { width }}>
+				<div className={`popover popover--${align}`} style={{ width }}>
 					{children}
 				</div>
 			)}

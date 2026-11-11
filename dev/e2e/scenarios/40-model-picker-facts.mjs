@@ -5,9 +5,9 @@ export const name = '40-model-picker-facts'
 
 /**
  * The model picker shows what Settings → Providers shows about each model — modalities,
- * context / max output and reasoning — in two lines per row. The menu also spans the
- * composer box instead of hanging off the model chip, which is what used to push its right
- * edge past the panel.
+ * context / max output and reasoning — in two lines per row. The menu hangs above the model
+ * chip with its trailing edge on the panel's, keeping a chip menu's width instead of
+ * stretching across the composer box.
  */
 export async function run(ctx) {
 	const settings = localSettings('http://127.0.0.1:1/v1', {
@@ -25,6 +25,7 @@ export async function run(ctx) {
 						maxOutputTokens: 4096,
 						inputModalities: ['text', 'image'],
 						outputModalities: ['text'],
+						state: 'loaded',
 					},
 				],
 			},
@@ -35,9 +36,9 @@ export async function run(ctx) {
 	const { page } = ctx
 
 	await page.locator('.chip--model').click()
-	await page.waitForSelector('.popover--fill')
+	await page.waitForSelector('.popover')
 
-	const rows = page.locator('.popover__item--model')
+	const rows = page.locator('.popover__model')
 	assert.equal(await rows.count(), 3)
 
 	// What the server reported is shown as a fact: no estimate mark.
@@ -49,25 +50,61 @@ export async function run(ctx) {
 	)
 	assert.equal(await reported.locator('.popover__item-reasoning').count(), 0)
 
+	// The row's state: the server has it loaded, and it is the default chat-start model. Both
+	// are icons on the name's line; the row's tint alone says which model is in use.
+	assert.equal(await reported.locator('.popover__item-loaded').getAttribute('aria-label'), 'Loaded in the server')
+	assert.equal(await reported.locator('.popover__item-star--on').getAttribute('aria-label'), 'Default model')
+	assert.equal(await reported.locator('button.popover__item-star').count(), 0)
+	assert.equal(await rows.filter({ hasText: 'Qwen3.6-27B-MTP' }).locator('.popover__item-loaded').count(), 0)
+
+	// Every other row offers the same star as a button, so the default is set from here.
+	const offer = page.locator('button[aria-label="Make Qwen3.6-27B-MTP the default model"]')
+	assert.equal(await offer.count(), 1)
+	await offer.click()
+	await page.waitForFunction(
+		() => window.__LB_AI_TEST__.currentSettings()?.defaultModel?.modelId === 'Qwen3.6-27B-MTP',
+	)
+	// The default moved, the menu stayed open, and this chat's model did not change.
+	assert.equal(await page.locator('.popover').count(), 1)
+	assert.match(await page.locator('.chip--model').textContent(), /gemma-4-12B-it/)
+	assert.equal(await rows.filter({ hasText: 'gemma-4-12B-it' }).locator('button.popover__item-star').count(), 1)
+
+	// The model's name has the first line to itself; the figures start where it does, on the
+	// second line, with the capability glyphs after them.
+	const name = await reported.locator('.popover__item-main').boundingBox()
+	const facts = await reported.locator('.popover__item-facts').boundingBox()
+	const tokens = await reported.locator('.popover__item-token').boundingBox()
+	assert.ok(name && facts && tokens)
+	assert.ok(Math.abs(facts.x - name.x) <= 1, 'the facts line starts under the name')
+	assert.ok(facts.y >= name.y + name.height, 'the facts sit on a line below the name')
+	assert.ok(Math.abs(tokens.x - facts.x) <= 1, 'the figures lead the facts line')
+
 	// qwen3 reasons, and the server said nothing else about it, so both figures are guesses.
+	// The reasoning mark is a glyph like the modality ones, named only for a screen reader.
 	const estimated = rows.filter({ hasText: 'Qwen3.6-27B-MTP' })
 	assert.equal(await estimated.locator('.popover__item-token').textContent(), '~33k / ~4.1k')
-	assert.equal(await estimated.locator('.popover__item-reasoning').textContent(), 'Reasoning')
+	assert.equal(await estimated.locator('.popover__item-reasoning').textContent(), '')
+	assert.equal(await estimated.locator('.popover__item-reasoning').getAttribute('aria-label'), 'Reasoning')
 	assert.equal(await estimated.locator('.popover__item-muted').textContent(), '—')
 
-	// The menu fills the composer box with a gutter inside it, instead of starting at the
-	// chip and running past the panel's right edge.
-	const popover = await page.locator('.popover--fill').boundingBox()
-	const box = await page.locator('.composer__box').boundingBox()
+	// The menu opens above the chip and ends on the panel's trailing edge, at a chip menu's
+	// width rather than the full composer.
+	const menu = await page.locator('.popover').boundingBox()
+	const chip = await page.locator('.chip--model').boundingBox()
+	const toolbar = await page.locator('.composer__toolbar').boundingBox()
 	const viewport = page.viewportSize()
-	assert.ok(popover && box && viewport)
-	assert.ok(popover.x > box.x, 'the menu starts inside the composer box')
-	assert.ok(popover.x + popover.width < box.x + box.width, 'the right edge is not clipped')
-	assert.ok(popover.x + popover.width <= viewport.width, 'the menu stays inside the panel')
-	assert.ok(popover.width > box.width * 0.8, 'the menu uses the available width')
+	assert.ok(menu && chip && toolbar && viewport)
+	assert.ok(menu.y + menu.height <= chip.y, 'the menu opens above the chip')
+	assert.ok(
+		Math.abs(menu.x + menu.width - (toolbar.x + toolbar.width)) <= 1,
+		'the menu ends on the panel’s trailing edge',
+	)
+	assert.ok(menu.x >= toolbar.x, 'the menu stays inside the composer')
+	assert.ok(menu.x + menu.width <= viewport.width, 'the menu stays inside the panel')
+	assert.ok(menu.width <= 320, 'the menu is no wider than the other chip menus')
 
 	// Picking a model still closes the menu and updates the chip.
-	await rows.filter({ hasText: 'Qwen3.6-27B-MTP' }).click()
+	await rows.filter({ hasText: 'Qwen3.6-27B-MTP' }).locator('.popover__item--model').click()
 	assert.equal(await page.locator('.popover').count(), 0)
 	assert.match(await page.locator('.chip--model').textContent(), /Qwen3\.6-27B-MTP/)
 }

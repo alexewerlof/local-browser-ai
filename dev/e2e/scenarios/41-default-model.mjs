@@ -16,8 +16,9 @@ const providers = [
 ]
 
 /**
- * The default model is set by the star in the provider table, not by the composer picker.
- * There is no Models section: this scenario is also what keeps the two surfaces apart.
+ * Picking a model in the composer is about this chat, so the default must not move; only the
+ * star moves it, and both stars — the provider table's and the picker's — write the same
+ * setting. There is no Models section: this scenario is also what keeps the surfaces apart.
  */
 export async function run(ctx) {
 	const settings = localSettings('http://127.0.0.1:1/v1', {
@@ -32,7 +33,7 @@ export async function run(ctx) {
 
 	// Switching model in the panel is about this chat, so the default must not move.
 	await page.locator('.chip--model').click()
-	await page.waitForSelector('.popover--fill')
+	await page.waitForSelector('.popover')
 	await page.locator('.popover__item--model', { hasText: 'beta-model' }).click()
 	await page.waitForFunction(() => document.querySelector('.chip--model')?.textContent?.includes('beta-model'))
 	assert.equal(await defaultInStorage(), 'alpha-model')

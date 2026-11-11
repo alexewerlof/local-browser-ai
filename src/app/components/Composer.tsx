@@ -360,7 +360,12 @@ export function Composer({
 						onChange={(tools) => updateSettings((current) => ({ ...current, tools }))}
 					/>
 
-					<ModelPicker settings={settings} current={modelRef} onSelect={onModelChange} />
+					<ModelPicker
+						settings={settings}
+						current={modelRef}
+						onSelect={onModelChange}
+						onDefaultChange={(ref) => updateSettings((settings) => ({ ...settings, defaultModel: ref }))}
+					/>
 
 					{info && provider && modelRef && (
 						<ThinkingMenu
