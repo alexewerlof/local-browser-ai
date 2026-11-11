@@ -501,11 +501,14 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   outlives the answer that made it.
 - Icons: `MemoryStick` is memory everywhere (Settings rail, memory tool cards, the panel's save action);
   `MessageCircleMore` is thinking and model reasoning (the steps' reasoning row, the reasoning chip).
-- The composer has a top bar inside the box border (`.composer__topbar`), empty for now and reserved for per-prompt
-  context. Its right side holds the Expand/Shrink toggle (`PanelBottomOpen`/`PanelBottomClose`): `.composer--expanded`
-  sizes the whole composer to 75% of the panel so a sliver of transcript stays visible, and the textarea then scrolls
-  internally instead of growing. Expanded is in-memory only — never a settings field — and normal mode keeps the
-  40–240px auto-grow.
+- The composer's top edge is its resize line (`.composer__resizer`), not a divider: dragging it up grows the composer
+  and the textarea scrolls inside it instead of growing, which is how a long prompt gets room. The floor leaves the
+  textarea at one line with the queue, the page list and the toolbar at their natural height; the ceiling keeps `96px`
+  of transcript on screen; a double-click returns to the natural 40–240px auto-grow. The maths is
+  `composerHeightFromDrag` / `composerLimits` / `clampComposerHeight` in `src/app/composer-size.ts` and the limits are
+  measured, not hard-coded. The height is in-memory only — never a settings field — because a reopened panel should not
+  open half full of prompt.
+- The composer has a top bar inside the box border (`.composer__topbar`) holding the add-page button and the page count.
 - Errors are `AppError` with a machine-readable kind (`src/providers/errors.ts`); never surface raw provider text only.
 - Persist before you publish: the prompt queue writes to IndexedDB first and only then updates `queueStore`, so a row on
   screen is always durable. `startTurn` writes the conversation immediately for the same reason — a reload mid-stream

@@ -148,9 +148,9 @@ ui:
         empty-state: the first-run screen before any message; code EmptyState, empty__title; ui What are you reading?, Download model; not welcome screen, onboarding, splash
         chats-drawer: the overlay listing saved chats; code HistoryPanel, drawer, drawer__panel, history; ui Chats, Chat history, Delete chat, No saved chats yet.; not history panel, sidebar, menu
     composer:
-        composer: the whole input area at the bottom; code Composer, composer, composer--expanded; ui Message; not prompt box, input bar, message box
+        composer: the whole input area at the bottom; code Composer, composer, composer--sized, composer--resizing; ui Message; not prompt box, input bar, message box
         composer-box: the bordered box around the input and toolbar; code composer__box, composer__box--streaming; not input box, border
-        composer-topbar: the strip inside the top edge holding the page list and the expand toggle; code composer__topbar; ui Pages in this chat; not header, top bar, toolbar
+        composer-topbar: the strip inside the top edge holding the page list; code composer__topbar; ui Pages in this chat; not header, top bar, toolbar
         composer-input: the auto-growing textarea; code composer__input, composer-input; ui Ask anything, or type / for a template, Queue another message…; not text field, editor
         composer-toolbar: the row of chips and buttons along the bottom edge; code composer__toolbar, spacer; not button row, footer, action bar
         composer-meta: the row under the box with the meter and draft count; code composer__meta, composer__count; ui Enter to submit, ⌘↵ to submit; not status bar, footer
@@ -170,7 +170,7 @@ ui:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
             stop: the button that aborts the run and parks the queue; code stopGeneration, activeController, Square; ui Stop generating; not cancel, abort, halt
             continue: the button that clears a queue pause and drains; code resumeQueue, Play; ui Continue, Continue queued prompts; not resume, play, restart
-            expand: the topbar toggle that grows the composer and shrinks it; code expanded, composer--expanded, PanelBottomOpen; ui Expand, Shrink; not fullscreen, maximize, minimize
+            resize: the line above the composer that sets its height by dragging; code composer__resizer, composer--sized, composer--resizing, composerHeightFromDrag, composerLimits, clampComposerHeight; ui Resize prompt, Drag to resize · double-click to reset; not expander, splitter, grip, handle, maximize, fullscreen
             retry: regenerate the last answer; code regenerate, retried; ui Retry, Generate this answer again; not rerun, try again
     message:
         message-bubble: the container of a user message; code message__bubble, message__text, message__actions; not user bubble

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { localSettings } from '../fixtures.mjs'
+import { localSettings, waitForRequests } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '15-memory-context'
@@ -39,16 +39,6 @@ export const memory = {
 			updatedAt: 3,
 		},
 	],
-}
-
-async function waitForRequests(server, count) {
-	const started = Date.now()
-	while (server.requests.length < count) {
-		if (Date.now() - started > 10000) {
-			throw new Error(`timed out waiting for ${count} requests`)
-		}
-		await new Promise((resolve) => setTimeout(resolve, 50))
-	}
 }
 
 export async function run(ctx) {

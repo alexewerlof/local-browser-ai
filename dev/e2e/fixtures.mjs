@@ -94,6 +94,22 @@ export async function togglePageList(page) {
 }
 
 /**
+ * Wait until the fake server has recorded `count` requests, and hand back the last one.
+ * The panel creates the answer bubble as soon as a run starts, so `server.requests[0]` read
+ * next to it is a race: the request may still be assembling its prompt.
+ */
+export async function waitForRequests(server, count) {
+	const started = Date.now()
+	while (server.requests.length < count) {
+		if (Date.now() - started > 10_000) {
+			throw new Error(`timed out waiting for ${count} requests`)
+		}
+		await new Promise((resolve) => setTimeout(resolve, 25))
+	}
+	return server.requests[count - 1]
+}
+
+/**
  * Show the steps of every answer.
  *
  * While a run streams its rows are on screen; when it ends they fold into one summary row,

@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-	ArrowUp,
-	BookMarked,
-	ListOrdered,
-	PanelBottomClose,
-	PanelBottomOpen,
-	Play,
-	Plus,
-	Square,
-	Trash2,
-	TriangleAlert,
-} from 'lucide-react'
+import { ArrowUp, BookMarked, ListOrdered, Play, Plus, Square, Trash2, TriangleAlert } from 'lucide-react'
 import type {
 	AppSettings,
 	Conversation,
@@ -28,6 +17,15 @@ import { estimateTokens } from '../../core/context/tokens'
 import { thinkingForModel } from '../../core/settings'
 import { formatTokens } from '../../core/util'
 import { getModelInfo } from '../../providers/catalog'
+import {
+	DRAG_THRESHOLD,
+	RESIZE_STEP,
+	clampComposerHeight,
+	composerHeightFromDrag,
+	composerLimits,
+	isResetGesture,
+	type ComposerLimits,
+} from '../composer-size'
 import { ContextMeter } from './ContextMeter'
 import { PageList, PageListToggle } from './PageList'
 import { PromptTemplateMenu, ToolsMenu } from './ComposerMenus'
@@ -88,21 +86,38 @@ export function Composer({
 	const queue = useStore(queueStore)
 	const lastPageAdded = useStore(lastPageAddedStore)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const composerRef = useRef<HTMLDivElement>(null)
 	const [slashOpen, setSlashOpen] = useState(false)
 	/**
-	 * The prompt gets more vertical space by growing the whole composer to most of the
-	 * panel, so a sliver of the transcript stays visible. In-memory only: a reopened
-	 * panel starts at the normal size.
+	 * The height the user dragged the composer to, or `null` for the natural one the textarea's
+	 * auto-grow produces. In-memory only: a reopened panel starts at the natural size, because
+	 * a panel that opened half full of prompt would be a surprise.
 	 */
-	const [expanded, setExpanded] = useState(false)
+	const [height, setHeight] = useState<number | null>(null)
+	/** The two ends of the current gesture, for the line's own accessible value. */
+	const [limits, setLimits] = useState<ComposerLimits | null>(null)
+	/** While the pointer is down, stylesheet rules keep the resize cursor over the box. */
+	const [resizing, setResizing] = useState(false)
+	/** The gesture in flight: a drag is measured from where it started, not from the last frame. */
+	const dragRef = useRef<{
+		pointerId: number
+		startY: number
+		startHeight: number
+		limits: ComposerLimits
+		/** Whether the pointer actually travelled, which is what makes it a drag. */
+		moved: boolean
+	} | null>(null)
+	/** When the last drag-free click on the line ended, for the double-click reset. */
+	const lastClickRef = useRef(0)
 	/**
 	 * The page list opens above the box, so it costs the transcript room, never the prompt.
-	 * It also opens by itself when a page joins the chat (see below); like `expanded` it is
-	 * in-memory, so a reopened panel starts with it closed.
+	 * It also opens by itself when a page joins the chat (see below); like the dragged height
+	 * it is in-memory, so a reopened panel starts with it closed.
 	 */
 	const [pagesOpen, setPagesOpen] = useState(false)
 
 	const hasPages = pages.length > 0
+	const sized = height !== null
 	const streaming = run.status === 'streaming'
 	const busy = run.status !== 'idle'
 	const modelRef = conversation.model ?? settings.defaultModel
@@ -119,15 +134,127 @@ export function Composer({
 	useEffect(() => {
 		const textarea = textareaRef.current
 		if (!textarea) return
-		if (expanded) {
-			// The box flex-fills the expanded composer, so the textarea scrolls inside it
-			// instead of growing past the available height.
+		if (sized) {
+			// The box flex-fills the sized composer, so the textarea scrolls inside it instead
+			// of growing past the height the user dragged.
 			textarea.style.height = ''
 			return
 		}
 		textarea.style.height = '0px'
 		textarea.style.height = `${Math.min(240, Math.max(40, textarea.scrollHeight))}px`
-	}, [draft, expanded])
+	}, [draft, sized])
+
+	/**
+	 * What the DOM says about the gesture about to start: the composer's height now, the
+	 * textarea's share of it (every other row keeps its own), and the room above. Measured,
+	 * never guessed — the page list and the queue change how tall the chrome is.
+	 */
+	const measureLimits = (): ({ height: number } & ComposerLimits) | null => {
+		const composer = composerRef.current
+		const textarea = textareaRef.current
+		if (!composer || !textarea) return null
+		const height = composer.getBoundingClientRect().height
+		return {
+			height,
+			...composerLimits({
+				height,
+				promptHeight: textarea.clientHeight,
+				promptFloor: Number.parseFloat(getComputedStyle(textarea).minHeight) || 0,
+				// The composer does not own the transcript, so it is looked up once per gesture.
+				transcriptHeight: document.querySelector('.transcript')?.getBoundingClientRect().height ?? 0,
+			}),
+		}
+	}
+
+	/**
+	 * A row that arrives above the prompt — a queued item, the page list, an error line —
+	 * takes its room from the textarea, so a sized composer is pulled back inside the panel
+	 * when one appears or the window changes. The updater form keeps `height` out of the
+	 * dependency list, so this never re-runs for the height it may change.
+	 */
+	useEffect(() => {
+		if (!sized) return
+		const fit = () => {
+			const measured = measureLimits()
+			if (!measured) return
+			setLimits({ min: measured.min, max: measured.max })
+			setHeight((current) => (current === null ? null : clampComposerHeight(current, measured)))
+		}
+		fit()
+		window.addEventListener('resize', fit)
+		return () => window.removeEventListener('resize', fit)
+		// `sized` is the gate; the rest are the rows that can change the measured floor.
+	}, [sized, queue.length, pages.length, pagesOpen, addPageError])
+
+	/**
+	 * The line's click, but not its drag: the pointer is captured so the gesture survives
+	 * leaving the 10px strip, and the default is prevented so a drag never takes the caret
+	 * away from the prompt. Nothing moves until the pointer has actually travelled.
+	 */
+	const startResize = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) return
+		const measured = measureLimits()
+		if (!measured) return
+		event.preventDefault()
+		event.currentTarget.setPointerCapture(event.pointerId)
+		const { height: startHeight, min, max } = measured
+		dragRef.current = {
+			pointerId: event.pointerId,
+			startY: event.clientY,
+			startHeight,
+			limits: { min, max },
+			moved: false,
+		}
+		setLimits({ min, max })
+	}
+
+	const moveResize = (event: React.PointerEvent<HTMLDivElement>) => {
+		const drag = dragRef.current
+		if (!drag || drag.pointerId !== event.pointerId) return
+		const dy = event.clientY - drag.startY
+		if (!drag.moved) {
+			if (Math.abs(dy) < DRAG_THRESHOLD) return
+			drag.moved = true
+			setResizing(true)
+		}
+		setHeight(clampComposerHeight(composerHeightFromDrag(drag.startHeight, dy), drag.limits))
+	}
+
+	/**
+	 * Releasing decides what the gesture was: a drag keeps its height, a click either starts
+	 * the double-click clock or — if the previous click is inside its window — resets the
+	 * composer to the natural size.
+	 */
+	const endResize = (event: React.PointerEvent<HTMLDivElement>) => {
+		const drag = dragRef.current
+		if (!drag || drag.pointerId !== event.pointerId) return
+		dragRef.current = null
+		setResizing(false)
+		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+			event.currentTarget.releasePointerCapture(event.pointerId)
+		}
+		if (drag.moved) return
+		const now = Date.now()
+		if (isResetGesture(lastClickRef.current, now)) {
+			lastClickRef.current = 0
+			setHeight(null)
+			setLimits(null)
+			return
+		}
+		lastClickRef.current = now
+	}
+
+	/** Arrow keys are the gesture a keyboard has: up grows, down shrinks, both clamped. */
+	const nudgeResize = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+		event.preventDefault()
+		const measured = measureLimits()
+		if (!measured) return
+		const current = height ?? measured.height
+		const delta = event.key === 'ArrowUp' ? RESIZE_STEP : -RESIZE_STEP
+		setLimits({ min: measured.min, max: measured.max })
+		setHeight(clampComposerHeight(current + delta, measured))
+	}
 
 	useEffect(() => {
 		setSlashOpen(slashQuery !== null && slashMatches.length > 0)
@@ -232,7 +359,29 @@ export function Composer({
 	}
 
 	return (
-		<div className={`composer${expanded ? ' composer--expanded' : ''}`}>
+		<div
+			ref={composerRef}
+			className={`composer${sized ? ' composer--sized' : ''}${resizing ? ' composer--resizing' : ''}`}
+			style={height === null ? undefined : { height }}
+		>
+			{/* The composer's top edge: the line replaces the divider it used to draw, and the
+			    strip around it is the grab area. */}
+			<div
+				className="composer__resizer"
+				role="separator"
+				aria-orientation="horizontal"
+				aria-label="Resize prompt"
+				aria-valuenow={height ?? undefined}
+				aria-valuemin={sized && limits ? limits.min : undefined}
+				aria-valuemax={sized && limits ? limits.max : undefined}
+				tabIndex={0}
+				title="Drag to resize · double-click to reset"
+				onPointerDown={startResize}
+				onPointerMove={moveResize}
+				onPointerUp={endResize}
+				onPointerCancel={endResize}
+				onKeyDown={nudgeResize}
+			/>
 			{addPageError && (
 				<div className="composer__error">
 					<TriangleAlert size={14} />
@@ -293,17 +442,6 @@ export function Composer({
 						open={pagesOpen}
 						onToggle={() => setPagesOpen((value) => !value)}
 					/>
-					<button
-						type="button"
-						className="button button--ghost button--icon button--sm"
-						onClick={() => setExpanded((current) => !current)}
-						title={expanded ? 'Shrink' : 'Expand'}
-						aria-label={expanded ? 'Shrink' : 'Expand'}
-						aria-expanded={expanded}
-						aria-controls="composer-input"
-					>
-						{expanded ? <PanelBottomClose size={14} /> : <PanelBottomOpen size={14} />}
-					</button>
 				</div>
 
 				{slashOpen && (

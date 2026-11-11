@@ -24,7 +24,7 @@ export async function run(ctx) {
 
 	assert.equal(await focused(), false)
 
-	// The free space in the topbar, between the page count and the Expand toggle.
+	// The free space in the topbar, after the page count.
 	await page.mouse.click(topbar.x + topbar.width - 40, topbar.y + topbar.height / 2)
 	assert.equal(await focused(), true, 'a click on the topbar chrome must focus the prompt')
 
@@ -46,10 +46,18 @@ export async function run(ctx) {
 		{ start: 5, end: 5, length: 5 },
 	)
 
-	// Controls keep their own click: Expand still expands instead of focusing the prompt.
-	await page.locator('button[aria-label="Expand"]').click()
-	await page.waitForSelector('.composer--expanded')
-	assert.equal(await focused(), false, 'a button click must not be taken by the prompt')
+	// The resize line is not prompt chrome either: a drag on it keeps the caret where it was
+	// instead of handing it to the prompt.
+	await page.evaluate(() => document.activeElement.blur())
+	assert.equal(await focused(), false)
+	const resizer = await page.locator('.composer__resizer').boundingBox()
+	assert.ok(resizer)
+	await page.mouse.move(resizer.x + resizer.width / 2, resizer.y + resizer.height / 2)
+	await page.mouse.down()
+	await page.mouse.move(resizer.x + resizer.width / 2, resizer.y + resizer.height / 2 - 80, { steps: 6 })
+	await page.mouse.up()
+	await page.waitForSelector('.composer--sized')
+	assert.equal(await focused(), false, 'a resize must not be taken by the prompt')
 
 	// A menu is not prompt chrome either, so neither its chip nor its surface moves focus.
 	await page.locator('.chip--model').click()

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
+import { exampleTab, localSettings, waitForPageCount, waitForRequests } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '30-page-versions'
@@ -32,14 +32,6 @@ const updatedExtraction = {
 		'<p>Prices went up in November.</p>',
 		'</article></body></html>',
 	].join(''),
-}
-
-/** Wait until the fake server has recorded `count` requests. */
-async function waitForRequests(server, count) {
-	while (server.requests.length < count) {
-		await new Promise((done) => setTimeout(done, 25))
-	}
-	return server.requests[count - 1]
 }
 
 /**

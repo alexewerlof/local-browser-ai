@@ -966,14 +966,72 @@
 
 /* --------------------------------------------------------------------- composer */
 
+/* No `border-top`: the edge above the prompt is the resize line (`.composer__resizer`),
+   which draws the rule itself. Positioned so that line can overhang into the transcript's
+   bottom padding and stay easy to catch. */
 .composer {
+	position: relative;
 	display: flex;
 	flex: none;
 	flex-direction: column;
 	gap: var(--space-2);
 	padding: var(--space-3) var(--space-4) var(--space-3);
-	border-top: 1px solid var(--border);
 	background: var(--bg);
+}
+
+/* The whole top edge is the drag target; the 2px rule is painted by ::before so the grab
+   area can be 10px tall without the line itself getting heavy. The rule spans the composer's
+   full width, so it reads as the boundary of the whole input area, and it overhangs 4px into
+   the transcript's bottom padding, which puts the seam inside the target instead of one
+   pixel above it. */
+.composer__resizer {
+	position: absolute;
+	inset: -4px 0 auto;
+	height: 10px;
+	cursor: ns-resize;
+	touch-action: none;
+	z-index: 1;
+}
+
+.composer__resizer::before {
+	content: '';
+	position: absolute;
+	inset: 4px 0 auto;
+	height: 2px;
+	background: var(--border);
+	transition: background var(--duration-fast);
+}
+
+.composer__resizer:hover::before {
+	background: var(--border-strong);
+}
+
+/* A line cannot wear an outline without looking like a box, so focus is the line turning
+   accent plus a halo in the accent's soft tint. */
+.composer__resizer:focus-visible {
+	outline: none;
+}
+
+.composer__resizer:focus-visible::before {
+	background: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* The line is a control, so it says which edge grew: the accent while it is being dragged is
+   the same signal the box gives when it has focus. */
+.composer--resizing .composer__resizer::before {
+	background: var(--accent);
+}
+
+/* While a drag is in flight the pointer stays a resize arrow even over the textarea and the
+   chips, and text does not start selecting under it. The doubled block class is deliberate:
+   `.composer__box` sets `cursor: text` at the same specificity, and it must lose. */
+.composer.composer--resizing {
+	user-select: none;
+}
+
+.composer.composer--resizing * {
+	cursor: ns-resize;
 }
 
 /* One gutter on all four sides, and the box owns it: the topbar and the toolbar carry no
@@ -994,8 +1052,9 @@
 }
 
 /* Lives inside the box border so it reads as part of the prompt editor. The page strip
-   takes the left side and scrolls; the Expand toggle keeps its own space on the right.
-   Start-aligned, so the two buttons stay on the count row when the chips open below it. */
+   takes the left side and scrolls, the add button and the count keep their own space at the
+   start of the row. Start-aligned, so the controls stay on the count row when the chips
+   open below it. */
 .composer__topbar {
 	display: flex;
 	flex: none;
@@ -1009,19 +1068,20 @@
 	flex: none;
 }
 
-/* Expanded: the composer takes most of the panel, leaving a sliver of transcript as a
-   reminder of the session behind it. */
-.composer--expanded {
-	flex: 0 0 75%;
+/* Sized: the height the user dragged, shared between the box and the textarea. The box
+   fills what the rows above it leave and the textarea scrolls inside it, so a long draft
+   no longer grows the composer past the height on screen — and a sliver of transcript is
+   always left above it (see `composerLimits`). */
+.composer--sized {
 	min-height: 0;
 }
 
-.composer--expanded .composer__box {
+.composer--sized .composer__box {
 	flex: 1 1 auto;
 	min-height: 0;
 }
 
-.composer--expanded .composer__input {
+.composer--sized .composer__input {
 	flex: 1 1 auto;
 	max-height: none;
 	overflow-y: auto;

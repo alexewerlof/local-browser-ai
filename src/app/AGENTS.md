@@ -16,9 +16,14 @@ Local rules:
 - `.composer__topbar` is not the panel `header`; it is the strip inside the composer box holding the page list. The bar
   itself stays one line: `PageListToggle` shows the hint, or — from the first page on — a page icon and count. That
   count opens `PageList`: a stacked `ol` above the box, so the list grows upwards and never squeezes the prompt. An add
-  opens it by itself (`lastPageAddedStore`); a row is dimmed with a trash can until a turn carries its page; the Expand
-  toggle keeps its own space. The count's icon pulses while `addPageBusy` is on (capture and markdown conversion, under
-  a second) and never for a page that is merely waiting for a turn.
+  opens it by itself (`lastPageAddedStore`); a row is dimmed with a trash can until a turn carries its page. The count's
+  icon pulses while `addPageBusy` is on (capture and markdown conversion, under a second) and never for a page that is
+  merely waiting for a turn.
+- `.composer__resizer` is the composer's top edge and its only resize affordance: the visible 2px rule is `::before`,
+  which lets the grab strip be 10px tall and overhang 4px into the transcript's own bottom padding. The limits are
+  measured when the gesture starts (`composerLimits` in `src/app/composer-size.ts`), so a queued prompt or an open page
+  list raises the floor instead of being clipped. A drag never takes focus from the prompt (`preventDefault` in
+  `pointerdown`, capture for the rest of it), and the height stays in memory — never settings, never `ui-state.v1`.
 - `.composer__box` owns the composer's **one** gutter (`padding: var(--space-2)`, 4px on all four sides); the topbar and
   the toolbar add no `padding-inline` of their own, which is what keeps the buttons above and the chips below the same
   distance from the border. Every control in those two rows is 24px (`.button--sm`, `.chip`): a chip must never be

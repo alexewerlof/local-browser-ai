@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { deskExtraction, deskTab, exampleTab, localSettings, waitForPageCount } from '../fixtures.mjs'
+import { deskExtraction, deskTab, exampleTab, localSettings, waitForPageCount, waitForRequests } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '36-remove-page'
@@ -37,7 +37,7 @@ export async function run(ctx) {
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.querySelectorAll('.message--assistant').length === 1)
 
-		const firstTurn = server.requests[0].messages.at(-1)
+		const firstTurn = (await waitForRequests(server, 1)).messages.at(-1)
 		assert.match(firstTurn.content, /## Page p2 — Standing desk — Garden/)
 		assert.doesNotMatch(firstTurn.content, /Example Pricing/)
 
@@ -53,7 +53,7 @@ export async function run(ctx) {
 		await page.locator('[aria-label="Submit"]').click()
 		await page.waitForFunction(() => document.querySelectorAll('.message--assistant').length === 2)
 
-		const secondTurn = server.requests[1].messages.at(-1)
+		const secondTurn = (await waitForRequests(server, 2)).messages.at(-1)
 		assert.match(secondTurn.content, /## Page p3 — Example Pricing/)
 		assert.doesNotMatch(secondTurn.content, /## Page p2 — Example Pricing/)
 	} finally {
