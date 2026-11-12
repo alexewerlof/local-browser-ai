@@ -14,20 +14,20 @@ export async function run(ctx) {
 	const opened = () => page.evaluate(() => window.__LB_AI_TEST__.opened.length)
 	const updates = () => page.evaluate(() => window.__LB_AI_TEST__.updatedTabs)
 
-	// Prompt templates: the open tab is activated, focused and pointed at its section — no new tab.
+	// Templates: the open tab is activated, focused and pointed at its section — no new tab.
 	await page.locator('.chip:has-text("Templates")').click()
-	await page.locator('button[aria-label="Manage prompt templates"]').click()
+	await page.locator('button[aria-label="Manage templates"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 1)
 	assert.equal(await opened(), 0)
 	let last = (await updates()).at(-1)
 	assert.equal(last.id, 500)
 	assert.equal(last.active, true)
-	assert.match(String(last.url), /\/settings\.html#prompt-templates$/)
+	assert.match(String(last.url), /\/settings\.html#templates$/)
 	assert.deepEqual(await page.evaluate(() => window.__LB_AI_TEST__.focusedWindows), [{ id: 2, focused: true }])
 
 	// Asking for the section already on screen only activates the tab; it does not reload it.
 	await page.locator('.chip:has-text("Templates")').click()
-	await page.locator('button[aria-label="Manage prompt templates"]').click()
+	await page.locator('button[aria-label="Manage templates"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 2)
 	last = (await updates()).at(-1)
 	assert.equal(last.url, undefined)

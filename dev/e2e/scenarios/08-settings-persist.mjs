@@ -42,7 +42,7 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.settings__content >> text=Maximum tool steps per answer').count(), 0)
 	assert.equal(await page.locator('.group__title', { hasText: 'System prompt' }).count(), 1)
 
-	await page.locator('.settings__nav-item:has-text("Providers")').click()
+	await page.locator('.settings__nav-item:has-text("Model Providers")').click()
 	await page.waitForSelector('.provider')
 	// Adding a provider is persisted; nothing else is seeded next to it.
 	const providers = await page.locator('.rows').textContent()

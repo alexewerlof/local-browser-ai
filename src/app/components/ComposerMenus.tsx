@@ -58,11 +58,7 @@ export function PromptTemplateMenu({
 					onChange={(event) => setQuery(event.target.value)}
 					autoFocus
 				/>
-				<SettingsButton
-					section="prompt-templates"
-					label="Manage prompt templates"
-					onClose={() => setOpen(false)}
-				/>
+				<SettingsButton section="templates" label="Manage templates" onClose={() => setOpen(false)} />
 			</div>
 			<div className="popover__list">
 				<div className="popover__group">

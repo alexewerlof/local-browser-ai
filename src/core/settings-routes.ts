@@ -11,8 +11,8 @@
 export const SETTINGS_SECTIONS = [
 	{ id: 'general', label: 'General' },
 	{ id: 'appearance', label: 'Appearance' },
-	{ id: 'providers', label: 'Providers' },
-	{ id: 'prompt-templates', label: 'Prompt templates' },
+	{ id: 'providers', label: 'Model Providers' },
+	{ id: 'templates', label: 'Templates' },
 	{ id: 'tools', label: 'Tools' },
 	{ id: 'memory', label: 'Memory' },
 	{ id: 'context', label: 'Context' },
@@ -27,13 +27,14 @@ export const DEFAULT_SETTINGS_SECTION: SettingsSectionId = 'general'
  * Fragments that named a section which has since merged into another one. `#mcp` was its
  * own page until MCP servers joined Built-in Tools under `#tools`, `#models` was its own
  * page until the model list moved into the provider editor, and `#skills` named the section
- * now called Prompt templates; a bookmark or the gear of an older build still has to land
- * somewhere useful.
+ * now called Templates, which was `#prompt-templates` before its caption was shortened; a
+ * bookmark or the gear of an older build still has to land somewhere useful.
  */
 const SECTION_ALIASES: Record<string, SettingsSectionId> = {
 	mcp: 'tools',
 	models: 'providers',
-	skills: 'prompt-templates',
+	skills: 'templates',
+	'prompt-templates': 'templates',
 }
 
 /**

@@ -478,15 +478,15 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   Tailwind is present only to style Streamdown (see the rendering section below); app CSS stays unlayered so it wins
   over Tailwind's utilities layer.
 - Formatting: tabs, single quotes, no semicolons (Prettier via `npm run fmt`).
-- Settings sections are hash-routed (`settings.html#prompt-templates`; General is the bare page). `SETTINGS_SECTIONS` in
+- Settings sections are hash-routed (`settings.html#templates`; General is the bare page). `SETTINGS_SECTIONS` in
   `src/core/settings-routes.ts` is the order, and `openSettings(section)` opens Settings at a section. `SECTION_ALIASES`
-  holds the retired fragments — `#mcp` onto `tools`, `#models` onto `providers` and `#skills` onto `prompt-templates` —
-  and `SettingsApp` rewrites each to the canonical fragment. Settings is a **single tab**: the function queries open
-  tabs (hence the `tabs` permission), focuses the window, and moves the existing tab to the section instead of opening
-  another one; with no section it keeps the section already on screen. A menu that points at Settings uses the
-  `SettingsButton` gear rather than a sentence. The section cannot live in the path — Chrome's extension loader resolves
-  a URL path verbatim to a file, so `settings/providers` is a 404 — and the fragment is the only part of the URL it
-  leaves alone.
+  holds the retired fragments — `#mcp` onto `tools`, `#models` onto `providers`, and `#skills` and `#prompt-templates`
+  onto `templates` — and `SettingsApp` rewrites each to the canonical fragment. Settings is a **single tab**: the
+  function queries open tabs (hence the `tabs` permission), focuses the window, and moves the existing tab to the
+  section instead of opening another one; with no section it keeps the section already on screen. A menu that points at
+  Settings uses the `SettingsButton` gear rather than a sentence. The section cannot live in the path — Chrome's
+  extension loader resolves a URL path verbatim to a file, so `settings/providers` is a 404 — and the fragment is the
+  only part of the URL it leaves alone.
 - Appearance lives in `settings.ui` and is applied to `<html>` by `applyAppearance` in `src/state/settings.ts`, next to
   the theme attribute. Text size is one of Chrome's five labels (`very-small` … `very-large`) mapped to
   `FONT_SIZE_SCALES` in `src/core/settings.ts` and written as the `--text-scale` token, which multiplies the `--text-*`

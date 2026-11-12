@@ -36,7 +36,7 @@ export async function run(ctx) {
 	assert.ok(all.includes('Risotto'))
 
 	// The gear is in the header row, next to the search field, and there is no footer row.
-	assert.equal(await page.locator('.popover__header button[aria-label="Manage prompt templates"]').count(), 1)
+	assert.equal(await page.locator('.popover__header button[aria-label="Manage templates"]').count(), 1)
 	assert.equal(await page.locator('.popover__footer').count(), 0)
 
 	// Search matches the name and the description, and reports an empty result honestly.

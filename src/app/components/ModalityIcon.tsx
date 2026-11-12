@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { ModelModality } from '../../core/types'
 
 /**
- * One glyph per modality. Settings → Providers and the model picker both show a model's
+ * One glyph per modality. Settings → Model Providers and the model picker both show a model's
  * modalities, and a word would not fit either surface, so the glyph and its name live here
  * once rather than twice.
  */

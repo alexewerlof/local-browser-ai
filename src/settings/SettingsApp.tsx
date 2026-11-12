@@ -41,7 +41,7 @@ const SECTION_ICONS: Record<SettingsSectionId, LucideIcon> = {
 	general: Settings,
 	appearance: Palette,
 	providers: CpuAi,
-	'prompt-templates': BookMarked,
+	templates: BookMarked,
 	tools: Wrench,
 	memory: MemoryStick,
 	context: Notebook,
@@ -185,7 +185,7 @@ export function SettingsApp() {
 					{section === 'general' && <GeneralSection settings={settings} />}
 					{section === 'appearance' && <AppearanceSection settings={settings} />}
 					{section === 'providers' && <ProvidersSection settings={settings} />}
-					{section === 'prompt-templates' && <PromptTemplatesSection settings={settings} />}
+					{section === 'templates' && <PromptTemplatesSection settings={settings} />}
 					{section === 'tools' && <ToolsSection settings={settings} />}
 					{section === 'memory' && <MemorySection settings={settings} />}
 					{section === 'context' && <ContextSection settings={settings} />}

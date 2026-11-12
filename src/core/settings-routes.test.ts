@@ -14,7 +14,7 @@ describe('parseSettingsHash', () => {
 	})
 
 	it('ignores the case of a hand-typed name', () => {
-		expect(parseSettingsHash('#Prompt-Templates')).toBe('prompt-templates')
+		expect(parseSettingsHash('#Templates')).toBe('templates')
 	})
 
 	it('falls back to the landing section for an unknown name', () => {
@@ -27,9 +27,11 @@ describe('parseSettingsHash', () => {
 	it('lands a retired section on the one that absorbed it', () => {
 		expect(parseSettingsHash('#models')).toBe('providers')
 		expect(parseSettingsHash('#mcp')).toBe('tools')
-		// `#skills` named this page before it was renamed to Prompt templates.
-		expect(parseSettingsHash('#skills')).toBe('prompt-templates')
-		expect(parseSettingsHash('#Skills')).toBe('prompt-templates')
+		// The page was called Skills, then Prompt templates, before its caption was shortened.
+		expect(parseSettingsHash('#skills')).toBe('templates')
+		expect(parseSettingsHash('#Skills')).toBe('templates')
+		expect(parseSettingsHash('#prompt-templates')).toBe('templates')
+		expect(parseSettingsHash('#Prompt-Templates')).toBe('templates')
 	})
 })
 
@@ -39,7 +41,7 @@ describe('settingsSectionHash', () => {
 	})
 
 	it('names every other section', () => {
-		expect(settingsSectionHash('prompt-templates')).toBe('#prompt-templates')
+		expect(settingsSectionHash('templates')).toBe('#templates')
 		expect(settingsSectionHash('tools')).toBe('#tools')
 	})
 

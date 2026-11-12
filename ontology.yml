@@ -95,7 +95,7 @@ memory:
 
 # Providers, the models behind them, and the effort knobs.
 models:
-    provider: one configured way to reach models; code ProviderSettings, settings.providers, getProvider; ui Providers, Configured providers, Add a provider; not endpoint, server, adapter
+    provider: one configured way to reach models; code ProviderSettings, settings.providers, getProvider; ui Model Providers, Configured providers, Add a provider; not endpoint, server, adapter
     local-server: a model server the user runs, reached over the OpenAI-compatible API; code baseURL, DEFAULT_BASE_URL; ui Local server, Base URL; not server, host, backend
     base-url: the address a provider's HTTP API sits at; code ProviderSettings.baseURL, normalizeBaseURL; ui Base URL; not endpoint URL, host
     api-key: the credential a model server asks for, never synced; code ProviderSettings.apiKey, headers; ui API key; not token, secret, password
@@ -131,7 +131,7 @@ tools:
 
 # Prompt templates the user inserts.
 prompt-templates:
-    prompt-template: a saved prompt inserted by menu or slash; code PromptTemplate, settings.promptTemplates, promptTemplateStore; ui Templates, Prompt templates, Insert a prompt, Add template, Manage prompt templates; not skill, slash command, macro, recipe
+    prompt-template: a saved prompt inserted by menu or slash; code PromptTemplate, settings.promptTemplates, promptTemplateStore; ui Templates, Prompt templates, Insert a prompt, Add template, Manage templates; not skill, slash command, macro, recipe
     built-in-prompt-template: a template shipped with the extension, editable and resettable; code builtInPromptTemplates, summarize-page, critique, compare; ui built-in, Reset; not default template, built-in skill
 
 # Coding-agent packages in the repo, unrelated to the product's prompt templates.
@@ -158,13 +158,13 @@ ui:
         chips:
             chip: a rounded control in the toolbar that opens a menu or acts; code chip, chip--icon, chip--model; not pill, tag, badge
             chip-count: the bare number at the end of a chip, as on the tools chip; code chip__count; ui 6; not badge, pill, counter
-            prompt-templates-chip: the chip that opens the template list; code PromptTemplateMenu, BookMarked; ui Templates, Prompt templates, Insert a prompt, Search templates, No templates match., Manage prompt templates; not skill button, skill menu
+            prompt-templates-chip: the chip that opens the template list; code PromptTemplateMenu, BookMarked; ui Templates, Prompt templates, Insert a prompt, Search templates, No templates match., Manage templates; not skill button, skill menu
             tools-chip: the chip opening the tree of tool sets; code ToolsMenu, ToolTree, countEnabledTools, chip__count; ui Tools, Built-in, No MCP servers yet., Manage tools; not tool button, plugin menu
             model-chip: the chip showing the current model; code ModelPicker, chip--model, Sparkles; ui Choose model, Change model; not model selector, model dropdown
             reasoning-chip: the chip that sets reasoning effort; code ThinkingMenu, MessageCircleMore, thinkingOptions; ui Reasoning effort, Reasoning, Off, Auto, High; not thinking chip
         menus:
             popover: the anchored floating panel a chip opens; code Popover, popover__header, popover__group, popover__item, popover--end, popover--trailing; not dropdown, menu, modal, dialog
-            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__model, popover__model--selected, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, popover__item-loaded, popover__item-star, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage providers, Reasoning, Context, Max output, Loaded in the server, Make default, Default model; not model menu, provider picker, model table
+            model-picker: the popover listing models by provider, with search and each model's facts; code ModelPicker, popover__header, popover__model, popover__model--selected, popover__item--model, popover__item-row, popover__item-token, popover__item-facts, popover__item-loaded, popover__item-star, ModalityIcon; ui Search models, No models. Add a provider in Settings., Manage model providers, Reasoning, Context, Max output, Loaded in the server, Make default, Default model; not model menu, provider picker, model table
             slash-menu: the inline prompt-template list that appears after a slash; code slashQuery, slash, slash__item; not command palette, autocomplete
         actions:
             submit: the primary button that sends or queues the prompt; code composer__submit, ArrowUp, submitPrompt, ui.submitKey; ui Submit, Queue prompt; not send, go, ask, run
@@ -185,13 +185,13 @@ ui:
         context-meter: the bar and popover showing what fills the window; code ContextMeter, meter__bar, meter__threshold; ui What is using the context window, Compact now, Context settings; not stats, usage bar, token counter
     atoms:
         badge: a small label showing a count or state, never clickable; code badge, badge--accent, badge--danger; ui always, auto, tool only, built-in, actions, changed; not chip, pill, tag, button
-        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage prompt templates, Manage tools, Manage providers; not cog, settings link, configure icon
+        settings-button: the icon-only gear in a menu that closes it and opens Settings at its section; code SettingsButton, openSettings, settingsSectionHash; ui Manage templates, Manage tools, Manage model providers; not cog, settings link, configure icon
 
 # The full-page configuration surface. Called Settings in code, UI and docs alike.
 settings:
     settings: the full-page surface opened from the header or a menu gear, optionally at a section; one tab, focused when already open; code src/settings, settings.html, SettingsApp, openSettings; ui Settings, Settings sections; not options, config, preferences
-    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, SECTION_ALIASES, settings__nav-item; ui General, Appearance, Providers, Prompt templates, Tools, Memory, Context; not tab, panel
-    settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#prompt-templates, SECTION_ALIASES; ui hash, settings.html#prompt-templates, #skills; not query string, path, tab
+    settings-section: one page of it, chosen from the rail; code SettingsSectionId, SETTINGS_SECTIONS, SECTION_ALIASES, settings__nav-item; ui General, Appearance, Model Providers, Templates, Tools, Memory, Context; not tab, panel
+    settings-route: the fragment that names the open section, General the bare page; code parseSettingsHash, settingsSectionHash, settings.html#templates, SECTION_ALIASES; ui hash, settings.html#templates, #prompt-templates, #skills; not query string, path, tab
     settings-card: a titled group of related controls; code SettingsCard, group__title, group__head, group__actions, card, rows, field; ui Appearance, Rendering, System prompt, Tool Calls, Data, About, Compaction; not box, panel, widget
     settings-field: one labelled control row inside a card; code field__label, field__hint; ui Theme, Submit with, Font size, Math; not option, item, input
     switch: the on/off control for booleans; code Switch, SwitchField, role=switch; ui Auto-approve, Run without asking, Enable memory, Send requests without an Origin header, Use {model id}; not toggle, checkbox, slider

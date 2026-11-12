@@ -199,7 +199,7 @@ export function App() {
 				onCompact={() => void compactNow()}
 				onModelChange={(ref) => {
 					// The picker is about this chat. The default for new chats is the star in
-					// Settings → Providers, so switching models here must not move it.
+					// Settings → Model Providers, so switching models here must not move it.
 					setModel(ref)
 				}}
 			/>

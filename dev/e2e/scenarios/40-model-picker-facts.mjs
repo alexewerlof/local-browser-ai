@@ -4,7 +4,7 @@ import { localSettings } from '../fixtures.mjs'
 export const name = '40-model-picker-facts'
 
 /**
- * The model picker shows what Settings → Providers shows about each model — modalities,
+ * The model picker shows what Settings → Model Providers shows about each model — modalities,
  * context / max output and reasoning — in two lines per row. The menu hangs above the model
  * chip with its trailing edge on the panel's, keeping a chip menu's width instead of
  * stretching across the composer box.

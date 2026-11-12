@@ -1619,7 +1619,7 @@
 /* The default model, and the offer to make any other row the default: the same square the
    state glyphs get, so the trailing edge of the row lines up across every row. Filled and
    read-only for the default itself, outlined and clickable for the rest — the same pair
-   Settings → Providers uses, so one concept never gets two controls. */
+   Settings → Model Providers uses, so one concept never gets two controls. */
 .popover__item-star {
 	display: inline-flex;
 	flex: none;

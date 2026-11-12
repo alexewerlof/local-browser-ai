@@ -16,15 +16,15 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'General')
 
 	// Choosing a section writes it to the fragment.
-	await page.locator('.settings__nav-item:has-text("Prompt templates")').click()
+	await page.locator('.settings__nav-item:has-text("Templates")').click()
 	await page.waitForSelector('.settings__content >> text=Prompt templates are saved prompts')
-	assert.equal(await page.evaluate(() => location.hash), '#prompt-templates')
+	assert.equal(await page.evaluate(() => location.hash), '#templates')
 
 	// A refresh keeps the section.
 	await page.reload()
 	await page.waitForSelector('.settings')
-	assert.equal(await page.evaluate(() => location.hash), '#prompt-templates')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Prompt templates')
+	assert.equal(await page.evaluate(() => location.hash), '#templates')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Templates')
 	assert.equal(await page.locator('.settings__content >> text=Prompt templates are saved prompts').count(), 1)
 
 	// A second section is a history entry, so Back returns to the previous one.
@@ -33,8 +33,8 @@ export async function run(ctx) {
 	assert.equal(await page.evaluate(() => location.hash), '#memory')
 	await page.goBack()
 	await page.waitForSelector('.settings__content >> text=Prompt templates are saved prompts')
-	assert.equal(await page.evaluate(() => location.hash), '#prompt-templates')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Prompt templates')
+	assert.equal(await page.evaluate(() => location.hash), '#templates')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Templates')
 
 	// A deep link opens its section directly, which is what the panel's gears use.
 	const base = page.url().split('#')[0]
@@ -48,20 +48,25 @@ export async function run(ctx) {
 	// The same for the retired Models page, whose model list now lives in the provider editor.
 	await page.goto(`${base}#models`)
 	await page.waitForSelector('.settings')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Providers')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Model Providers')
 	assert.equal(await page.evaluate(() => location.hash), '#providers')
 
-	// The section was called Skills before Prompt templates; the alias still lands there and
-	// the fragment is rewritten, so the URL names the section on screen.
+	// The section was called Skills, then Prompt templates, before its caption was shortened;
+	// both fragments still land there and are rewritten, so the URL names the section on screen.
 	await page.goto(`${base}#skills`)
 	await page.waitForSelector('.settings')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Prompt templates')
-	assert.equal(await page.evaluate(() => location.hash), '#prompt-templates')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Templates')
+	assert.equal(await page.evaluate(() => location.hash), '#templates')
+
+	await page.goto(`${base}#prompt-templates`)
+	await page.waitForSelector('.settings')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Templates')
+	assert.equal(await page.evaluate(() => location.hash), '#templates')
 
 	// A hand-typed name is matched case-insensitively.
-	await page.goto(`${base}#Prompt-Templates`)
+	await page.goto(`${base}#Templates`)
 	await page.waitForSelector('.settings')
-	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Prompt templates')
+	assert.equal(await page.locator('.settings__nav-item--active').textContent(), 'Templates')
 
 	// An unknown section falls back to General and is rewritten, so the URL is never a dead end.
 	await page.goto(`${base}#nope`)

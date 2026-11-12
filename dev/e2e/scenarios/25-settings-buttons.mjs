@@ -38,12 +38,12 @@ export async function run(ctx) {
 		}, before)
 	}
 
-	// Prompt templates: the gear sits beside the search row at the top of the menu.
+	// Templates: the gear sits beside the search row at the top of the menu.
 	await page.locator('.chip:has-text("Templates")').click()
 	let result = await clickAndReadSection(() =>
-		page.locator('.popover__header button[aria-label="Manage prompt templates"]').click(),
+		page.locator('.popover__header button[aria-label="Manage templates"]').click(),
 	)
-	assert.deepEqual(result, { created: true, hash: '#prompt-templates' })
+	assert.deepEqual(result, { created: true, hash: '#templates' })
 	// Opening Settings dismisses the popover.
 	assert.equal(await page.locator('.popover').count(), 0)
 
@@ -52,10 +52,10 @@ export async function run(ctx) {
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage tools"]').click())
 	assert.deepEqual(result, { created: false, hash: '#tools' })
 
-	// Providers: the gear sits beside the search row at the top of the picker, because that
-	// is where models and the default are configured.
+	// Model Providers: the gear sits beside the search row at the top of the picker, because
+	// that is where models and the default are configured.
 	await page.locator('.chip--model').click()
-	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage providers"]').click())
+	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage model providers"]').click())
 	assert.deepEqual(result, { created: false, hash: '#providers' })
 
 	// The context meter's settings button lands on its own section.
@@ -71,5 +71,5 @@ export async function run(ctx) {
 	assert.equal(last.url, undefined)
 	assert.equal(last.active, true)
 	// Only ever one Settings tab.
-	assert.deepEqual(await openedHashes(), ['#prompt-templates'])
+	assert.deepEqual(await openedHashes(), ['#templates'])
 }

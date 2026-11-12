@@ -13,12 +13,12 @@ Local rules:
 - Providers is one kind of endpoint: a local OpenAI-compatible server. "Add provider" opens the editor directly (there
   is no preset chooser), the editor's Base URL asks for the host grant on save, and every configured provider can be
   removed. A store with no provider is normal — the panel then shows "No model is configured yet" and points here.
-- Rail order is fixed: General, Appearance, Providers, Prompt templates, Tools, Memory, Context. General is the landing
+- Rail order is fixed: General, Appearance, Model Providers, Templates, Tools, Memory, Context. General is the landing
   section. A new section is a new rail item and a new ontology entry for each card title it adds. The order lives in
   `SETTINGS_SECTIONS` (`src/core/settings-routes.ts`); the rail renders it and `SECTION_ICONS` maps each id to its icon.
   There is deliberately **no Models section**: the model list, its facts and its reasoning select all live in the
-  provider editor, and the old `#models` fragment is an alias onto `#providers`. The Prompt templates page was called
-  **Skills** before the rename, so `#skills` is an alias onto `#prompt-templates`.
+  provider editor, and the old `#models` fragment is an alias onto `#providers`. The Templates page was called
+  **Skills**, then **Prompt templates**, so `#skills` and `#prompt-templates` are aliases onto `#templates`.
 - Ownership follows the domain, not the page a card happened to start on. General keeps the tool-step cap, Data and
   About; Appearance owns everything about how the app looks and renders (theme, submit key, font size, Math, Code
   highlighting); Context owns the system prompt and compaction, because both are what the assembled prompt is made of.
@@ -28,14 +28,14 @@ Local rules:
   is what makes a hovered or selected row's fill reach the edge, the way Chrome's own rails behave. Never re-add the
   rail's inline-start padding; it clips the fill.
 - The open section is the URL fragment: General is the bare page and every other section is `#<id>`
-  (`settings.html#prompt-templates`) — no slash, because Chrome's extension loader opens a URL path verbatim as a file,
-  so a path segment cannot exist and the slash would only be decoration. The page reads the fragment on mount,
-  normalises an unknown or hand-typed one with `replaceState` (through a `URL`, since an empty hash must remove the
-  fragment), syncs on `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click.
-  `openSettings(section)` in `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then
-  activates the one Settings tab and moves it to the section (`tabs.update`), creating the tab only when none is open.
-  That reuse is why the manifest requests `tabs`; never open a second Settings tab.
-- A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage prompt
+  (`settings.html#templates`) — no slash, because Chrome's extension loader opens a URL path verbatim as a file, so a
+  path segment cannot exist and the slash would only be decoration. The page reads the fragment on mount, normalises an
+  unknown or hand-typed one with `replaceState` (through a `URL`, since an empty hash must remove the fragment), syncs
+  on `hashchange`/`popstate` (Back and Forward work) and pushes a new entry per rail click. `openSettings(section)` in
+  `src/platform/chrome.ts` opens Settings at that fragment: it focuses the window, then activates the one Settings tab
+  and moves it to the section (`tabs.update`), creating the tab only when none is open. That reuse is why the manifest
+  requests `tabs`; never open a second Settings tab.
+- A menu that points at a section uses `SettingsButton` (icon-only gear, `title` + `aria-label` such as "Manage
   templates"), not a sentence. The Tools menu has **one** gear for its one destination, Settings → Tools (`#tools`).
 - The two rail links that leave Settings come last, after `.settings__divider`, and neither is a section:
   `Platform Settings…` and `Privacy and security…` have no entry in `SETTINGS_SECTIONS` and no hash, so they are direct
