@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { mkdir, rm } from 'node:fs/promises'
 import { readdir } from 'node:fs/promises'
+import { availableParallelism } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
@@ -15,6 +16,30 @@ const PROFILE = join(HERE, '.profile')
 const PORT = Number(process.env.PORT ?? 4173)
 const BASE_URL = `http://localhost:${PORT}`
 const SCENARIO_TIMEOUT_MS = Number(process.env.E2E_TIMEOUT_MS ?? 30000)
+
+/**
+ * How many browsers to run at once. Each scenario is a page in its own browser with its own
+ * profile, so the suite is limited by the slowest one instead of by their sum; `E2E_WORKERS`
+ * pins the number and `E2E_WORKERS=1` reproduces the old serial run.
+ */
+function workerCount(scenarioCount) {
+	const requested = Number(process.env.E2E_WORKERS ?? Math.min(4, availableParallelism()))
+	if (!Number.isFinite(requested) || requested < 1) return 1
+	return Math.min(Math.floor(requested), Math.max(1, scenarioCount))
+}
+
+/** The worker indexes to run, and so the profiles to prepare. */
+function profiles(count) {
+	return Array.from({ length: count }, (_, index) => index)
+}
+
+/**
+ * A worker's browser profile. One worker keeps the historical `.profile`, so a single-worker
+ * run still shares its state across runs the way it always did.
+ */
+function profilePath(index, count) {
+	return count === 1 ? PROFILE : `${PROFILE}-${index}`
+}
 
 function withTimeout(promise, ms, name) {
 	let timer
@@ -133,44 +158,71 @@ async function main() {
 	await rm(ARTIFACTS, { recursive: true, force: true })
 	await mkdir(ARTIFACTS, { recursive: true })
 
-	const server = await startServer()
+	const scenarios = await loadScenarios(filter)
+	const workers = workerCount(scenarios.length)
+
 	if (process.env.E2E_FRESH_PROFILE) {
 		await rm(PROFILE, { recursive: true, force: true })
+		for (const index of profiles(workers)) await rm(profilePath(index, workers), { recursive: true, force: true })
 	}
-	const context = await chromium.launchPersistentContext(PROFILE, {
-		executablePath: chromiumExecutablePath(),
-		headless: true,
-		args: ['--no-sandbox'],
-	})
 
-	const scenarios = await loadScenarios(filter)
+	const server = await startServer()
 	const failures = []
 
-	for (const scenario of scenarios) {
-		const name = scenario.name ?? scenario.file.replace('.mjs', '')
-		const page = await context.newPage()
-		await page.setViewportSize({ width: 520, height: 1100 })
-		const ctx = createContext(page, name)
-		const started = Date.now()
+	/**
+	 * One browser per worker, each on its own profile: a scenario's settings and chats live in
+	 * chrome.storage and IndexedDB, which are per-profile, so this is what makes running them
+	 * at the same time safe. Scenarios are handed out one at a time from a shared cursor, so a
+	 * slow one never blocks a worker that is free.
+	 */
+	let next = 0
+	const runWorker = async (index) => {
+		const context = await chromium.launchPersistentContext(profilePath(index, workers), {
+			executablePath: chromiumExecutablePath(),
+			headless: true,
+			args: ['--no-sandbox'],
+		})
 		try {
-			await withTimeout(scenario.run(ctx), SCENARIO_TIMEOUT_MS, name)
-			await ctx.clean()
-			console.log(`✔ ${name} (${Date.now() - started} ms)`)
-		} catch (error) {
-			failures.push({ name, error })
-			const shot = await ctx.shot('failure').catch(() => null)
-			console.log(`✖ ${name} (${Date.now() - started} ms)`)
-			console.log(`  ${String(error.message).split('\n').join('\n  ')}`)
-			if (shot) {
-				console.log(`  screenshot: ${shot}`)
+			for (;;) {
+				const scenario = scenarios[next]
+				if (!scenario) return
+				next += 1
+				const lines = []
+				const name = scenario.name ?? scenario.file.replace('.mjs', '')
+				const page = await context.newPage()
+				await page.setViewportSize({ width: 520, height: 1100 })
+				const ctx = createContext(page, name)
+				const started = Date.now()
+				try {
+					await withTimeout(scenario.run(ctx), SCENARIO_TIMEOUT_MS, name)
+					await ctx.clean()
+					lines.push(`✔ ${name} (${Date.now() - started} ms)`)
+				} catch (error) {
+					failures.push({ name, error })
+					const shot = await ctx.shot('failure').catch(() => null)
+					lines.push(`✖ ${name} (${Date.now() - started} ms)`)
+					lines.push(
+						...String(error.message)
+							.split('\n')
+							.map((line) => `  ${line}`),
+					)
+					if (shot) lines.push(`  screenshot: ${shot}`)
+				} finally {
+					await page.close()
+					// A block per scenario, so two workers never interleave half a failure message.
+					console.log(lines.join('\n'))
+				}
 			}
 		} finally {
-			await page.close()
+			await context.close()
 		}
 	}
 
-	await context.close()
-	server.kill()
+	try {
+		await Promise.all(profiles(workers).map(runWorker))
+	} finally {
+		server.kill()
+	}
 
 	console.log(`\n${scenarios.length - failures.length}/${scenarios.length} scenarios passed`)
 	if (failures.length) {

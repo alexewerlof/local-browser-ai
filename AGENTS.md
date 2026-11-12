@@ -402,9 +402,9 @@ both. The wording and the fallback count live in `core/steps.ts`.
 | Build                  | `npm run build`                              |
 | Watch                  | `npm run dev`                                |
 | Serve the panel as web | `npm run serve` → http://localhost:4173/     |
-| Browser scenarios      | `npm run e2e`                                |
+| Browser scenarios      | `npm run e2e` (`-- <filter>` for one)        |
 | Extension smoke test   | `npm run e2e:ext`                            |
-| Unit tests             | `npm test` (`vitest run`)                    |
+| Unit tests             | `npm test` (`-- <file>` for one)             |
 | Typecheck              | `npm run typecheck`                          |
 | Lint                   | `npm run lint` (fix with `npm run lint:fix`) |
 | Format                 | `npm run fmt`                                |
@@ -413,13 +413,20 @@ both. The wording and the fallback count live in `core/steps.ts`.
 The harness serves `dist/` as an ordinary web page and injects `dev/e2e/chrome-shim.mjs`. Scenarios live in
 `dev/e2e/scenarios/` and use `dev/e2e/fake-server.mjs` (an OpenAI-compatible SSE server that records request bodies and
 can emit tool calls). Add a scenario by creating `NN-name.mjs` exporting `run(ctx)`; config is
-`{ settings, tab, extraction, selection, storage }`. MCP tools use `dev/e2e/mock-mcp-server.mjs`, a stateless MCP server
-on a random port; never point a scenario at a real or fixed endpoint. It has two failure switches that between them
-cover the realistic setups: `rejectOrigins` answers 403 to any browser `Origin` (which is what `stripOrigin` fixes, and
-why the real-extension test uses it) and `requireHeaders` answers 401 to every POST without the given Name/Value rows,
-recording the refused names in `denied` — that is how `11-mcp-tools` proves a configured `Authorization` header really
-reaches the server instead of only being stored. Its CORS reply echoes the requested header names, because the `*`
-wildcard does not cover `Authorization`.
+`{ settings, tab, extraction, selection, storage }`. **Scenarios run in parallel**: each gets a page in one of
+`E2E_WORKERS` browsers (default four, `E2E_WORKERS=1` is the old serial run), and each browser has its own profile
+because settings and chats live in `chrome.storage` and IndexedDB — the profiles are `dev/e2e/.profile` for a single
+worker and `.profile-<n>` otherwise, so a scenario that needs a clean slate stays isolated. That took the suite from
+about 90 s to about 30 s on this machine; a browser costs roughly 1.1 GB, so stay at four unless the box has the room,
+and a scenario that must not share a moment with another (a fixed port, a single fake server) keeps its own server as
+the MCP ones do. `npm run e2e -- 35` runs the files whose name matches `35`, and the loop is `typecheck && lint && test`
+— the browser suite is the slow part, so it is what to scope while iterating. MCP tools use
+`dev/e2e/mock-mcp-server.mjs`, a stateless MCP server on a random port; never point a scenario at a real or fixed
+endpoint. It has two failure switches that between them cover the realistic setups: `rejectOrigins` answers 403 to any
+browser `Origin` (which is what `stripOrigin` fixes, and why the real-extension test uses it) and `requireHeaders`
+answers 401 to every POST without the given Name/Value rows, recording the refused names in `denied` — that is how
+`11-mcp-tools` proves a configured `Authorization` header really reaches the server instead of only being stored. Its
+CORS reply echoes the requested header names, because the `*` wildcard does not cover `Authorization`.
 
 `npm run e2e:ext` additionally exercises what the shim cannot: the real service worker, the injectable extractor against
 a localhost fixture page (localhost is in `host_permissions`, so no `activeTab` grant is needed) and the panel-behavior

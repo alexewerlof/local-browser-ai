@@ -4,5 +4,6 @@ models/
 runtime/
 dev/e2e/artifacts/
 dev/e2e/.profile/
+dev/e2e/.profile-*/
 dev/e2e/.profile-debug/
 *.zip
