@@ -29,7 +29,7 @@ export async function run(ctx) {
 		// not have to be: the handle of the removed page must not be handed out again.
 		await page.locator('.page-list__remove').nth(0).click()
 		await page.waitForFunction(() => document.querySelectorAll('.page-list__panel > li').length === 1)
-		assert.equal(await page.locator('.page-list__toggle').textContent(), '1')
+		assert.equal(await page.locator('.page-list__count').textContent(), '1')
 		assert.deepEqual(await page.locator('.page-chip__title').allTextContents(), ['Standing desk — Garden'])
 
 		// The removed page is not in the request either: only p2 travels.

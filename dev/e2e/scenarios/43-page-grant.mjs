@@ -14,7 +14,7 @@ export const name = '43-page-grant'
 export async function run(ctx) {
 	await ctx.open({ settings: localSettings('http://localhost:1/v1'), hostAccess: 'ask' })
 	const { page } = ctx
-	const add = page.locator('.composer__add-page')
+	const add = page.locator('.page-list__add')
 	const box = page.locator('.page-access')
 
 	// 1. The add opens the box and adds nothing: Chrome has not been asked yet.

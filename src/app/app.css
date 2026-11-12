@@ -701,46 +701,119 @@
 
 /* ---------------------------------------------------------------- page cards */
 
-/* The strip lives inside the composer's top bar: one page or twelve, it is the same count
-   that opens the list above the box, so the bar stays one line. */
+/* The pages are the composer's top band, inside its one border: on the surface's own
+   background, separated from the prompt by a hairline rather than by a box of their own.
+   The band, the list it opens and the editor below are three parts of one control. */
 .page-list {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	min-width: 0;
+	border-bottom: 1px solid var(--border);
+}
+
+/* One line, whatever the chat holds: the disclosure takes the room the add button leaves.
+   The row is inset like the prompt's text, so the chevron lines up with it, and it is the
+   only thing here that may look highlighted. Its highlight is a background tint on the row
+   itself — never an outline: an outline hugs whatever element is focused, here the left
+   half of the row, and a box floating above the prompt is what makes the page list read as
+   a second, separate composer. The rounded top follows the surface it sits in.
+
+   The hairline under it only appears once the list is open, when the row really is the head
+   of the rows below; closed, the band's own bottom edge already separates it from the
+   prompt, and two lines a pixel apart would say the same thing twice. */
+.page-list__head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 24px;
+	min-width: 0;
+	padding-inline: var(--space-3);
+	/* One size for the whole row: the count, the empty caption and the button beside them
+	   are the same kind of thing, so they read as one line. */
+	font-size: var(--text-sm);
+	border-bottom: 1px solid transparent;
+	border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.page-list--open .page-list__head {
+	border-bottom-color: var(--border);
+}
+
+.page-list__head:hover,
+.page-list__head:focus-within {
+	background: var(--bg-hover);
+}
+
+/* A bare disclosure row — chevron and caption — so the header reads as part of the surface
+   rather than as a button sitting on it. The open state is the chevron's job, never a
+   persistent tint, and the row above owns the highlight the pointer or the keyboard gives
+   it, so the disclosure only strengthens its own text. */
+.page-list__toggle {
 	display: flex;
 	flex: 1 1 auto;
 	align-items: center;
 	gap: var(--space-2);
 	min-width: 0;
-	/* Exactly one chip row tall, so the states and the buttons beside them never shift. */
 	min-height: 24px;
+	padding: 0 var(--space-2);
+	border: 0;
+	background: none;
+	color: var(--fg-muted);
+	text-align: start;
+	cursor: pointer;
 }
 
-.page-list--empty {
-	color: var(--fg-faint);
-	font-size: var(--text-xs);
+.page-list__toggle:hover,
+.page-list__toggle:focus-visible {
+	background: none;
+	color: var(--fg);
 }
 
-.page-list__hint {
+/* The global `:focus-visible` ring is a box, and this control is a row. Keyboard focus is
+   still visible — the row it sits in is tinted by `:focus-within` above — so the ring is
+   dropped rather than drawn as a second surface. */
+.page-list__toggle:focus-visible {
+	outline: none;
+}
+
+.page-list__toggle svg {
+	flex: none;
+}
+
+/* The count and its noun. Tabular figures keep the label still as the number changes. */
+.page-list__caption {
 	min-width: 0;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
-}
-
-/* A ghost button from the shared atom: only the icon/number gap and the open state are
-   ours, so it keeps the 24px height of the add and expand buttons beside it. */
-.page-list__toggle {
-	gap: var(--space-1);
-	padding-inline: var(--space-2);
 	font-variant-numeric: tabular-nums;
 }
 
-.page-list__toggle[aria-expanded='true'] {
-	background: var(--bg-hover);
-	color: var(--fg);
+/* Nothing to open yet: the caption still says how many pages there are, so the row does not
+   change shape when the first one lands — but it is not a control and has no chevron. */
+.page-list__caption--empty {
+	flex: 1 1 auto;
+	padding: 0 var(--space-2);
+	color: var(--fg-faint);
 }
 
-/* The count's page icon pulses while a page is being captured and converted, so a slow
-   page reads as work in progress instead of a control that does nothing. base.css
-   neutralises the animation under prefers-reduced-motion. */
+/* The way to fill the list, at the trailing edge of its own header. `margin-inline-start`
+   keeps it there in the empty state too, where the caption is not a growing button. On the
+   tinted row its own hover steps up one shade, or the two highlights would be the same
+   colour and the button would dissolve into the row. */
+.page-list__add {
+	flex: none;
+	margin-inline-start: auto;
+}
+
+.page-list__add:hover:not(:disabled) {
+	background: var(--bg-active);
+}
+
+/* Capturing a page is work in progress, so the caption pulses — with the count as the only
+   thing there for the reader to watch. base.css neutralises the animation under
+   prefers-reduced-motion. */
 .page-list__capturing {
 	animation: page-capturing 1.6s infinite ease-in-out;
 }
@@ -755,21 +828,19 @@
 	}
 }
 
-/* The expanded list: an `ol` above the composer box. The composer is anchored to the
-   bottom, so this pushes the transcript up and leaves the count and the prompt where they
-   were; the cap makes a very long list scroll instead of swallowing the panel. */
+/* The open list: flat rows between the header and the prompt, inset like the header row so
+   the icons of both bands line up. It draws no border of its own — the band's bottom edge
+   is the only divider — and the cap makes a very long list scroll instead of swallowing the
+   panel. */
 .page-list__panel {
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
-	max-height: 45vh;
+	max-height: min(40vh, 220px);
 	overflow-y: auto;
 	margin: 0;
-	padding: var(--space-2);
+	padding: var(--space-1) var(--space-3);
 	list-style: none;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-lg);
-	background: var(--bg-raised);
 	scrollbar-width: thin;
 }
 
@@ -1034,45 +1105,73 @@
 	cursor: ns-resize;
 }
 
-/* One gutter on all four sides, and the box owns it: the topbar and the toolbar carry no
-   padding of their own, so the buttons above and the chips below sit the same distance
-   from the border. The box is the prompt editor, not a frame around it: empty space
-   anywhere inside the border focuses the textarea (see `focusPrompt` in Composer.tsx), so
-   the cursor says text there and the controls below restore the pointer. */
+/* The composer is **one** surface: the page band on top, the prompt editor under it, a
+   single border and a single rounded rectangle round both. Only the outer edge is drawn —
+   the bands are separated by hairlines inside it, never by borders of their own — so the
+   page list and the prompt read as the two halves of one control, the way a code editor's
+   composer holds its changed-files row above the prompt. That border stays neutral: focus
+   is drawn by the editor band (see `.composer__box::after`), so the page list keeps the
+   composer's default edge exactly as it looks when nothing is focused. */
+.composer__editor {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-lg);
+	background: var(--bg-raised);
+	transition: border-color var(--duration-fast);
+}
+
+.composer__editor--streaming {
+	border-color: var(--accent-soft);
+}
+
+/* The editor band, and the composer's click surface: empty space here focuses the textarea
+   (see `focusPrompt` in Composer.tsx), so the cursor says text and the controls restore the
+   pointer. It draws no border of its own — the surface above owns the only one — and its
+   gutters match the page band's, so the prompt's text and the chevron line up. */
 .composer__box {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-lg);
-	background: var(--bg-raised);
 	padding: var(--space-2);
 	cursor: text;
-	transition: border-color var(--duration-fast);
 }
 
-/* Lives inside the box border so it reads as part of the prompt editor. The page strip
-   takes the left side and scrolls, the add button and the count keep their own space at the
-   start of the row. Start-aligned, so the controls stay on the count row when the chips
-   open below it. */
-.composer__topbar {
-	display: flex;
-	flex: none;
-	align-items: flex-start;
-	gap: var(--space-1);
-	min-height: 24px;
-	min-width: 0;
+/* The focus ring belongs to the prompt, not to the surface: a 1px accent edge drawn on the
+   editor band alone, its top side being the hairline under the page band, its bottom corners
+   following the composer's. The page list above keeps the composer's neutral border, which is
+   what tells the eye that only the prompt is listening. It is an overlay, inset by the one
+   pixel of the surface's border, so it costs no layout and replaces that edge instead of
+   drawing a second line beside it. */
+.composer__box::after {
+	content: '';
+	position: absolute;
+	inset: -1px;
+	border: 1px solid var(--accent);
+	border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity var(--duration-fast);
 }
 
-.composer__topbar > .button {
-	flex: none;
+/* Only the prompt's own focus shows it. A chip, a menu, a page row or the Add page button
+   can be focused inside the composer while a keystroke reaches nothing — a border that says
+   "type here" when typing goes nowhere is worse than no border at all. */
+.composer__box:has(.composer__input:focus)::after {
+	opacity: 1;
 }
 
-/* Sized: the height the user dragged, shared between the box and the textarea. The box
-   fills what the rows above it leave and the textarea scrolls inside it, so a long draft
-   no longer grows the composer past the height on screen — and a sliver of transcript is
-   always left above it (see `composerLimits`). */
+/* Sized: the height the user dragged, shared between the box and the textarea. The page
+   section and the box fill what the rows above them leave and the textarea scrolls inside
+   the box, so a long draft no longer grows the composer past the height on screen — and a
+   sliver of transcript is always left above it (see `composerLimits`). */
 .composer--sized {
+	min-height: 0;
+}
+
+.composer--sized .composer__editor {
+	flex: 1 1 auto;
 	min-height: 0;
 }
 
@@ -1085,14 +1184,6 @@
 	flex: 1 1 auto;
 	max-height: none;
 	overflow-y: auto;
-}
-
-.composer__box:focus-within {
-	border-color: var(--accent);
-}
-
-.composer__box--streaming {
-	border-color: var(--accent-soft);
 }
 
 .composer__input {

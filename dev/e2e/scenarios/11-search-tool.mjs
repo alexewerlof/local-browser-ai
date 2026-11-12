@@ -59,7 +59,7 @@ export async function run(ctx) {
 		// search is the extension doing its job, not a reference: nothing is listed.
 		assert.equal(await page.locator('.page-list__toggle').count(), 0)
 		assert.equal(await page.locator('.page-chip').count(), 0)
-		assert.match(await page.locator('.page-list').textContent(), /Add to chat/i)
+		assert.match(await page.locator('.page-list__caption').textContent(), /0 pages/)
 		// The tool attached it itself, so the card no longer offers to add it again.
 		assert.equal(await page.locator('.tool__action').count(), 0)
 	} finally {

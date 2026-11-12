@@ -15,7 +15,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await waitForPageCount(page, 1)
-		assert.equal(await page.locator('.page-list__toggle').textContent(), '1')
+		assert.equal(await page.locator('.page-list__count').textContent(), '1')
 
 		// The second page arrives from another tab, while the panel is open.
 		await page.evaluate(

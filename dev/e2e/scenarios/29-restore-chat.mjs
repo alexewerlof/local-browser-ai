@@ -39,8 +39,8 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.message--user').count(), 1)
 		assert.equal(await page.locator('.message--assistant').count(), 1)
 
-		// Same pages: the strip comes back collapsed, with one still waiting for a turn.
-		assert.equal(await page.locator('.page-list__toggle').textContent(), '2')
+		// Same pages: the list comes back collapsed, with one still waiting for a turn.
+		assert.equal(await page.locator('.page-list__count').textContent(), '2')
 		assert.equal(await page.locator('.page-chip').count(), 0)
 		// Restoring reads the store; nothing is being converted, so nothing animates.
 		assert.equal(await page.locator('.page-list__capturing').count(), 0)

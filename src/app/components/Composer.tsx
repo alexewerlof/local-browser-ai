@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp, BookMarked, ListOrdered, Play, Plus, Square, Trash2, TriangleAlert } from 'lucide-react'
+import { ArrowUp, BookMarked, ListOrdered, Play, Square, Trash2, TriangleAlert } from 'lucide-react'
 import type {
 	AppSettings,
 	Conversation,
@@ -21,13 +21,14 @@ import {
 	DRAG_THRESHOLD,
 	RESIZE_STEP,
 	clampComposerHeight,
+	composerHeightForChrome,
 	composerHeightFromDrag,
 	composerLimits,
 	isResetGesture,
 	type ComposerLimits,
 } from '../composer-size'
 import { ContextMeter } from './ContextMeter'
-import { PageList, PageListToggle } from './PageList'
+import { PageList } from './PageList'
 import { PromptTemplateMenu, ToolsMenu } from './ComposerMenus'
 import { ModelPicker } from './ModelPicker'
 import { ThinkingMenu } from './ThinkingMenu'
@@ -35,8 +36,10 @@ import { useStore } from '../useStore'
 import type { TabInfo } from '../../browser/protocol'
 
 /**
- * The controls inside the box that own their click. Everything else within the border is
- * prompt chrome, so clicking it hands focus to the textarea (see `focusPrompt`).
+ * The controls that own their click. Everything else is prompt chrome, so clicking it hands
+ * focus to the textarea (see `focusPrompt`). The page header is a separate band of the
+ * composer rather than prompt chrome, but it is not inside this element at all, so the
+ * guard only has to name the controls that are.
  */
 const BOX_CONTROL_SELECTOR =
 	'button, a, input, select, textarea, [contenteditable="true"], [role="button"], .popover, .slash'
@@ -110,9 +113,16 @@ export function Composer({
 	/** When the last drag-free click on the line ended, for the double-click reset. */
 	const lastClickRef = useRef(0)
 	/**
-	 * The page list opens above the box, so it costs the transcript room, never the prompt.
-	 * It also opens by itself when a page joins the chat (see below); like the dragged height
-	 * it is in-memory, so a reopened panel starts with it closed.
+	 * The height of everything above the prompt at the last fit (the page band, the queue,
+	 * the error line), so a change there can be given to the transcript instead of the
+	 * prompt. `null` until the first measurement of a sized composer.
+	 */
+	const chromeRef = useRef<number | null>(null)
+	/**
+	 * The page list opens between the composer's top edge and the box, so it costs the
+	 * transcript room, never the prompt. It also opens by itself when a page joins the chat
+	 * (see below); like the dragged height it is in-memory, so a reopened panel starts with
+	 * it closed.
 	 */
 	const [pagesOpen, setPagesOpen] = useState(false)
 
@@ -149,36 +159,58 @@ export function Composer({
 	 * textarea's share of it (every other row keeps its own), and the room above. Measured,
 	 * never guessed — the page list and the queue change how tall the chrome is.
 	 */
-	const measureLimits = (): ({ height: number } & ComposerLimits) | null => {
+	const measureLimits = (): ({ height: number; transcriptHeight: number } & ComposerLimits) | null => {
 		const composer = composerRef.current
 		const textarea = textareaRef.current
 		if (!composer || !textarea) return null
 		const height = composer.getBoundingClientRect().height
+		// The composer does not own the transcript, so it is looked up once per gesture.
+		const transcriptHeight = document.querySelector('.transcript')?.getBoundingClientRect().height ?? 0
 		return {
 			height,
+			transcriptHeight,
 			...composerLimits({
 				height,
 				promptHeight: textarea.clientHeight,
 				promptFloor: Number.parseFloat(getComputedStyle(textarea).minHeight) || 0,
-				// The composer does not own the transcript, so it is looked up once per gesture.
-				transcriptHeight: document.querySelector('.transcript')?.getBoundingClientRect().height ?? 0,
+				transcriptHeight,
 			}),
 		}
 	}
 
 	/**
-	 * A row that arrives above the prompt — a queued item, the page list, an error line —
-	 * takes its room from the textarea, so a sized composer is pulled back inside the panel
-	 * when one appears or the window changes. The updater form keeps `height` out of the
-	 * dependency list, so this never re-runs for the height it may change.
+	 * A row that arrives above the prompt — the page list opening, a queued item, an error
+	 * line — is paid for by the transcript, never by the prompt: the composer grows upward
+	 * by exactly what the row added and gives it back when the row goes, so the height the
+	 * user dragged is the height of the prompt. Without this the rows above would eat the
+	 * editor, and a composer at its floor would lose the prompt entirely.
+	 *
+	 * A fit caused by the window (no change in the chrome) still pulls the composer back
+	 * inside the panel. `chromeRef` is the rows above the prompt at the last fit, and the
+	 * updater form keeps `height` out of the dependency list, so this never re-runs for the
+	 * height it may change.
 	 */
 	useEffect(() => {
 		if (!sized) return
 		const fit = () => {
 			const measured = measureLimits()
 			if (!measured) return
+			const composer = composerRef.current
+			const box = composer?.querySelector('.composer__box')
+			const chrome =
+				composer && box ? composer.getBoundingClientRect().height - box.getBoundingClientRect().height : 0
+			const delta = chromeRef.current === null ? 0 : chrome - chromeRef.current
+			chromeRef.current = chrome
 			setLimits({ min: measured.min, max: measured.max })
-			setHeight((current) => (current === null ? null : clampComposerHeight(current, measured)))
+			setHeight((current) => {
+				if (current === null) return null
+				if (delta !== 0) {
+					// The panel's own limit: the transcript may go to nothing, never negative.
+					const panel = measured.height + measured.transcriptHeight
+					return composerHeightForChrome(current, delta, measured.min, panel)
+				}
+				return clampComposerHeight(current, measured)
+			})
 		}
 		fit()
 		window.addEventListener('resize', fit)
@@ -278,6 +310,11 @@ export function Composer({
 		onSubmit(text, activeTemplate ?? undefined)
 		clearComposer()
 		setSlashOpen(false)
+		// The click may have come from the Submit button (or a queued prompt's return), and
+		// the prompt is where the next keystroke belongs. It is also what keeps the focus
+		// ring honest: it is drawn for the prompt's focus, so the composer is ready to type
+		// in exactly when it looks ready.
+		textareaRef.current?.focus()
 	}
 
 	/**
@@ -313,11 +350,13 @@ export function Composer({
 	}
 
 	/**
-	 * The border is the prompt editor, so a click on its own chrome — the space beside the
-	 * topbar buttons, the gap after the last chip — focuses the textarea. Clicking a
+	 * The editor band is the prompt's click surface, so a click on its own chrome — the space
+	 * beside the toolbar chips, the gap after the last one — focuses the textarea. Clicking a
 	 * non-focusable element would otherwise drop the caret to <body>, which is why only the
 	 * text itself used to work. A control keeps its own click; the popover and the slash
-	 * menu are excluded because their padding is menu surface, not prompt chrome.
+	 * menu are excluded because their padding is menu surface, not prompt chrome. The page
+	 * band sits above this element inside the same border, so none of its clicks reach this
+	 * handler: the composer is one surface but two interactive areas.
 	 */
 	const focusPrompt = (event: React.MouseEvent<HTMLDivElement>) => {
 		if (event.button !== 0 || event.defaultPrevented) return
@@ -418,140 +457,137 @@ export function Composer({
 				</div>
 			)}
 
-			{pagesOpen && pages.length > 0 && <PageList pages={pages} onOpen={onOpenPage} onRemove={onRemovePage} />}
-
-			<div className={`composer__box${streaming ? ' composer__box--streaming' : ''}`} onMouseDown={focusPrompt}>
-				<div className="composer__topbar">
-					<button
-						type="button"
-						className="button button--ghost button--icon button--sm composer__add-page"
-						onClick={onAddCurrentPage}
-						disabled={!activeTab || addPageBusy}
-						title={
-							activeTab
-								? `Add “${activeTab.title}” to this chat`
-								: 'Add the page you are reading to this chat'
-						}
-						aria-label="Add current page to chat"
-					>
-						<Plus size={14} />
-					</button>
-					<PageListToggle
-						pages={pages}
-						busy={addPageBusy}
-						open={pagesOpen}
-						onToggle={() => setPagesOpen((value) => !value)}
-					/>
-				</div>
-
-				{slashOpen && (
-					<div className="slash">
-						{slashMatches.map((template) => (
-							<button
-								key={template.id}
-								type="button"
-								className="slash__item"
-								onMouseDown={(event) => event.preventDefault()}
-								onClick={() => applyTemplate(template.id)}
-							>
-								<BookMarked size={12} />
-								<span>{template.name}</span>
-								{template.description && <span className="faint">{template.description}</span>}
-							</button>
-						))}
-					</div>
-				)}
-
-				<textarea
-					ref={textareaRef}
-					id="composer-input"
-					className="composer__input"
-					placeholder={
-						busy
-							? 'Queue another message…'
-							: hasPages
-								? 'Ask about these pages…'
-								: 'Ask anything, or type / for a template'
+			{/* One surface, two bands: the page header and the list it opens, then the prompt
+			    editor. Only the outer border is drawn, and only it lights up with focus. */}
+			<div className={`composer__editor${streaming ? ' composer__editor--streaming' : ''}`}>
+				<PageList
+					pages={pages}
+					busy={addPageBusy}
+					open={pagesOpen}
+					addDisabled={!activeTab || addPageBusy}
+					addTitle={
+						activeTab
+							? `Add “${activeTab.title}” to this chat`
+							: 'Add the page you are reading to this chat'
 					}
-					value={draft}
-					rows={1}
-					onChange={(event) => {
-						setDraft(event.target.value)
-						if (!event.target.value.trim()) promptTemplateStore.set(null)
-					}}
-					onKeyDown={handleKeyDown}
-					aria-label="Message"
+					onToggle={() => setPagesOpen((value) => !value)}
+					onAdd={onAddCurrentPage}
+					onOpen={onOpenPage}
+					onRemove={onRemovePage}
 				/>
 
-				<div className="composer__toolbar">
-					<PromptTemplateMenu
-						templates={settings.promptTemplates}
-						onSelect={(template) => {
-							promptTemplateStore.set(template.id)
-							setDraft(template.prompt)
-							textareaRef.current?.focus()
+				<div className="composer__box" onMouseDown={focusPrompt}>
+					{slashOpen && (
+						<div className="slash">
+							{slashMatches.map((template) => (
+								<button
+									key={template.id}
+									type="button"
+									className="slash__item"
+									onMouseDown={(event) => event.preventDefault()}
+									onClick={() => applyTemplate(template.id)}
+								>
+									<BookMarked size={12} />
+									<span>{template.name}</span>
+									{template.description && <span className="faint">{template.description}</span>}
+								</button>
+							))}
+						</div>
+					)}
+
+					<textarea
+						ref={textareaRef}
+						id="composer-input"
+						className="composer__input"
+						placeholder={
+							busy
+								? 'Queue another message…'
+								: hasPages
+									? 'Ask about these pages…'
+									: 'Ask anything, or type / for a template'
+						}
+						value={draft}
+						rows={1}
+						onChange={(event) => {
+							setDraft(event.target.value)
+							if (!event.target.value.trim()) promptTemplateStore.set(null)
 						}}
+						onKeyDown={handleKeyDown}
+						aria-label="Message"
 					/>
 
-					<ToolsMenu
-						settings={settings}
-						onChange={(tools) => updateSettings((current) => ({ ...current, tools }))}
-					/>
-
-					<ModelPicker
-						settings={settings}
-						current={modelRef}
-						onSelect={onModelChange}
-						onDefaultChange={(ref) => updateSettings((settings) => ({ ...settings, defaultModel: ref }))}
-					/>
-
-					{info && provider && modelRef && (
-						<ThinkingMenu
-							info={info}
-							value={thinkingForModel(provider, modelRef.modelId)}
-							onChange={setThinking}
+					<div className="composer__toolbar">
+						<PromptTemplateMenu
+							templates={settings.promptTemplates}
+							onSelect={(template) => {
+								promptTemplateStore.set(template.id)
+								setDraft(template.prompt)
+								textareaRef.current?.focus()
+							}}
 						/>
-					)}
 
-					<span className="spacer" />
+						<ToolsMenu
+							settings={settings}
+							onChange={(tools) => updateSettings((current) => ({ ...current, tools }))}
+						/>
 
-					{streaming && (
-						<button
-							type="button"
-							className="button button--icon button--sm"
-							onClick={onStop}
-							title="Stop generating"
-							aria-label="Stop generating"
-						>
-							<Square size={13} />
-						</button>
-					)}
+						<ModelPicker
+							settings={settings}
+							current={modelRef}
+							onSelect={onModelChange}
+							onDefaultChange={(ref) =>
+								updateSettings((settings) => ({ ...settings, defaultModel: ref }))
+							}
+						/>
 
-					{/* Stop parks the queue; this is how the user restarts it. */}
-					{queuePaused && queue.length > 0 && !busy && (
-						<button
-							type="button"
-							className="button button--icon button--sm"
-							onClick={onContinue}
-							title="Continue queued prompts"
-							aria-label="Continue"
-						>
-							<Play size={13} />
-						</button>
-					)}
+						{info && provider && modelRef && (
+							<ThinkingMenu
+								info={info}
+								value={thinkingForModel(provider, modelRef.modelId)}
+								onChange={setThinking}
+							/>
+						)}
 
-					{/* Rendered once there is something to send: it sends when idle and queues while the agent works. */}
-					{draft.trim() !== '' && (
-						<button
-							type="button"
-							className="button button--primary button--icon button--sm composer__submit"
-							onClick={submit}
-							title={busy ? 'Queue prompt' : 'Submit'}
-							aria-label="Submit"
-						>
-							<ArrowUp size={14} />
-						</button>
-					)}
+						<span className="spacer" />
+
+						{streaming && (
+							<button
+								type="button"
+								className="button button--icon button--sm"
+								onClick={onStop}
+								title="Stop generating"
+								aria-label="Stop generating"
+							>
+								<Square size={13} />
+							</button>
+						)}
+
+						{/* Stop parks the queue; this is how the user restarts it. */}
+						{queuePaused && queue.length > 0 && !busy && (
+							<button
+								type="button"
+								className="button button--icon button--sm"
+								onClick={onContinue}
+								title="Continue queued prompts"
+								aria-label="Continue"
+							>
+								<Play size={13} />
+							</button>
+						)}
+
+						{/* Rendered once there is something to send: it sends when idle and queues while the agent works. */}
+						{draft.trim() !== '' && (
+							<button
+								type="button"
+								className="button button--primary button--icon button--sm composer__submit"
+								onClick={submit}
+								title={busy ? 'Queue prompt' : 'Submit'}
+								aria-label="Submit"
+							>
+								<ArrowUp size={14} />
+							</button>
+						)}
+					</div>
 				</div>
 			</div>
 

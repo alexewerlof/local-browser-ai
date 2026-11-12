@@ -166,23 +166,37 @@ the block's cost per page shape; run it before changing the layout.
 Page adds are serialized through one chain in `bootstrap.ts` (`queuePageAdd`): `addPage` returns early while a capture
 is running, and the boot drain, the context-menu nudge and an omnibox prompt can all ask for one in the same tick.
 
-**The list above the prompt is the user's references, not a tool's working set.** `PageListToggle` shows a page icon and
-the count from the first page on — one control for any number of pages — and opens `PageList`, a stacked `ol` rendered
-above `.composer__box`, so the list grows upwards and never squeezes the prompt. **An add opens that list**, because a
-changing count is too quiet a signal and the new row is one click from `removePage`; `lastPageAddedStore` carries that
-signal and only `appendPage` sets it, so a restored chat still starts with the list closed. A row is dimmed and carries
-a trash can until a turn claims the page (`messageId`), because only then is its block in a request. **Every row carries
-its capture stamp after the title** (`stampTime` over `capturedAt`, which `pipeline.ts` sets when the page is scraped):
-the clock time to the second always, and the calendar date only once the capture is on another day — two captures of one
-document differ only by that stamp, so it is what tells a version from its predecessor. **Nothing in it is relative**
-("2 minutes ago" goes stale in a list left open), and it is a `<time>` whose `dateTime` is the ISO instant and whose
-`title` is `stampTooltip`, the same moment spelled out in the user's locale. Both come from `Intl`; never add a date
-library. Handles count up from the highest live one, so a removed `p1` is never handed to the next capture. A page
-`search_web` captured is born with `source: 'search'` — the tool passes it to `attachTab`, which carries it through the
-grant into `freezePage` — and is filtered out of the list _and_ of the transcript cards (`isPageReference`, applied once
-in `App.tsx`): the search is the extension doing its job, not a reference the user chose, while the model still reads
-that page like any other. Keep the list out of `pagesStore`'s reach — it is a view over the chat's pages, never a second
-copy.
+**The page section is the composer's top band, and the composer is one surface.** `PageList` renders one row — a
+chevron, a count caption and **Add page** — and, under it, a flat `ol` of the chat's references. The band and the prompt
+editor are two parts of **one** bordered, rounded rectangle (`.composer__editor`): the band carries a hairline under it
+instead of a border of its own, the editor draws no border at all, and **the focus ring is drawn on the editor band
+alone** (`.composer__box::after`, keyed to `.composer__input:focus`): the page band keeps the composer's neutral edge,
+so the eye is told which band is listening. The ring appears for the prompt's own focus and nothing else — a chip, a
+menu or a page row can hold focus while a keystroke reaches nothing, and a border that says "type here" when typing goes
+nowhere is worse than no border; that is why `submit` hands the caret back to the textarea after a send. The page list
+and the prompt therefore read as one control, while staying two interactive areas: a click on the header or a row is
+never a click in the prompt, and `focusPrompt` never sees it. **The caption is the count, never an icon** (`1 page`,
+`2 pages`), with the number in its own `.page-list__count`; with no pages it is a static `0 pages` and the chevron
+disappears, because there is nothing to open, while **Add page** stays so the control that fills the list has one home.
+The chevron points right when closed and down when open, and the open state is the chevron's job — never a persistent
+tint. **The row highlights as a row, never as a box**: hover and keyboard focus tint the full-width `.page-list__head`,
+and the disclosure itself draws no outline at all. The global `:focus-visible` ring hugs whatever is focused — here the
+left half of the row — and, floating a couple of pixels above the prompt, it read as a second, separate composer;
+`35-page-list` is that promise as a test. **An add opens the list**, because a changing count is too quiet a signal and
+the new row is one click from `removePage`; `lastPageAddedStore` carries that signal and only `appendPage` sets it, so a
+restored chat still starts with the list closed. The caption pulses while a page is being captured (`addPageBusy`),
+which is the only progress signal a slow first page has. A row is dimmed and carries a trash can until a turn claims the
+page (`messageId`), because only then is its block in a request. **Every row carries its capture stamp after the title**
+(`stampTime` over `capturedAt`, which `pipeline.ts` sets when the page is scraped): the clock time to the second always,
+and the calendar date only once the capture is on another day — two captures of one document differ only by that stamp,
+so it is what tells a version from its predecessor. **Nothing in it is relative** ("2 minutes ago" goes stale in a list
+left open), and it is a `<time>` whose `dateTime` is the ISO instant and whose `title` is `stampTooltip`, the same
+moment spelled out in the user's locale. Both come from `Intl`; never add a date library. Handles count up from the
+highest live one, so a removed `p1` is never handed to the next capture. A page `search_web` captured is born with
+`source: 'search'` — the tool passes it to `attachTab`, which carries it through the grant into `freezePage` — and is
+filtered out of the list _and_ of the transcript cards (`isPageReference`, applied once in `App.tsx`): the search is the
+extension doing its job, not a reference the user chose, while the model still reads that page like any other. Keep the
+list out of `pagesStore`'s reach — it is a view over the chat's pages, never a second copy.
 
 ## Omnibox
 
@@ -505,10 +519,20 @@ it is the only `archiver` caller and `scripts/` is not typechecked.
   and the textarea scrolls inside it instead of growing, which is how a long prompt gets room. The floor leaves the
   textarea at one line with the queue, the page list and the toolbar at their natural height; the ceiling keeps `96px`
   of transcript on screen; a double-click returns to the natural 40–240px auto-grow. The maths is
-  `composerHeightFromDrag` / `composerLimits` / `clampComposerHeight` in `src/app/composer-size.ts` and the limits are
-  measured, not hard-coded. The height is in-memory only — never a settings field — because a reopened panel should not
-  open half full of prompt.
-- The composer has a top bar inside the box border (`.composer__topbar`) holding the add-page button and the page count.
+  `composerHeightFromDrag` / `composerLimits` / `clampComposerHeight` / `composerHeightForChrome` in
+  `src/app/composer-size.ts` and the limits are measured, not hard-coded. **A row that appears above the prompt is paid
+  for by the transcript, never by the prompt**: `fit` in `Composer.tsx` measures the chrome (everything in the composer
+  but the editor band) and moves the composer by exactly its change, so opening the page list on a dragged composer
+  grows it upward into the chat and leaves the textarea the same height. The growth may pass the `96px` transcript
+  sliver — a list the user just opened outranks the conversation — but never the prompt's own minimum and never the
+  panel (`23-composer-resize` is both promises as a test). The height is in-memory only — never a settings field —
+  because a reopened panel should not open half full of prompt.
+- The composer is **one surface** with two bands (`.composer__editor`): the page band on top and the prompt editor under
+  it share the single border and radius, the band's bottom edge is the hairline between them, and `.composer__box` — the
+  click surface that focuses the textarea — draws no border of its own. Its focus ring is an overlay on that band
+  (`.composer__box::after`, shown by `:has(.composer__input:focus)`), so it surrounds the prompt alone and the page band
+  keeps the composer's neutral edge. `submit` returns the caret to the textarea, so the ring is on exactly when a
+  keystroke would land.
 - Errors are `AppError` with a machine-readable kind (`src/providers/errors.ts`); never surface raw provider text only.
 - Persist before you publish: the prompt queue writes to IndexedDB first and only then updates `queueStore`, so a row on
   screen is always durable. `startTurn` writes the conversation immediately for the same reason — a reload mid-stream

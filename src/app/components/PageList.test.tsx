@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import type { PageSnapshot } from '../../core/types'
-import { PageList, PageListToggle } from './PageList'
+import { PageList } from './PageList'
 
 afterEach(cleanup)
 
@@ -24,65 +24,102 @@ function page(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
 	}
 }
 
-function renderToggle(pages: PageSnapshot[], { busy = false, open = false } = {}) {
-	const onToggle = vi.fn()
-	const view = render(<PageListToggle pages={pages} busy={busy} open={open} onToggle={onToggle} />)
-	return { ...view, onToggle }
+type PageListProps = Parameters<typeof PageList>[0]
+
+/** Render the header section with the wiring a chat gives it; a test overrides what it watches. */
+function renderList(pages: PageSnapshot[], overrides: Partial<PageListProps> = {}) {
+	const props: PageListProps = {
+		pages,
+		busy: false,
+		open: true,
+		addDisabled: false,
+		addTitle: 'Add “Example Pricing” to this chat',
+		onToggle: vi.fn(),
+		onAdd: vi.fn(),
+		onOpen: vi.fn(),
+		onRemove: vi.fn(),
+		...overrides,
+	}
+	return { ...render(<PageList {...props} />), props }
 }
 
 const desk = page({ id: 'page-2', handle: 'p2', title: 'Standing desk', url: 'https://garden.example/desk' })
 
-describe('PageListToggle', () => {
-	it('says how to add a page when the chat has none', () => {
-		const { container } = renderToggle([])
-		expect(container.querySelector('.page-list--empty')?.textContent).toMatch(/Add to chat/)
-		expect(container.querySelector('.page-chip')).toBeNull()
+describe('PageList header', () => {
+	it('names the count and keeps the add when the chat has no pages', () => {
+		const { container, props } = renderList([])
+
+		expect(container.querySelector('.page-list__caption')?.textContent).toBe('0 pages')
+		// Nothing to open, so there is no chevron and no list: only the way to add one.
+		expect(container.querySelector('.page-list__toggle')).toBeNull()
+		expect(container.querySelector('.page-list__panel')).toBeNull()
+
+		const add = container.querySelector<HTMLButtonElement>('.page-list__add')
+		expect(add?.textContent).toBe('Add page')
+		expect(add?.title).toBe(props.addTitle)
+		expect(add?.getAttribute('aria-label')).toBe('Add page to chat')
+		if (add) fireEvent.click(add)
+		expect(props.onAdd).toHaveBeenCalledTimes(1)
 	})
 
-	it('counts a single page too, so every chat looks the same', () => {
-		const { container } = renderToggle([page()])
-		expect(container.querySelectorAll('.page-chip')).toHaveLength(0)
+	it('counts a single page in the header, not as a bare number', () => {
+		const { container } = renderList([page()], { open: false })
 		const toggle = container.querySelector<HTMLButtonElement>('.page-list__toggle')
-		expect(toggle?.textContent).toBe('1')
-		expect(toggle?.querySelector('svg')).not.toBeNull()
+		expect(toggle?.querySelector('.page-list__count')?.textContent).toBe('1')
+		expect(toggle?.querySelector('.page-list__label')?.textContent).toBe('page')
 		expect(toggle?.getAttribute('aria-label')).toBe('1 page in this chat')
 	})
 
-	it('counts several pages behind a page icon', () => {
-		const { container, onToggle } = renderToggle([page(), desk])
+	it('points the chevron at the list only while it is open', () => {
+		const closed = renderList([page(), desk], { open: false })
+		const closedToggle = closed.container.querySelector<HTMLButtonElement>('.page-list__toggle')
+		expect(closedToggle?.querySelector('.lucide-chevron-right')).not.toBeNull()
+		expect(closedToggle?.querySelector('.lucide-chevron-down')).toBeNull()
+		expect(closedToggle?.getAttribute('aria-expanded')).toBe('false')
+		expect(closedToggle?.getAttribute('aria-controls')).toBeNull()
+		expect(closedToggle?.title).toBe('Show pages')
+		cleanup()
 
-		expect(container.querySelectorAll('.page-chip')).toHaveLength(0)
+		const open = renderList([page(), desk], { open: true })
+		const openToggle = open.container.querySelector<HTMLButtonElement>('.page-list__toggle')
+		expect(openToggle?.querySelector('.lucide-chevron-down')).not.toBeNull()
+		expect(openToggle?.querySelector('.lucide-chevron-right')).toBeNull()
+		expect(openToggle?.getAttribute('aria-expanded')).toBe('true')
+		expect(openToggle?.getAttribute('aria-controls')).toBe('page-list-pages')
+		expect(openToggle?.title).toBe('Hide pages')
+	})
+
+	it('opens and closes on its own click', () => {
+		const onToggle = vi.fn()
+		const { container } = renderList([page(), desk], { onToggle })
 		const toggle = container.querySelector<HTMLButtonElement>('.page-list__toggle')
-		expect(toggle?.textContent).toBe('2')
-		expect(toggle?.querySelector('svg')).not.toBeNull()
-		expect(toggle?.getAttribute('aria-expanded')).toBe('false')
-		expect(toggle?.getAttribute('aria-controls')).toBeNull()
-		expect(toggle?.title).toBe('Show pages')
-		// Waiting for a turn is not work in progress, so the icon sits still.
-		expect(container.querySelector('.page-list__capturing')).toBeNull()
-
 		if (toggle) fireEvent.click(toggle)
 		expect(onToggle).toHaveBeenCalledTimes(1)
 	})
 
-	it('reports an open list instead of toggling itself', () => {
-		const { container } = renderToggle([page(), desk], { open: true })
-		const toggle = container.querySelector<HTMLButtonElement>('.page-list__toggle')
-		expect(toggle?.getAttribute('aria-expanded')).toBe('true')
-		expect(toggle?.getAttribute('aria-controls')).toBe('page-list-pages')
-		expect(toggle?.title).toBe('Hide pages')
+	it('disables the add only when there is nothing it could capture', () => {
+		const ready = renderList([page(), desk])
+		expect(ready.container.querySelector<HTMLButtonElement>('.page-list__add')?.disabled).toBe(false)
+		cleanup()
+
+		// No readable tab, or a capture already running: the button says so instead of
+		// promising an add it cannot make.
+		const blocked = renderList([], { addDisabled: true })
+		expect(blocked.container.querySelector<HTMLButtonElement>('.page-list__add')?.disabled).toBe(true)
 	})
 
-	it('pulses only while a page is being captured', () => {
+	it('pulses the caption only while a page is being captured', () => {
 		const sent = page({ messageId: 'msg-1' })
 
-		const capturing = renderToggle([sent, page({ id: 'page-2', handle: 'p2' })], { busy: true })
-		expect(capturing.container.querySelector('.page-list__capturing')).not.toBeNull()
+		const capturing = renderList([sent, page({ id: 'page-2', handle: 'p2' })], { busy: true })
+		// The count is the only thing in the header to watch, so the caption is what pulses.
+		const pulse = capturing.container.querySelector('.page-list__toggle .page-list__capturing')
+		expect(pulse?.textContent).toBe('2 pages')
 
 		cleanup()
 
 		// Both pages are waiting for a turn, but nothing is being converted.
-		const idle = renderToggle([sent, page({ id: 'page-3', handle: 'p2' })])
+		const idle = renderList([sent, page({ id: 'page-3', handle: 'p2' })])
 		expect(idle.container.querySelector('.page-list__capturing')).toBeNull()
 		// The count still tells the whole story for a screen reader.
 		expect(idle.container.querySelector('.page-list__toggle')?.getAttribute('aria-label')).toBe(
@@ -90,9 +127,9 @@ describe('PageListToggle', () => {
 		)
 	})
 
-	it('shows the busy wording while the first page is being captured', () => {
-		const { container } = renderToggle([], { busy: true })
-		expect(container.querySelector('.page-list--empty')?.textContent).toMatch(/Adding the page/)
+	it('shows the busy wording before the first page arrives', () => {
+		const { container } = renderList([], { busy: true })
+		expect(container.querySelector('.page-list__caption--empty')?.textContent).toBe('Adding the page…')
 	})
 })
 
@@ -101,7 +138,7 @@ describe('PageList', () => {
 		const now = Date.now()
 		const today = page({ id: 'page-a', handle: 'p1', capturedAt: now })
 		const earlier = page({ id: 'page-b', handle: 'p2', capturedAt: now - 3 * 24 * 60 * 60 * 1000 })
-		const { container } = render(<PageList pages={[today, earlier]} onOpen={vi.fn()} onRemove={vi.fn()} />)
+		const { container } = renderList([today, earlier])
 
 		const rows = container.querySelectorAll<HTMLButtonElement>('.page-chip--list')
 		const stamps = Array.from(container.querySelectorAll('.page-chip__stamp')).map((node) => node.textContent)
@@ -118,13 +155,9 @@ describe('PageList', () => {
 
 	it('puts the stamp after the icon and title, and spells the instant out in the tooltip', () => {
 		const capturedAt = Date.now() - 2 * 60 * 60 * 1000
-		const { container } = render(
-			<PageList
-				pages={[page({ messageId: 'msg-1', capturedAt, faviconUrl: 'https://example.com/favicon.ico' })]}
-				onOpen={vi.fn()}
-				onRemove={vi.fn()}
-			/>,
-		)
+		const { container } = renderList([
+			page({ messageId: 'msg-1', capturedAt, faviconUrl: 'https://example.com/favicon.ico' }),
+		])
 
 		const row = container.querySelector<HTMLButtonElement>('.page-chip--list')
 		const order = Array.from(row?.children ?? []).map((node) => node.className || node.tagName.toLowerCase())
@@ -142,9 +175,7 @@ describe('PageList', () => {
 	})
 
 	it('lists every page as a row with its host', () => {
-		const { container } = render(
-			<PageList pages={[page({ messageId: 'msg-1' }), desk]} onOpen={vi.fn()} onRemove={vi.fn()} />,
-		)
+		const { container } = renderList([page({ messageId: 'msg-1' }), desk])
 
 		expect(container.querySelectorAll('.page-list__panel > li')).toHaveLength(2)
 		expect(container.querySelectorAll('.page-chip--list')).toHaveLength(2)
@@ -159,11 +190,15 @@ describe('PageList', () => {
 		expect(container.querySelector('.page-list__panel')?.id).toBe('page-list-pages')
 	})
 
+	it('holds no rows while the list is closed', () => {
+		const { container } = renderList([page({ messageId: 'msg-1' }), desk], { open: false })
+		expect(container.querySelectorAll('.page-chip')).toHaveLength(0)
+		expect(container.querySelector('.page-list__panel')).toBeNull()
+	})
+
 	it('brings the page of a row back', () => {
 		const onOpen = vi.fn()
-		const { container } = render(
-			<PageList pages={[page({ messageId: 'msg-1' }), desk]} onOpen={onOpen} onRemove={vi.fn()} />,
-		)
+		const { container } = renderList([page({ messageId: 'msg-1' }), desk], { onOpen })
 		const row = container.querySelectorAll<HTMLButtonElement>('.page-chip')[1]
 		if (row) fireEvent.click(row)
 		expect(onOpen).toHaveBeenCalledWith(desk)
@@ -171,7 +206,7 @@ describe('PageList', () => {
 
 	it('offers a trash can only while a page has not reached a turn', () => {
 		const sent = page({ messageId: 'msg-1' })
-		const { container } = render(<PageList pages={[sent, desk]} onOpen={vi.fn()} onRemove={vi.fn()} />)
+		const { container } = renderList([sent, desk])
 
 		expect(container.querySelectorAll('.page-list__item--pending')).toHaveLength(1)
 		expect(container.querySelectorAll('.page-list__remove')).toHaveLength(1)
@@ -181,7 +216,7 @@ describe('PageList', () => {
 
 	it('removes the page the trash can belongs to', () => {
 		const onRemove = vi.fn()
-		const { container } = render(<PageList pages={[desk]} onOpen={vi.fn()} onRemove={onRemove} />)
+		const { container } = renderList([desk], { onRemove })
 		const remove = container.querySelector<HTMLButtonElement>('.page-list__remove')
 		expect(remove?.getAttribute('aria-label')).toBe('Remove Standing desk from this chat')
 		if (remove) fireEvent.click(remove)

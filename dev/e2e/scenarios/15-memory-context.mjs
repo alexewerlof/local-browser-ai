@@ -58,7 +58,7 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill('Tell me about my Rust parser')
 		await page.locator('button[aria-label="Submit"]').click()
 		await waitForRequests(server, 1)
-		await page.waitForFunction(() => !document.querySelector('.composer__box--streaming'))
+		await page.waitForFunction(() => !document.querySelector('.composer__editor--streaming'))
 
 		const first = server.requests[0].messages[0].content
 		assert.match(first, /## Memory/)
@@ -74,7 +74,7 @@ export async function run(ctx) {
 		await page.locator('.composer__input').fill("What's the weather like today?")
 		await page.locator('button[aria-label="Submit"]').click()
 		await waitForRequests(server, 2)
-		await page.waitForFunction(() => !document.querySelector('.composer__box--streaming'))
+		await page.waitForFunction(() => !document.querySelector('.composer__editor--streaming'))
 
 		const second = server.requests[1].messages[0].content
 		assert.match(second, /Prefers concise answers/)

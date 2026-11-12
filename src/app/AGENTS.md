@@ -13,35 +13,53 @@ Local rules:
   suffixes except `Header`, `Transcript`, `HistoryPanel`.
 - Classes are BEM-ish with a block per component: `.composer__toolbar`, `.tool__head`, `.meter__segment`. Shared atoms
   are bare blocks: `.chip`, `.badge`, `.popover`, `.field`, `.button`, `.checkbox`.
-- `.composer__topbar` is not the panel `header`; it is the strip inside the composer box holding the page list. The bar
-  itself stays one line: `PageListToggle` shows the hint, or — from the first page on — a page icon and count. That
-  count opens `PageList`: a stacked `ol` above the box, so the list grows upwards and never squeezes the prompt. An add
-  opens it by itself (`lastPageAddedStore`); a row is dimmed with a trash can until a turn carries its page. The count's
-  icon pulses while `addPageBusy` is on (capture and markdown conversion, under a second) and never for a page that is
-  merely waiting for a turn.
+- `.page-list` is the composer's top band, not a card above it and not prompt chrome: one row — `ChevronRight` closed /
+  `ChevronDown` open at 13px, a `.page-list__count` caption (`1 page`, `2 pages`) and **Add page** at the trailing edge
+  — with the flat `ol` under it. With no pages the caption is a static `0 pages` and there is no chevron, because there
+  is nothing to open; `Add page` stays, so the control that fills the list has one home. **The composer is one
+  surface**: `.composer__editor` owns the only border and radius, the band separates from the prompt with a hairline
+  (`.page-list` `border-bottom`, plus one under the header while the list is open), and `.composer__box` draws no border
+  at all — so the page list and the prompt read as the two bands of one control while staying two interactive areas: a
+  click on the header or a row is never a click in the prompt. **The focus ring is the prompt's, not the surface's**:
+  `.composer__box::after` draws a 1px accent edge over the editor band alone — its top side is the hairline under the
+  band — and `:has(.composer__input:focus)` shows it only for the prompt's own focus, which is why `submit` hands the
+  caret back to the textarea. A chip, a menu or a page row can hold focus while a keystroke reaches nothing, and a
+  border that says "type here" then is a lie; the page band keeps the composer's neutral edge throughout. **The band
+  highlights as a row, never as a box**: hover and keyboard focus tint the full-width `.page-list__head`, and
+  `.page-list__toggle` drops the global `:focus-visible` outline — that ring hugs the left half of the row and, offset
+  above the prompt, read as a second composer. An add opens the list by itself (`lastPageAddedStore`); a row is dimmed
+  with a trash can until a turn carries its page. The caption pulses while `addPageBusy` is on (capture and markdown
+  conversion, under a second) and never for a page that is merely waiting for a turn.
 - `.composer__resizer` is the composer's top edge and its only resize affordance: the visible 2px rule is `::before`,
   which lets the grab strip be 10px tall and overhang 4px into the transcript's own bottom padding. The limits are
   measured when the gesture starts (`composerLimits` in `src/app/composer-size.ts`), so a queued prompt or an open page
-  list raises the floor instead of being clipped. A drag never takes focus from the prompt (`preventDefault` in
-  `pointerdown`, capture for the rest of it), and the height stays in memory — never settings, never `ui-state.v1`.
-- `.composer__box` owns the composer's **one** gutter (`padding: var(--space-2)`, 4px on all four sides); the topbar and
-  the toolbar add no `padding-inline` of their own, which is what keeps the buttons above and the chips below the same
-  distance from the border. Every control in those two rows is 24px (`.button--sm`, `.chip`): a chip must never be
-  taller than its neighbours, so a count inside one is a bare `.chip__count`, never the bordered `.badge` atom.
-- The add button (`+`, `.composer__add-page`) asks nothing of Chrome. It opens the grant box above the box — the same
-  `.banner--warn` a parked tool uses — and that box's **Continue** is the click that raises Chrome's modal. Both kinds
-  are stored in `pageAccessStore` and worded by `describePageAccess` in `src/core/page-access.ts`: the panel writes no
-  part of that copy itself, and only a search gets `button--primary` on Continue, because only there is the permanent
-  grant the recommended route.
+  list raises the floor instead of being clipped. **The rows above the prompt are paid for by the transcript**: the
+  `fit` effect measures the chrome (`.composer` height minus the editor band's) and moves a sized composer by exactly
+  its change (`composerHeightForChrome`), so the page list opening grows the composer upward instead of shrinking the
+  prompt — which is what a sized composer used to do, hiding the textarea at its floor. A drag never takes focus from
+  the prompt (`preventDefault` in `pointerdown`, capture for the rest of it), and the height stays in memory — never
+  settings, never `ui-state.v1`.
+- `.composer__box` is the editor band and the composer's **one** gutter (`padding: var(--space-2)`, 4px on all four
+  sides); the toolbar adds no `padding-inline` of its own, which is what keeps the chips the same distance from the
+  surface's edge. The page band above it insets its head and rows by `--space-3` and the disclosure adds `--space-2` of
+  its own, so the chevron and the row icons line up with the prompt's text. Every control in the box is 24px
+  (`.button--sm`, `.chip`): a chip must never be taller than its neighbours, so a count inside one is a bare
+  `.chip__count`, never the bordered `.badge` atom.
+- **Add page** (`.page-list__add`, a ghost `.button--sm` with a text label and no icon) asks nothing of Chrome. It opens
+  the grant box above the box — the same `.banner--warn` a parked tool uses — and that box's **Continue** is the click
+  that raises Chrome's modal. Both kinds are stored in `pageAccessStore` and worded by `describePageAccess` in
+  `src/core/page-access.ts`: the panel writes no part of that copy itself, and only a search gets `button--primary` on
+  Continue, because only there is the permanent grant the recommended route.
 - A page row's stamp is absolute, never relative: the clock time to the second, the date only when the capture is on
   another day (`.page-chip__stamp`, `stampTime`), and the full instant in the `<time>` tooltip (`stampTooltip`). A
   countdown-style label would start lying the moment the list sat open. Never re-word a stored `capturedAt`; format it
   at render, in the user's locale, with `Intl` — no date library.
 - The border is the prompt editor, so a click anywhere inside it focuses the textarea (`focusPrompt` in `Composer.tsx`,
-  guarded by `BOX_CONTROL_SELECTOR`): the empty topbar gap and the space after the last chip would otherwise drop the
-  caret to `<body>`. A control inside the box keeps its own click, and `.popover`/`.slash` are excluded because their
-  padding is menu surface. `.composer__box` carries `cursor: text` for the same reason, which both menus reset to
-  `default`; the caret goes after the existing text, since the click was not about placing it.
+  guarded by `BOX_CONTROL_SELECTOR`): the space after the last chip would otherwise drop the caret to `<body>`. A
+  control inside the box keeps its own click, and `.popover`/`.slash` are excluded because their padding is menu
+  surface. `.composer__box` carries `cursor: text` for the same reason, which both menus reset to `default`; the caret
+  goes after the existing text, since the click was not about placing it. The page header is outside the border, so none
+  of its clicks reach this handler — that is the point of the split.
 - The model chip opens `ModelPicker` above the chip, like every other chip menu, with `align="trailing"`: the chip sits
   in the middle of the toolbar, so neither of its own edges is at the panel's, and the menu's trailing edge is pinned to
   the toolbar's instead (`width={300}` keeps it a chip menu, so a long id ellipsizes). A row is a wrapper

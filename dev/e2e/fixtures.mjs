@@ -78,17 +78,18 @@ export const deskExtraction = {
 }
 
 /**
- * Wait until the page strip reports `count` pages. Two or more collapse into the count
- * badge, so the number of `.page-chip` nodes is not a readiness signal any more.
+ * Wait until the page header reports `count` pages. The rows only exist while the list is
+ * open, so the header caption — not the number of `.page-chip` nodes — is the readiness
+ * signal.
  */
 export async function waitForPageCount(page, count) {
 	await page.waitForFunction((expected) => {
-		const badge = document.querySelector('.page-list__toggle')
-		return badge?.textContent?.trim() === String(expected)
+		const caption = document.querySelector('.page-list__count')
+		return caption?.textContent?.trim() === String(expected)
 	}, count)
 }
 
-/** Open or close the chip row of a chat holding more than one page. */
+/** Open or close the page list from its header row. */
 export async function togglePageList(page) {
 	await page.locator('.page-list__toggle').click()
 }

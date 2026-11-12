@@ -5,6 +5,7 @@ import {
 	MIN_TRANSCRIPT_HEIGHT,
 	RESIZE_STEP,
 	clampComposerHeight,
+	composerHeightForChrome,
 	composerHeightFromDrag,
 	composerLimits,
 	isResetGesture,
@@ -98,6 +99,36 @@ describe('clampComposerHeight', () => {
 
 	it('prefers the floor when the ends have crossed', () => {
 		expect(clampComposerHeight(500, { min: 300, max: 200 })).toBe(300)
+	})
+})
+
+describe('composerHeightForChrome', () => {
+	it('grows by what appeared above the prompt, so the prompt keeps its room', () => {
+		// The page list opens on a composer of 240px and the band grows by 50px.
+		expect(composerHeightForChrome(240, 50, 200, 900)).toBe(290)
+	})
+
+	it('gives the room back when the row goes away', () => {
+		expect(composerHeightForChrome(290, -50, 200, 900)).toBe(240)
+	})
+
+	it('may pass the transcript sliver: a row the user opened is not hidden behind the chat', () => {
+		// The composer's own ceiling was 270px; the opened band still gets its 50px.
+		expect(composerHeightForChrome(240, 50, 200, 400)).toBe(290)
+	})
+
+	it('never shrinks the prompt past its own minimum', () => {
+		// The row above disappeared while the composer was already at the floor.
+		expect(composerHeightForChrome(200, -50, 200, 900)).toBe(200)
+	})
+
+	it('stops at the panel, so the composer never spills out of it', () => {
+		// A short panel: only 20px of growth is left before the composer leaves the shell.
+		expect(composerHeightForChrome(240, 50, 200, 260)).toBe(260)
+	})
+
+	it('prefers the prompt over the panel when the two disagree', () => {
+		expect(composerHeightForChrome(240, -50, 300, 260)).toBe(300)
 	})
 })
 

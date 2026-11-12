@@ -78,7 +78,10 @@ export async function run(ctx) {
 	// While the drag is in flight the pointer is told what it is doing: the rule turns
 	// accent, every cursor under it becomes a resize arrow, and the prompt does not select
 	// text under the pointer. Hovering already darkens the rule, so the line reads as
-	// grabbable before the button goes down.
+	// grabbable before the button goes down. Both colours are read once their transition has
+	// settled — the rule animates, and a reading taken mid-fade says nothing.
+	await page.mouse.move(10, 10)
+	await page.waitForTimeout(250)
 	const resting = await page.evaluate(
 		() => getComputedStyle(document.querySelector('.composer__resizer'), '::before').backgroundColor,
 	)
@@ -178,9 +181,30 @@ export async function run(ctx) {
 		natural.composer,
 	)
 
-	// The dragged height is a view state: a reloaded panel starts at the natural size.
+	// A row that appears above the prompt is paid for by the transcript, never by the
+	// prompt: with a dragged height, opening the page list grows the composer upward and
+	// leaves the editor exactly as tall as it was. Otherwise the page section would eat the
+	// prompt, and a composer at its floor would lose the textarea entirely.
 	await drag(-300)
 	await page.waitForSelector('.composer--sized')
+	const beforeList = await measure()
+	await page.evaluate(() => window.__LB_AI_TEST__.addPage())
+	await page.waitForSelector('.page-list__panel > li')
+	const withList = await measure()
+	assert.ok(withList.composer > beforeList.composer + 20, 'the composer must grow upward')
+	assert.ok(Math.abs(withList.box - beforeList.box) < 2, 'the prompt must keep its height')
+	assert.equal(withList.input, beforeList.input, 'the textarea must not shrink')
+	assert.ok(withList.transcript < beforeList.transcript, 'the transcript is what gives way')
+
+	// Closing it gives that room back.
+	await page.locator('.page-list__toggle').click()
+	await page.waitForFunction(() => !document.querySelector('.page-list__panel'))
+	await page.waitForFunction(
+		(height) => Math.abs(document.querySelector('.composer').getBoundingClientRect().height - height) < 2,
+		beforeList.composer,
+	)
+
+	// The dragged height is a view state: a reloaded panel starts at the natural size.
 	await page.reload()
 	await page.waitForSelector('.app')
 	assert.equal(await page.locator('.composer--sized').count(), 0)

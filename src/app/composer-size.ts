@@ -72,6 +72,22 @@ export function clampComposerHeight(desired: number, { min, max }: ComposerLimit
 	return Math.min(Math.max(desired, min), max)
 }
 
+/**
+ * The height a composer takes when the rows above the prompt change height. Anything that
+ * appears there — the page band opening its list, a queued prompt, an error line — is paid
+ * for by the transcript, because the prompt keeps the height the user gave it. So the
+ * composer grows upward by exactly that much, and gives it back when the row goes away.
+ *
+ * `floor` is the height that leaves the prompt at its own minimum, measured after the
+ * change, and `ceiling` the most the panel can hold. The growth may pass the usual ceiling
+ * (the transcript sliver): a row the user just opened should not be hidden behind the
+ * conversation. It may never eat the prompt, and it may never spill out of the panel —
+ * when the two disagree, the prompt wins.
+ */
+export function composerHeightForChrome(height: number, chromeDelta: number, floor: number, ceiling: number): number {
+	return Math.min(Math.max(height + chromeDelta, floor), Math.max(floor, ceiling))
+}
+
 /** Whether the click just ended is the second of a pair, i.e. the reset gesture. */
 export function isResetGesture(previousClickAt: number, clickAt: number): boolean {
 	return previousClickAt > 0 && clickAt - previousClickAt <= DOUBLE_CLICK_MS
