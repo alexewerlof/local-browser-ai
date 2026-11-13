@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Check, ChevronDown, MessageCircleMore } from 'lucide-react'
+import { Check } from 'lucide-react'
 import type { ThinkingSelection } from '../../core/types'
 import type { ModelInfo } from '../../providers/catalog'
 import { thinkingOptions } from '../../providers/catalog'
+import { useBarMenu } from '../menu-bar'
+import { MenuButton } from './MenuButton'
 import { Popover } from './Popover'
 
 export function ThinkingMenu({
@@ -14,7 +15,7 @@ export function ThinkingMenu({
 	value: ThinkingSelection
 	onChange: (next: ThinkingSelection) => void
 }) {
-	const [open, setOpen] = useState(false)
+	const menu = useBarMenu('thinking-menu__trigger')
 	const options = thinkingOptions(info)
 	const supported = info.reasoning
 
@@ -24,21 +25,21 @@ export function ThinkingMenu({
 
 	return (
 		<Popover
-			open={open}
-			onClose={() => setOpen(false)}
+			open={menu.open}
+			onClose={menu.close}
 			width={220}
 			align="start"
+			flush
 			trigger={
-				<button
-					type="button"
-					className="chip"
-					onClick={() => setOpen((current) => !current)}
+				<MenuButton
+					block="thinking-menu__trigger"
+					label="Thinking"
+					value={label}
 					title="Reasoning effort"
-				>
-					<MessageCircleMore size={12} />
-					<span className="chip__text">{label}</span>
-					<ChevronDown size={12} />
-				</button>
+					expanded={menu.open}
+					onClick={menu.toggle}
+					onHover={menu.hover}
+				/>
 			}
 		>
 			<div className="popover__group">
@@ -50,7 +51,7 @@ export function ThinkingMenu({
 						className={`popover__item${value.level === option.value ? ' popover__item--selected' : ''}`}
 						onClick={() => {
 							onChange({ level: option.value })
-							setOpen(false)
+							menu.close()
 						}}
 					>
 						<span className="popover__item-main">{option.label}</span>

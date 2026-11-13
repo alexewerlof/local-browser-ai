@@ -35,7 +35,7 @@ export async function run(ctx) {
 	await ctx.open({ settings })
 	const { page } = ctx
 
-	await page.locator('.chip--model').click()
+	await page.locator('.model-menu__trigger').click()
 	await page.waitForSelector('.popover')
 
 	const rows = page.locator('.popover__model')
@@ -66,7 +66,7 @@ export async function run(ctx) {
 	)
 	// The default moved, the menu stayed open, and this chat's model did not change.
 	assert.equal(await page.locator('.popover').count(), 1)
-	assert.match(await page.locator('.chip--model').textContent(), /gemma-4-12B-it/)
+	assert.match(await page.locator('.model-menu__trigger').textContent(), /gemma-4-12B-it/)
 	assert.equal(await rows.filter({ hasText: 'gemma-4-12B-it' }).locator('button.popover__item-star').count(), 1)
 
 	// The model's name has the first line to itself; the figures start where it does, on the
@@ -87,24 +87,41 @@ export async function run(ctx) {
 	assert.equal(await estimated.locator('.popover__item-reasoning').getAttribute('aria-label'), 'Reasoning')
 	assert.equal(await estimated.locator('.popover__item-muted').textContent(), '—')
 
-	// The menu opens above the chip and ends on the panel's trailing edge, at a chip menu's
-	// width rather than the full composer.
+	// The menu is the body of its bar item, exactly like the other four: flush with the item's
+	// own top edge, its bottom corners square where the two meet, and hanging from the item's
+	// own left edge rather than from the bar's trailing one.
 	const menu = await page.locator('.popover').boundingBox()
-	const chip = await page.locator('.chip--model').boundingBox()
-	const toolbar = await page.locator('.composer__toolbar').boundingBox()
+	const chip = await page.locator('.model-menu__trigger').boundingBox()
+	const menubar = await page.locator('.composer__menubar').boundingBox()
 	const viewport = page.viewportSize()
-	assert.ok(menu && chip && toolbar && viewport)
-	assert.ok(menu.y + menu.height <= chip.y, 'the menu opens above the chip')
+	assert.ok(menu && chip && menubar && viewport)
 	assert.ok(
-		Math.abs(menu.x + menu.width - (toolbar.x + toolbar.width)) <= 1,
-		'the menu ends on the panel’s trailing edge',
+		Math.abs(menu.y + menu.height - chip.y) <= 1,
+		`the menu is ${menu.y + menu.height - chip.y}px off its item`,
 	)
-	assert.ok(menu.x >= toolbar.x, 'the menu stays inside the composer')
+	assert.ok(
+		Math.abs(menu.x - chip.x) <= 1,
+		`the menu must start on the item's left edge, not ${menu.x - chip.x}px away`,
+	)
+	assert.ok(menu.x >= menubar.x, 'the menu stays inside the composer')
 	assert.ok(menu.x + menu.width <= viewport.width, 'the menu stays inside the panel')
-	assert.ok(menu.width <= 320, 'the menu is no wider than the other chip menus')
+	assert.ok(menu.width <= 320, 'the menu is no wider than the other bar menus')
 
 	// Picking a model still closes the menu and updates the chip.
 	await rows.filter({ hasText: 'Qwen3.6-27B-MTP' }).locator('.popover__item--model').click()
 	assert.equal(await page.locator('.popover').count(), 0)
-	assert.match(await page.locator('.chip--model').textContent(), /Qwen3\.6-27B-MTP/)
+	assert.match(await page.locator('.model-menu__trigger').textContent(), /Qwen3\.6-27B-MTP/)
+
+	// On a side panel too narrow to hold the menu under the Model item, the panel is moved
+	// back inside the screen instead of running past it — it keeps its own left edge whenever
+	// there is room, which is what the check above proves at the normal width.
+	await page.setViewportSize({ width: 340, height: 900 })
+	await page.locator('.model-menu__trigger').click()
+	await page.waitForSelector('.popover')
+	const narrow = await page.locator('.popover').boundingBox()
+	assert.ok(narrow)
+	assert.ok(narrow.x >= -1, `the menu starts at ${narrow.x}px, off the left edge`)
+	assert.ok(narrow.x + narrow.width <= 341, `the menu ends at ${narrow.x + narrow.width}px, past the panel`)
+	assert.equal(await page.locator('.popover').count(), 1)
+	await page.keyboard.press('Escape')
 }

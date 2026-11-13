@@ -57,9 +57,8 @@ export async function run(ctx) {
 
 		// The results page is in the chat for the model to read (`result.added` above), but a
 		// search is the extension doing its job, not a reference: nothing is listed.
-		assert.equal(await page.locator('.page-list__toggle').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '0')
 		assert.equal(await page.locator('.page-chip').count(), 0)
-		assert.match(await page.locator('.page-list__caption').textContent(), /0 pages/)
 		// The tool attached it itself, so the card no longer offers to add it again.
 		assert.equal(await page.locator('.tool__action').count(), 0)
 	} finally {

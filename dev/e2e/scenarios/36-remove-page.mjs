@@ -23,13 +23,13 @@ export async function run(ctx) {
 			[deskTab, deskExtraction],
 		)
 		await waitForPageCount(page, 2)
-		assert.equal(await page.locator('.page-list__remove').count(), 2, 'both are removable')
+		assert.equal(await page.locator('.pages-menu__remove').count(), 2, 'both are removable')
 
 		// Removing the first page leaves the second one, which is not the last row and does
 		// not have to be: the handle of the removed page must not be handed out again.
-		await page.locator('.page-list__remove').nth(0).click()
-		await page.waitForFunction(() => document.querySelectorAll('.page-list__panel > li').length === 1)
-		assert.equal(await page.locator('.page-list__count').textContent(), '1')
+		await page.locator('.pages-menu__remove').nth(0).click()
+		await page.waitForFunction(() => document.querySelectorAll('.pages-menu__list > li').length === 1)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '1')
 		assert.deepEqual(await page.locator('.page-chip__title').allTextContents(), ['Standing desk — Garden'])
 
 		// The removed page is not in the request either: only p2 travels.
@@ -42,8 +42,8 @@ export async function run(ctx) {
 		assert.doesNotMatch(firstTurn.content, /Example Pricing/)
 
 		// The page that did reach the turn is part of the transcript now: no trash can.
-		await page.waitForFunction(() => document.querySelectorAll('.page-list__item--pending').length === 0)
-		assert.equal(await page.locator('.page-list__remove').count(), 0)
+		await page.waitForFunction(() => document.querySelectorAll('.pages-menu__item--pending').length === 0)
+		assert.equal(await page.locator('.pages-menu__remove').count(), 0)
 
 		// Adding a page again takes the next free handle, p3, not the removed p1 or the
 		// live p2.

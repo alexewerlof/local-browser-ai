@@ -59,11 +59,11 @@ export async function run(ctx) {
 		await page.evaluate((extraction) => window.__LB_AI_TEST__.addPage(undefined, extraction), updatedExtraction)
 		await waitForPageCount(page, 2)
 		// The capture has finished, so the count sits still even though p2 waits for a turn.
-		assert.equal(await page.locator('.page-list__capturing').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count--busy').count(), 0)
 
 		// The capture opened the list; both versions are in it, and only the new one waits.
-		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
-		assert.equal(await page.locator('.page-list__item:not(.page-list__item--pending)').count(), 1)
+		assert.equal(await page.locator('.pages-menu__item--pending').count(), 1)
+		assert.equal(await page.locator('.pages-menu__item:not(.pages-menu__item--pending)').count(), 1)
 
 		await page.locator('.composer__input').fill('What changed since my last visit?')
 		await page.locator('[aria-label="Submit"]').click()

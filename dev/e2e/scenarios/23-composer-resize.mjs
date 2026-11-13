@@ -1,16 +1,26 @@
 import assert from 'node:assert/strict'
 import { localSettings } from '../fixtures.mjs'
+import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '23-composer-resize'
 
 /**
  * The composer's top edge is a resize line: dragging it up grows the composer and lets the
- * textarea scroll inside it, so a long prompt gets room. The floor keeps every row above the
+ * textarea scroll inside it, so a long prompt gets room. The floor keeps every row around the
  * prompt at its natural height with one line of prompt, the ceiling keeps a sliver of
  * transcript on screen, and a double-click returns to the natural size.
  */
 export async function run(ctx) {
-	await ctx.open({ settings: localSettings('http://127.0.0.1:1/v1') })
+	const server = await startFakeModelServer({ chunks: ['ok'], delayMs: 400 })
+	try {
+		await reallyRun(ctx, server)
+	} finally {
+		await server.close()
+	}
+}
+
+async function reallyRun(ctx, server) {
+	await ctx.open({ settings: localSettings(server.endpoint) })
 	const { page } = ctx
 
 	await page.waitForSelector('.app')
@@ -19,10 +29,13 @@ export async function run(ctx) {
 	const measure = () =>
 		page.evaluate(() => {
 			const input = document.querySelector('.composer__input')
+			const style = getComputedStyle(input)
 			return {
 				composer: document.querySelector('.composer').getBoundingClientRect().height,
 				box: document.querySelector('.composer__box').getBoundingClientRect().height,
 				input: input.clientHeight,
+				line: Number.parseFloat(style.lineHeight),
+				floor: Number.parseFloat(style.minHeight),
 				scroll: input.scrollHeight,
 				transcript: document.querySelector('.transcript').getBoundingClientRect().height,
 			}
@@ -64,6 +77,14 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.composer--sized, .composer--expanded').count(), 0)
 
 	const natural = await measure()
+
+	// An empty draft already shows three lines of room: the prompt opens tall enough to see a
+	// paragraph take shape, rather than a single line that grows on the second keystroke.
+	assert.ok(
+		natural.input >= natural.line * 3 - 1,
+		`the prompt is ${natural.input}px tall, less than three ${natural.line}px lines`,
+	)
+	assert.ok(natural.input >= natural.floor, 'the minimum is the floor the prompt may not lose')
 
 	// A click on the line is not a drag.
 	await page.mouse.move(lineBox.x + lineBox.width / 2, lineBox.y + lineBox.height / 2)
@@ -141,22 +162,24 @@ export async function run(ctx) {
 	await drag(2000)
 	const floored = await page.evaluate(() => {
 		const composer = document.querySelector('.composer').getBoundingClientRect()
-		const toolbar = document.querySelector('.composer__toolbar').getBoundingClientRect()
+		const menubar = document.querySelector('.composer__menubar').getBoundingClientRect()
 		const meta = document.querySelector('.composer__meta').getBoundingClientRect()
 		const input = document.querySelector('.composer__input')
 		return {
 			composer: composer.height,
-			toolbarInside: toolbar.top >= composer.top - 1 && toolbar.bottom <= composer.bottom + 1,
+			menubarInside: menubar.top >= composer.top - 1 && menubar.bottom <= composer.bottom + 1,
 			metaInside: meta.top >= composer.top - 1 && meta.bottom <= composer.bottom + 1,
 			input: input.clientHeight,
+			floor: Number.parseFloat(getComputedStyle(input).minHeight),
 			scrolls: input.scrollHeight > input.clientHeight,
 		}
 	})
 	assert.ok(floored.composer < grown.composer, `${floored.composer}px did not shrink`)
-	assert.ok(floored.toolbarInside, 'the floor must not clip the toolbar')
+	assert.ok(floored.menubarInside, 'the floor must not clip the menu bar')
 	assert.ok(floored.metaInside, 'the floor must not clip the meta row')
-	// The floor is one line of prompt: the rest of the draft scrolls rather than fitting.
-	assert.ok(floored.input >= 40, `textarea is ${floored.input}px tall at the floor`)
+	// The floor is the prompt's own minimum — three lines — and the rest of the draft scrolls
+	// rather than fitting.
+	assert.ok(floored.input >= floored.floor, `textarea is ${floored.input}px tall at the floor`)
 	assert.ok(floored.scrolls, 'the long draft must scroll at the floor instead of being cut off')
 
 	// Dragging far up stops at the ceiling: a sliver of transcript always stays.
@@ -181,27 +204,39 @@ export async function run(ctx) {
 		natural.composer,
 	)
 
-	// A row that appears above the prompt is paid for by the transcript, never by the
-	// prompt: with a dragged height, opening the page list grows the composer upward and
-	// leaves the editor exactly as tall as it was. Otherwise the page section would eat the
-	// prompt, and a composer at its floor would lose the textarea entirely.
+	// A menu is not a row: the Pages menu floats over the transcript, so opening it on a sized
+	// composer moves neither the composer nor the prompt.
 	await drag(-300)
 	await page.waitForSelector('.composer--sized')
-	const beforeList = await measure()
-	await page.evaluate(() => window.__LB_AI_TEST__.addPage())
-	await page.waitForSelector('.page-list__panel > li')
-	const withList = await measure()
-	assert.ok(withList.composer > beforeList.composer + 20, 'the composer must grow upward')
-	assert.ok(Math.abs(withList.box - beforeList.box) < 2, 'the prompt must keep its height')
-	assert.equal(withList.input, beforeList.input, 'the textarea must not shrink')
-	assert.ok(withList.transcript < beforeList.transcript, 'the transcript is what gives way')
+	const beforeMenu = await measure()
+	await page.locator('.pages-menu__trigger').click()
+	await page.waitForSelector('.popover')
+	const withMenu = await measure()
+	assert.equal(withMenu.composer, beforeMenu.composer, 'a menu must not resize the composer')
+	assert.equal(withMenu.box, beforeMenu.box, 'a menu must not resize the prompt')
+	assert.equal(withMenu.input, beforeMenu.input, 'the textarea keeps its height')
+	await page.keyboard.press('Escape')
 
-	// Closing it gives that room back.
-	await page.locator('.page-list__toggle').click()
-	await page.waitForFunction(() => !document.querySelector('.page-list__panel'))
+	// A row that really is above the prompt — a queued prompt — is paid for by the transcript:
+	// the composer grows upward and the editor keeps its height, so a composer at its floor
+	// never loses the textarea.
+	await page.locator('.composer__input').fill('first')
+	await page.locator('[aria-label="Submit"]').click()
+	await page.locator('.composer__input').fill('queued')
+	await page.locator('[aria-label="Submit"]').click()
+	await page.waitForSelector('.composer__queue-item')
+	const withQueue = await measure()
+	assert.ok(withQueue.composer > beforeMenu.composer + 20, 'the composer must grow upward')
+	assert.ok(Math.abs(withQueue.box - beforeMenu.box) < 2, 'the prompt must keep its height')
+	assert.equal(withQueue.input, beforeMenu.input, 'the textarea must not shrink')
+	assert.ok(withQueue.transcript < beforeMenu.transcript, 'the transcript is what gives way')
+
+	// Taking the row back gives that room to the transcript again.
+	await page.locator('.composer__queue-remove').click()
+	await page.waitForFunction(() => !document.querySelector('.composer__queue-item'))
 	await page.waitForFunction(
 		(height) => Math.abs(document.querySelector('.composer').getBoundingClientRect().height - height) < 2,
-		beforeList.composer,
+		beforeMenu.composer,
 	)
 
 	// The dragged height is a view state: a reloaded panel starts at the natural size.

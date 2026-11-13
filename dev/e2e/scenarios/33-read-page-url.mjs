@@ -149,7 +149,13 @@ export async function run(ctx) {
 			['https://docs.example.org/permissions'],
 			'only the first read opened a tab',
 		)
-		assert.equal(await page.locator('.page-chip').count(), 1, 'one page, not a second copy')
+		// The count on the bar is the page set, so it is the honest "still one page" check —
+		// the menu itself may be shut by now.
+		assert.equal(
+			await page.locator('.pages-menu__trigger .menu-item__count').textContent(),
+			'1',
+			'one page, not a second copy',
+		)
 	} finally {
 		await server.close()
 	}

@@ -78,20 +78,30 @@ export const deskExtraction = {
 }
 
 /**
- * Wait until the page header reports `count` pages. The rows only exist while the list is
- * open, so the header caption — not the number of `.page-chip` nodes — is the readiness
- * signal.
+ * Wait until the Pages menu reports `count` pages. The count lives in the menu bar and is on
+ * screen whether the menu is open or closed, which is why it — not the rows — is the
+ * readiness signal.
  */
 export async function waitForPageCount(page, count) {
 	await page.waitForFunction((expected) => {
-		const caption = document.querySelector('.page-list__count')
-		return caption?.textContent?.trim() === String(expected)
+		const badge = document.querySelector('.pages-menu__trigger .menu-item__count')
+		return badge?.textContent?.trim() === String(expected)
 	}, count)
 }
 
-/** Open or close the page list from its header row. */
-export async function togglePageList(page) {
-	await page.locator('.page-list__toggle').click()
+/** Open the Pages menu, or close it when it is already open. */
+export async function togglePagesMenu(page) {
+	await page.locator('.pages-menu__trigger').click()
+}
+
+/**
+ * Open the Pages menu unless it is already open. Rows only exist while it is, so a scenario
+ * that inspects pages added by an earlier turn goes through this rather than clicking blind.
+ */
+export async function openPagesMenu(page) {
+	const trigger = page.locator('.pages-menu__trigger')
+	if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click()
+	await page.waitForSelector('.pages-menu__list, .popover__empty')
 }
 
 /**

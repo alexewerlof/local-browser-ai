@@ -71,7 +71,7 @@ export async function run(ctx) {
 
 		// The composer tree lists the server as one tool set; switching the set off stops
 		// its tools from being advertised and the choice is persisted.
-		await page.locator('.chip:has-text("Tools")').click()
+		await page.locator('.tools-menu__trigger').click()
 		await page.waitForSelector('.tool-tree__head:has-text("Mock tools")')
 		await page.locator('.tool-tree__head:has-text("Mock tools") .checkbox').click()
 		await page.waitForFunction(() => window.__LB_AI_TEST__.currentSettings()?.tools?.mcp?.[0]?.enabled === false)

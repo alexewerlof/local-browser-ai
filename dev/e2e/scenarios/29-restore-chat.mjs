@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { deskExtraction, deskTab, exampleTab, localSettings, togglePageList, waitForPageCount } from '../fixtures.mjs'
+import { deskExtraction, deskTab, exampleTab, localSettings, togglePagesMenu, waitForPageCount } from '../fixtures.mjs'
 import { startFakeModelServer } from '../fake-server.mjs'
 
 export const name = '29-restore-chat'
@@ -40,15 +40,15 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.message--assistant').count(), 1)
 
 		// Same pages: the list comes back collapsed, with one still waiting for a turn.
-		assert.equal(await page.locator('.page-list__count').textContent(), '2')
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '2')
 		assert.equal(await page.locator('.page-chip').count(), 0)
 		// Restoring reads the store; nothing is being converted, so nothing animates.
-		assert.equal(await page.locator('.page-list__capturing').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count--busy').count(), 0)
 
-		await togglePageList(page)
+		await togglePagesMenu(page)
 		// The one that already reached a turn is still marked as sent.
 		assert.equal(await page.locator('.page-chip').count(), 2)
-		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
+		assert.equal(await page.locator('.pages-menu__item--pending').count(), 1)
 		assert.deepEqual(await page.locator('.page-chip__title').allTextContents(), [
 			'Example Pricing',
 			'Standing desk — Garden',

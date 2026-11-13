@@ -18,10 +18,10 @@ export async function run(ctx) {
 
 		// The page is counted as soon as it is captured, and the add opens the list by itself.
 		await waitForPageCount(page, 1)
-		await page.waitForSelector('.page-list__panel')
+		await page.waitForSelector('.pages-menu__list')
 		assert.match(await page.locator('.page-chip__title').textContent(), /Example Pricing/)
 		assert.equal(await page.locator('.page-chip').getAttribute('title'), 'https://example.com/pricing')
-		assert.equal(await page.locator('.page-list__item--pending').count(), 1)
+		assert.equal(await page.locator('.pages-menu__item--pending').count(), 1)
 		// Nothing is in the prompt yet, so no card marks a turn.
 		assert.equal(await page.locator('.message__pages').count(), 0)
 

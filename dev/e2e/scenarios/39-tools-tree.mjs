@@ -40,7 +40,7 @@ export async function run(ctx) {
 		// The client probes `server/discover`; the legacy mock answers 400, which is handled.
 		ctx.expectConsoleError(/400 \(Bad Request\)/)
 
-		await page.locator('.chip:has-text("Tools")').click()
+		await page.locator('.tools-menu__trigger').click()
 		// Discovery runs when the menu opens; the mock offers two tools.
 		await page.waitForSelector('.tool-tree__head:has-text("2 of 2 tools enabled")')
 		assert.equal(await page.locator('.tool-tree__group').count(), 2)
@@ -96,7 +96,7 @@ export async function run(ctx) {
 		await page.waitForFunction(() => window.__LB_AI_TEST__.currentSettings().tools.mcp[0].enabled === true)
 
 		// The chip counts tools, not sets: five built-ins plus the server's two.
-		assert.equal(await page.locator('.chip:has-text("Tools") .chip__count').textContent(), '7')
+		assert.equal(await page.locator('.tools-menu__trigger .menu-item__count').textContent(), '7')
 	} finally {
 		await model.close()
 		await mcp.close()

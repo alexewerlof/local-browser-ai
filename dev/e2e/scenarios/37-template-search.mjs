@@ -28,7 +28,7 @@ export async function run(ctx) {
 
 	const items = () => page.locator('.popover .popover__item-main').allTextContents()
 
-	await page.locator('.chip:has-text("Templates")').click()
+	await page.locator('.templates-menu__trigger').click()
 	await page.waitForSelector('.popover')
 	// Both user templates are there, beside the built-ins that are always present.
 	const all = await items()

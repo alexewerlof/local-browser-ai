@@ -77,8 +77,8 @@ Local rules:
   server's own models cannot be deleted from here, which is what the Use switch is for. A loaded preset shows a green
   check with the tooltip `Loaded in the server`, never a word. Per-model reasoning lives in
   `ProviderSettings.modelThinking` and falls back to `DEFAULT_THINKING` (`auto`) through `thinkingForModel`; the
-  composer chip writes that entry, so there is no global reasoning setting. Nothing in the table is inferred from an id:
-  `Refresh` only seeds `models` while that list is still empty, and afterwards the ticks are the user's.
+  composer's Thinking menu writes that entry, so there is no global reasoning setting. Nothing in the table is inferred
+  from an id: `Refresh` only seeds `models` while that list is still empty, and afterwards the ticks are the user's.
 - **The default model is a star in that table**, not a separate selector: filled `Star` (`--accent`, `role="img"`,
   `aria-label="Default model"`) on the default row, a ghost button `Make {id} the default model` on every other.
   Starring also switches **Use** on, because only a model in use reaches the pickers, and switching Use off or removing

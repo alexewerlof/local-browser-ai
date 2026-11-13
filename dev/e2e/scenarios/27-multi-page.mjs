@@ -15,7 +15,7 @@ export async function run(ctx) {
 		const { page } = ctx
 
 		await waitForPageCount(page, 1)
-		assert.equal(await page.locator('.page-list__count').textContent(), '1')
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '1')
 
 		// The second page arrives from another tab, while the panel is open.
 		await page.evaluate(
@@ -25,9 +25,9 @@ export async function run(ctx) {
 		// Two pages collapse into the count: the chips only exist once the list is open.
 		// Adding a page opens the list by itself, so both are on screen without a click.
 		await waitForPageCount(page, 2)
-		assert.equal(await page.locator('.page-list__panel > li').count(), 2)
+		assert.equal(await page.locator('.pages-menu__list > li').count(), 2)
 		// Both captures are done, so the count is not animating any more.
-		assert.equal(await page.locator('.page-list__capturing').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count--busy').count(), 0)
 
 		const titles = await page.locator('.page-chip__title').allTextContents()
 		assert.deepEqual(titles, ['Example Pricing', 'Standing desk — Garden'])
@@ -37,7 +37,7 @@ export async function run(ctx) {
 		await page.waitForFunction(() => document.body.innerText.includes('Both desks are similar.'))
 
 		// A completed turn is not work in progress, so the count stays still.
-		assert.equal(await page.locator('.page-list__capturing').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count--busy').count(), 0)
 
 		// Both blocks are in the same user turn, each with its own handle.
 		const body = server.requests[0]

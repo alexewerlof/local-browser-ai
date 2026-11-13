@@ -37,7 +37,7 @@ export async function run(ctx) {
 
 	// The model picker: one glyph on the network server's heading, before its name, and
 	// nothing on the loopback one.
-	await panel.locator('.chip--model').click()
+	await panel.locator('.model-menu__trigger').click()
 	await panel.waitForSelector('.popover')
 
 	const groups = panel.locator('.popover__group')

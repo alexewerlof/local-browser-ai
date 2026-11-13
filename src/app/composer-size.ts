@@ -29,7 +29,7 @@ export interface ComposerMeasurements {
 	height: number
 	/** The textarea's height: it is the row that gives way, so the rest is fixed chrome. */
 	promptHeight: number
-	/** The textarea's own minimum, which makes the floor one line of prompt. */
+	/** The textarea's own minimum (three lines), which is the floor the prompt may not lose. */
 	promptFloor: number
 	/** The room above the composer, which the ceiling shares with the sliver. */
 	transcriptHeight: number
@@ -51,8 +51,8 @@ export function composerHeightFromDrag(startHeight: number, dy: number): number 
 
 /**
  * Both ends of a drag. The floor leaves every row that is not the prompt at its natural
- * height — a queued prompt, an error line, the open page list — and the prompt at its own
- * minimum, so no control can be pushed out of the panel; the ceiling keeps
+ * height — a queued prompt, an error line — and the prompt at its own minimum, so no control
+ * can be pushed out of the panel; the ceiling keeps
  * `MIN_TRANSCRIPT_HEIGHT` of the conversation on screen whatever the panel's size.
  */
 export function composerLimits({

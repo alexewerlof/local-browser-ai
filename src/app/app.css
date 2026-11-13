@@ -699,169 +699,41 @@
 	color: var(--fg-muted);
 }
 
-/* ---------------------------------------------------------------- page cards */
+/* ---------------------------------------------------------------- page rows */
 
-/* The pages are the composer's top band, inside its one border: on the surface's own
-   background, separated from the prompt by a hairline rather than by a box of their own.
-   The band, the list it opens and the editor below are three parts of one control. */
-.page-list {
-	display: flex;
-	flex: none;
-	flex-direction: column;
-	min-width: 0;
-	border-bottom: 1px solid var(--border);
-}
+/* The pages live in a menu now, so they have no band of their own: the rows below are what
+   the Pages popover renders, and they carry the only three things a page reference needs —
+   where it came from, when it was captured, and the way back out while no turn has it. */
 
-/* One line, whatever the chat holds: the disclosure takes the room the add button leaves.
-   The row is inset like the prompt's text, so the chevron lines up with it, and it is the
-   only thing here that may look highlighted. Its highlight is a background tint on the row
-   itself — never an outline: an outline hugs whatever element is focused, here the left
-   half of the row, and a box floating above the prompt is what makes the page list read as
-   a second, separate composer. The rounded top follows the surface it sits in.
-
-   The hairline under it only appears once the list is open, when the row really is the head
-   of the rows below; closed, the band's own bottom edge already separates it from the
-   prompt, and two lines a pixel apart would say the same thing twice. */
-.page-list__head {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-height: 24px;
-	min-width: 0;
-	padding-inline: var(--space-3);
-	/* One size for the whole row: the count, the empty caption and the button beside them
-	   are the same kind of thing, so they read as one line. */
-	font-size: var(--text-sm);
-	border-bottom: 1px solid transparent;
-	border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-.page-list--open .page-list__head {
-	border-bottom-color: var(--border);
-}
-
-.page-list__head:hover,
-.page-list__head:focus-within {
-	background: var(--bg-hover);
-}
-
-/* A bare disclosure row — chevron and caption — so the header reads as part of the surface
-   rather than as a button sitting on it. The open state is the chevron's job, never a
-   persistent tint, and the row above owns the highlight the pointer or the keyboard gives
-   it, so the disclosure only strengthens its own text. */
-.page-list__toggle {
-	display: flex;
-	flex: 1 1 auto;
-	align-items: center;
-	gap: var(--space-2);
-	min-width: 0;
-	min-height: 24px;
-	padding: 0 var(--space-2);
-	border: 0;
-	background: none;
-	color: var(--fg-muted);
-	text-align: start;
-	cursor: pointer;
-}
-
-.page-list__toggle:hover,
-.page-list__toggle:focus-visible {
-	background: none;
-	color: var(--fg);
-}
-
-/* The global `:focus-visible` ring is a box, and this control is a row. Keyboard focus is
-   still visible — the row it sits in is tinted by `:focus-within` above — so the ring is
-   dropped rather than drawn as a second surface. */
-.page-list__toggle:focus-visible {
-	outline: none;
-}
-
-.page-list__toggle svg {
-	flex: none;
-}
-
-/* The count and its noun. Tabular figures keep the label still as the number changes. */
-.page-list__caption {
-	min-width: 0;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	font-variant-numeric: tabular-nums;
-}
-
-/* Nothing to open yet: the caption still says how many pages there are, so the row does not
-   change shape when the first one lands — but it is not a control and has no chevron. */
-.page-list__caption--empty {
-	flex: 1 1 auto;
-	padding: 0 var(--space-2);
-	color: var(--fg-faint);
-}
-
-/* The way to fill the list, at the trailing edge of its own header. `margin-inline-start`
-   keeps it there in the empty state too, where the caption is not a growing button. On the
-   tinted row its own hover steps up one shade, or the two highlights would be the same
-   colour and the button would dissolve into the row. */
-.page-list__add {
-	flex: none;
-	margin-inline-start: auto;
-}
-
-.page-list__add:hover:not(:disabled) {
-	background: var(--bg-active);
-}
-
-/* Capturing a page is work in progress, so the caption pulses — with the count as the only
-   thing there for the reader to watch. base.css neutralises the animation under
-   prefers-reduced-motion. */
-.page-list__capturing {
-	animation: page-capturing 1.6s infinite ease-in-out;
-}
-
-@keyframes page-capturing {
-	0%,
-	100% {
-		opacity: 0.35;
-	}
-	50% {
-		opacity: 1;
-	}
-}
-
-/* The open list: flat rows between the header and the prompt, inset like the header row so
-   the icons of both bands line up. It draws no border of its own — the band's bottom edge
-   is the only divider — and the cap makes a very long list scroll instead of swallowing the
-   panel. */
-.page-list__panel {
+/* One row meets the next with a hairline-thin gap rather than a border, so a list of five
+   captures of one document still reads as five rows and not as five boxes. */
+.pages-menu__list {
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
-	max-height: min(40vh, 220px);
-	overflow-y: auto;
 	margin: 0;
-	padding: var(--space-1) var(--space-3);
+	padding: 0;
 	list-style: none;
-	scrollbar-width: thin;
 }
 
-.page-list__item {
+.pages-menu__item {
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
 	border-radius: var(--radius-sm);
 }
 
-.page-list__item:hover {
+.pages-menu__item:hover {
 	background: var(--bg-hover);
 }
 
 /* Not in the prompt yet: dimmed, while its trash can stays at full contrast because that
    button is the way out. */
-.page-list__item--pending .page-chip {
+.pages-menu__item--pending .page-chip {
 	opacity: 0.7;
 }
 
-.page-list__item--pending:hover .page-chip {
+.pages-menu__item--pending:hover .page-chip {
 	opacity: 1;
 }
 
@@ -889,14 +761,14 @@
 }
 
 /* The way back out of a page whose block is not in a request yet. */
-.page-list__remove {
+.pages-menu__remove {
 	display: inline-flex;
 	flex: none;
 	align-items: center;
 	justify-content: center;
 	width: 20px;
 	height: 20px;
-	margin-inline-end: var(--space-2);
+	margin-inline-end: var(--space-1);
 	padding: 0;
 	border: 0;
 	border-radius: var(--radius-sm);
@@ -905,12 +777,12 @@
 	cursor: pointer;
 }
 
-.page-list__remove:hover {
+.pages-menu__remove:hover {
 	background: var(--bg-hover);
 	color: var(--danger-fg);
 }
 
-.page-list__remove:focus-visible {
+.pages-menu__remove:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 1px;
 }
@@ -949,10 +821,11 @@
 }
 
 /* Where the page came from; the full URL stays the row's tooltip. It is the trailing end
-   of the row, so it takes the leftover space rather than the title. */
+   of the row, so it takes the leftover space rather than the title. In a 320px menu the
+   title has the line to itself more often than not, so the host gives way first. */
 .page-chip__host {
 	flex: none;
-	max-width: 45%;
+	max-width: 40%;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -1038,15 +911,14 @@
 /* --------------------------------------------------------------------- composer */
 
 /* No `border-top`: the edge above the prompt is the resize line (`.composer__resizer`),
-   which draws the rule itself. Positioned so that line can overhang into the transcript's
-   bottom padding and stay easy to catch. */
+   which draws the rule itself and sits flush against the menu bar. Positioned so that line
+   can overhang into the transcript's bottom padding and stay easy to catch. */
 .composer {
 	position: relative;
 	display: flex;
 	flex: none;
 	flex-direction: column;
-	gap: var(--space-2);
-	padding: var(--space-3) var(--space-4) var(--space-3);
+	padding: 0;
 	background: var(--bg);
 }
 
@@ -1094,8 +966,8 @@
 	background: var(--accent);
 }
 
-/* While a drag is in flight the pointer stays a resize arrow even over the textarea and the
-   chips, and text does not start selecting under it. The doubled block class is deliberate:
+/* While a drag is in flight the pointer stays a resize arrow even over the prompt and the
+   menus, and text does not start selecting under it. The doubled block class is deliberate:
    `.composer__box` sets `cursor: text` at the same specificity, and it must lose. */
 .composer.composer--resizing {
 	user-select: none;
@@ -1105,67 +977,173 @@
 	cursor: ns-resize;
 }
 
-/* The composer is **one** surface: the page band on top, the prompt editor under it, a
-   single border and a single rounded rectangle round both. Only the outer edge is drawn —
-   the bands are separated by hairlines inside it, never by borders of their own — so the
-   page list and the prompt read as the two halves of one control, the way a code editor's
-   composer holds its changed-files row above the prompt. That border stays neutral: focus
-   is drawn by the editor band (see `.composer__box::after`), so the page list keeps the
-   composer's default edge exactly as it looks when nothing is focused. */
+/* The composer is the bottom edge of the panel, so it spends the panel's full width: no
+   gutter, no border and no radius, and the menu bar sits flush against the resize line. The
+   bands stack with no gap, which is what lets the prompt's own surface be its only edge. */
 .composer__editor {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-lg);
+}
+
+/* The menu bar: one flat row of words, in the order a window menu puts them. It is not a
+   tinted strip of its own — the row above the prompt is the composer's background, and the
+   prompt's darker surface below it is what draws the line between them. An item fills the
+   bar's height, as a title does in a window's menu bar, so the open menu can sit on its own
+   edge; a long model id ellipsises, and the bar wraps rather than clipping an item on a
+   narrow panel or a large text size. */
+.composer__menubar {
+	position: relative;
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: 0 var(--space-1);
+	min-height: var(--button-height);
+	padding: 0 var(--space-2);
+}
+
+/* One item: the same type size, height and highlight for every menu. */
+.menu-item {
+	display: inline-flex;
+	flex: 0 1 auto;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--fg-muted);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	cursor: pointer;
+}
+
+/* Hover, and the keyboard's way through the bar: an item under the pointer while a menu is
+   open is the next menu, so it looks ready before it opens. */
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible,
+.menu-item[aria-expanded='true'] {
+	background: var(--bg-hover);
+	color: var(--fg);
+}
+
+/* The item whose menu is open is the top of that menu, not a button above it: its highlight
+   is the panel's own surface, its corners are square so nothing shows through where the two
+   meet, and it is painted above the panel so the panel's seam and the smudge of its shadow
+   fall behind it. */
+.composer__menubar .menu-item[aria-expanded='true'] {
+	position: relative;
+	z-index: 31;
+	border-radius: 0;
 	background: var(--bg-raised);
-	transition: border-color var(--duration-fast);
 }
 
-.composer__editor--streaming {
-	border-color: var(--accent-soft);
+.menu-item:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
 }
 
-/* The editor band, and the composer's click surface: empty space here focuses the textarea
-   (see `focusPrompt` in Composer.tsx), so the cursor says text and the controls restore the
-   pointer. It draws no border of its own — the surface above owns the only one — and its
-   gutters match the page band's, so the prompt's text and the chevron line up. */
+.menu-item:disabled {
+	cursor: default;
+	opacity: 0.55;
+}
+
+/* Dimmed without being disabled: the Tools menu still opens to say why it is empty. */
+.menu-item--muted {
+	opacity: 0.55;
+}
+
+.menu-item__label {
+	flex: none;
+	white-space: nowrap;
+}
+
+/* The live count, in a pill of its own so the bar can show a number without a bordered
+   badge — a badge has a fixed height and would make its item taller than its neighbours. */
+.menu-item__count {
+	flex: none;
+	min-width: 16px;
+	padding: 0 var(--space-1);
+	border-radius: var(--radius-pill);
+	background: var(--bg-active);
+	color: var(--fg);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	line-height: 16px;
+	text-align: center;
+}
+
+/* Capturing a page is work in progress, so the count pulses — it is the only thing there
+   for the reader to watch. base.css neutralises the animation under prefers-reduced-motion. */
+.menu-item__count--busy {
+	animation: menu-item-pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes menu-item-pulse {
+	0%,
+	100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* What the menu currently holds — the model on screen, the reasoning effort. Dimmed and
+   shrinkable: it is the part that gives way when the bar runs out of room. */
+.menu-item__value {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg-faint);
+	font-weight: 400;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* The prompt band, and the composer's click surface: the padding above and below the text
+   focuses the textarea (see `focusPrompt` in Composer.tsx), so the cursor says text. Its
+   surface is a shade darker than the panel, which is the only thing that says where typing
+   goes until the ring appears. */
 .composer__box {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	padding: var(--space-2);
+	padding: var(--space-1) 0;
+	background: var(--bg-sunken);
 	cursor: text;
 }
 
-/* The focus ring belongs to the prompt, not to the surface: a 1px accent edge drawn on the
-   editor band alone, its top side being the hairline under the page band, its bottom corners
-   following the composer's. The page list above keeps the composer's neutral border, which is
-   what tells the eye that only the prompt is listening. It is an overlay, inset by the one
-   pixel of the surface's border, so it costs no layout and replaces that edge instead of
-   drawing a second line beside it. */
+/* The focus ring belongs to the prompt alone: a 1px accent edge on the band, drawn while the
+   textarea itself has focus. It is an overlay at `inset: 0`, so it costs no layout and the
+   band's own surface shows through underneath. No menu item or action button is inside this
+   element any more, so nothing else can light it — a border that says "type here" while a
+   keystroke reaches nothing is worse than no border at all. */
 .composer__box::after {
 	content: '';
 	position: absolute;
-	inset: -1px;
+	inset: 0;
 	border: 1px solid var(--accent);
-	border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 	pointer-events: none;
 	opacity: 0;
 	transition: opacity var(--duration-fast);
 }
 
-/* Only the prompt's own focus shows it. A chip, a menu, a page row or the Add page button
-   can be focused inside the composer while a keystroke reaches nothing — a border that says
-   "type here" when typing goes nowhere is worse than no border at all. */
 .composer__box:has(.composer__input:focus)::after {
 	opacity: 1;
 }
 
-/* Sized: the height the user dragged, shared between the box and the textarea. The page
-   section and the box fill what the rows above them leave and the textarea scrolls inside
-   the box, so a long draft no longer grows the composer past the height on screen — and a
-   sliver of transcript is always left above it (see `composerLimits`). */
+/* A run in flight tints the prompt band, the way the surface used to carry an accent border:
+   the answer being written comes from this prompt. */
+.composer__editor--streaming .composer__box {
+	background: color-mix(in oklab, var(--accent) 5%, var(--bg-sunken));
+}
+
+/* Sized: the height the user dragged, shared between the menu bar and the box. The box fills
+   what the rows around it leave and the textarea scrolls inside it, so a long draft no
+   longer grows the composer past the height on screen — and a sliver of transcript is always
+   left above it (see `composerLimits`). */
 .composer--sized {
 	min-height: 0;
 }
@@ -1186,14 +1164,19 @@
 	overflow-y: auto;
 }
 
+/* The band's one gutter is here, so the prompt's text, the first menu word and the meter all
+   start at the same x. The minimum is three lines of text (`lh` is the element's own
+   line-height, so the count survives a text-size change), which is what the prompt opens at —
+   enough to see a paragraph taking shape without dragging the composer open. The ceiling is
+   the natural auto-grow's cap; a dragged composer lifts it (see `.composer--sized`). */
 .composer__input {
 	display: block;
 	width: 100%;
 	border: 0;
 	background: none;
 	resize: none;
-	padding: var(--space-2) var(--space-3);
-	min-height: 40px;
+	padding: var(--space-1) var(--space-4);
+	min-height: calc(3lh + 2 * var(--space-1));
 	max-height: 240px;
 	font-size: var(--text-md);
 	line-height: 1.5;
@@ -1203,25 +1186,18 @@
 	outline: none;
 }
 
-/* No padding-inline: the box gutter positions the first chip and the last button. The top
-   padding is the gap under the prompt text; the bottom one belongs to the box. Positioned so
-   a trailing-aligned popover can pin itself to this row's trailing edge, which is the box's. */
-.composer__toolbar {
-	position: relative;
-	display: flex;
-	flex: none;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-2) 0 0;
-	flex-wrap: wrap;
-}
-
+/* The row under the prompt: what the context costs, then the actions at the trailing edge.
+   The buttons live here rather than in the prompt band so the focus ring can wrap the prompt
+   alone. Its height is set by the tallest thing it can hold — a small button plus the row's
+   own padding — so the send button appearing with the first character does not move the band
+   above it by the couple of pixels the row would otherwise grow. */
 .composer__meta {
 	display: flex;
 	flex: none;
 	align-items: center;
-	gap: var(--space-4);
-	min-height: 18px;
+	gap: var(--space-2);
+	min-height: calc(var(--button-height) + var(--space-2));
+	padding: var(--space-1) var(--space-4) var(--space-2);
 }
 
 /* The meter hangs off a popover anchor, which shrink-wraps its trigger by default. In the
@@ -1232,7 +1208,7 @@
 	min-width: 0;
 }
 
-/* Square, never squeezed by a wrapped toolbar. */
+/* Square, never squeezed by the count beside it. */
 .composer__submit {
 	flex: none;
 }
@@ -1240,13 +1216,17 @@
 .composer__count {
 	font-size: var(--text-xs);
 	margin-left: auto;
+	white-space: nowrap;
 }
 
+/* The transient rows sit above the menu bar, and they are the only part of the composer
+   that keeps a surface of its own: they are messages, not part of the prompt. */
 .composer__error {
 	display: flex;
 	flex: none;
 	gap: var(--space-3);
 	align-items: flex-start;
+	margin: var(--space-2) var(--space-4) 0;
 	font-size: var(--text-xs);
 	color: var(--danger-fg);
 	background: var(--danger-soft);
@@ -1262,6 +1242,7 @@
 	gap: var(--space-2);
 	max-height: 132px;
 	overflow-y: auto;
+	margin: var(--space-2) var(--space-4) 0;
 	padding: var(--space-2) var(--space-3);
 	border: 1px dashed var(--border);
 	border-radius: var(--radius-md);
@@ -1317,57 +1298,6 @@
 .composer__queue-remove:hover:not(:disabled) {
 	color: var(--danger-fg);
 	background: var(--danger-soft);
-}
-
-.chip {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-height: 24px;
-	padding: var(--space-1) var(--space-3);
-	border-radius: var(--radius-pill);
-	border: 1px solid var(--border);
-	background: var(--bg-sunken);
-	color: var(--fg-muted);
-	font-size: var(--text-xs);
-	font-weight: 500;
-	max-width: 150px;
-	transition:
-		background var(--duration-fast),
-		color var(--duration-fast);
-}
-
-.chip:hover:not(:disabled) {
-	background: var(--bg-hover);
-	color: var(--fg);
-}
-
-.chip--icon {
-	width: 24px;
-	padding: 0;
-	justify-content: center;
-}
-
-.chip--disabled {
-	opacity: 0.55;
-}
-
-.chip__text {
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-/* A bare count, like the page counter: no border and no fixed height, so a chip carrying
-   one is still the height of the chips beside it. */
-.chip__count {
-	flex: none;
-	font-variant-numeric: tabular-nums;
-}
-
-.chip--model {
-	max-width: 190px;
-	color: var(--fg);
 }
 
 /* --------------------------------------------------------------- context meter */
@@ -1448,26 +1378,25 @@
 	cursor: default;
 }
 
-/* Hangs leftwards from the trigger, for a chip near the trailing edge of the composer: the
-   panel's right edge is pinned to the chip's, so the menu cannot run past the panel. */
+/* Hangs leftwards from the trigger, for a menu that has to grow away from the trailing edge
+   of whatever it belongs to. Flush menus hang from their own item's left edge like a window's
+   menus do, and `Popover` moves a panel that would overflow back inside the side panel, so a
+   bar item near the edge needs no special alignment of its own. */
 .popover--end {
 	left: auto;
 	right: 0;
 }
 
-/* Pins the panel to the composer toolbar's trailing edge — and so the panel's — instead of
-   to its trigger, for a chip in the middle of the row whose menu still has to line up with
-   the edge the other menus reach. The anchor goes static so the toolbar is the containing
-   block; `bottom` is measured from the toolbar's padding box, whose 4px top padding is
-   taken out of the gap so every chip menu opens the same distance above its chip. */
-.popover-anchor--trailing {
-	position: static;
-}
-
-.popover--trailing {
-	left: auto;
-	right: 0;
-	bottom: calc(100% + 6px - var(--space-2));
+/* A menu that belongs to a bar item is the body of that item, the way a window's menu is: it
+   sits on the item's own edge with no gap to cross, its two bottom corners are square where
+   it meets the bar, and it overlaps the item by a pixel so the seam — and the smudge of the
+   shadow along it — falls behind the item, which is painted above the panel (see
+   `.composer__menubar .menu-item[aria-expanded='true']`). Only the top corners still round
+   off, so the panel reads as one surface with the highlighted item under it. */
+.popover--flush {
+	bottom: calc(100% - 1px);
+	border-bottom: 0;
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 /* Search row, with its settings gear on the trailing edge. */

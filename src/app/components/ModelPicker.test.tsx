@@ -31,7 +31,7 @@ function openPicker(
 	const view = render(
 		<ModelPicker settings={settings} current={current} onSelect={onSelect} onDefaultChange={onDefaultChange} />,
 	)
-	fireEvent.click(view.container.querySelector('.chip--model') as HTMLElement)
+	fireEvent.click(view.container.querySelector('.model-menu__trigger') as HTMLElement)
 	return { ...view, onSelect, onDefaultChange }
 }
 

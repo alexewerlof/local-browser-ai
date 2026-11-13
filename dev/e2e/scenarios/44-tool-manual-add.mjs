@@ -92,8 +92,8 @@ export async function run(ctx) {
 		assert.match(result.text, /chrome\.search/)
 
 		// The page was captured as the results of a search, so it is not a reference the
-		// user added: the page list stays empty.
-		assert.equal(await page.locator('.page-list__toggle').count(), 0)
+		// user added: the Pages menu counts none.
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '0')
 		assert.equal(await page.locator('.page-chip').count(), 0)
 	} finally {
 		await server.close()

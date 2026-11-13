@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, ChevronDown, CircleCheck, MessageCircleMore, Sparkles, Star, TriangleAlert } from 'lucide-react'
+import { ArrowRight, CircleCheck, MessageCircleMore, Star, TriangleAlert } from 'lucide-react'
 import type { AppSettings, ModelModality, ModelRef } from '../../core/types'
 import { insecureEndpoint } from '../../core/endpoint'
 import {
@@ -11,7 +11,9 @@ import {
 	modelMaxOutputTokens,
 } from '../../providers/catalog'
 import { formatTokens } from '../../core/util'
+import { useBarMenu } from '../menu-bar'
 import { ModalityIcon, MODALITY_ICONS } from './ModalityIcon'
+import { MenuButton } from './MenuButton'
 import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
 
@@ -83,7 +85,7 @@ export function ModelPicker({
 	onSelect: (ref: ModelRef) => void
 	onDefaultChange: (ref: ModelRef) => void
 }) {
-	const [open, setOpen] = useState(false)
+	const menu = useBarMenu('model-menu__trigger')
 	const [query, setQuery] = useState('')
 
 	const groups = useMemo(() => {
@@ -119,21 +121,21 @@ export function ModelPicker({
 
 	return (
 		<Popover
-			open={open}
-			onClose={() => setOpen(false)}
-			align="trailing"
+			open={menu.open}
+			onClose={menu.close}
+			align="start"
 			width={300}
+			flush
 			trigger={
-				<button
-					type="button"
-					className="chip chip--model"
-					onClick={() => setOpen((value) => !value)}
+				<MenuButton
+					block="model-menu__trigger"
+					label="Model"
+					value={label}
 					title="Change model"
-				>
-					<Sparkles size={12} />
-					<span className="chip__text">{label}</span>
-					<ChevronDown size={12} />
-				</button>
+					expanded={menu.open}
+					onClick={menu.toggle}
+					onHover={menu.hover}
+				/>
 			}
 		>
 			<div className="popover__header">
@@ -144,7 +146,7 @@ export function ModelPicker({
 					onChange={(event) => setQuery(event.target.value)}
 					autoFocus
 				/>
-				<SettingsButton section="providers" label="Manage model providers" onClose={() => setOpen(false)} />
+				<SettingsButton section="providers" label="Manage model providers" onClose={menu.close} />
 			</div>
 			<div className="popover__list">
 				{groups.length === 0 && <p className="popover__empty">No models. Add a provider in Settings.</p>}
@@ -192,7 +194,7 @@ export function ModelPicker({
 											className="popover__item popover__item--model"
 											onClick={() => {
 												onSelect({ providerId: provider.id, modelId })
-												setOpen(false)
+												menu.close()
 											}}
 										>
 											<span className="popover__item-row">

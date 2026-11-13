@@ -32,10 +32,12 @@ export async function run(ctx) {
 	const defaultInStorage = () => page.evaluate(() => window.__LB_AI_TEST__.currentSettings()?.defaultModel?.modelId)
 
 	// Switching model in the panel is about this chat, so the default must not move.
-	await page.locator('.chip--model').click()
+	await page.locator('.model-menu__trigger').click()
 	await page.waitForSelector('.popover')
 	await page.locator('.popover__item--model', { hasText: 'beta-model' }).click()
-	await page.waitForFunction(() => document.querySelector('.chip--model')?.textContent?.includes('beta-model'))
+	await page.waitForFunction(() =>
+		document.querySelector('.model-menu__trigger')?.textContent?.includes('beta-model'),
+	)
 	assert.equal(await defaultInStorage(), 'alpha-model')
 
 	// The star is the default control, and it sits in the table next to the model.

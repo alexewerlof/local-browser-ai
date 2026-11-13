@@ -39,7 +39,7 @@ export async function run(ctx) {
 	}
 
 	// Templates: the gear sits beside the search row at the top of the menu.
-	await page.locator('.chip:has-text("Templates")').click()
+	await page.locator('.templates-menu__trigger').click()
 	let result = await clickAndReadSection(() =>
 		page.locator('.popover__header button[aria-label="Manage templates"]').click(),
 	)
@@ -48,13 +48,13 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.popover').count(), 0)
 
 	// Built-in tools and MCP servers share one Tools section, so they share one gear.
-	await page.locator('.chip:has-text("Tools")').click()
+	await page.locator('.tools-menu__trigger').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage tools"]').click())
 	assert.deepEqual(result, { created: false, hash: '#tools' })
 
 	// Model Providers: the gear sits beside the search row at the top of the picker, because
 	// that is where models and the default are configured.
-	await page.locator('.chip--model').click()
+	await page.locator('.model-menu__trigger').click()
 	result = await clickAndReadSection(() => page.locator('button[aria-label="Manage model providers"]').click())
 	assert.deepEqual(result, { created: false, hash: '#providers' })
 

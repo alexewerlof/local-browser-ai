@@ -15,7 +15,7 @@ export async function run(ctx) {
 	const updates = () => page.evaluate(() => window.__LB_AI_TEST__.updatedTabs)
 
 	// Templates: the open tab is activated, focused and pointed at its section — no new tab.
-	await page.locator('.chip:has-text("Templates")').click()
+	await page.locator('.templates-menu__trigger').click()
 	await page.locator('button[aria-label="Manage templates"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 1)
 	assert.equal(await opened(), 0)
@@ -26,7 +26,7 @@ export async function run(ctx) {
 	assert.deepEqual(await page.evaluate(() => window.__LB_AI_TEST__.focusedWindows), [{ id: 2, focused: true }])
 
 	// Asking for the section already on screen only activates the tab; it does not reload it.
-	await page.locator('.chip:has-text("Templates")').click()
+	await page.locator('.templates-menu__trigger').click()
 	await page.locator('button[aria-label="Manage templates"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 2)
 	last = (await updates()).at(-1)
@@ -35,7 +35,7 @@ export async function run(ctx) {
 	assert.equal(await opened(), 0)
 
 	// A different section navigates the same tab.
-	await page.locator('.chip:has-text("Tools")').click()
+	await page.locator('.tools-menu__trigger').click()
 	await page.locator('button[aria-label="Manage tools"]').click()
 	await page.waitForFunction(() => window.__LB_AI_TEST__.updatedTabs.length === 3)
 	last = (await updates()).at(-1)

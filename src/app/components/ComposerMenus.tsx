@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import type { AppSettings, PromptTemplate, ToolSettings } from '../../core/types'
-import { BookMarked, ChevronDown, Wrench } from 'lucide-react'
 import { mcpServerKey } from '../../core/mcp'
 import { enabledBuiltInTools } from '../../core/settings'
 import { isMcpToolEnabled } from '../../core/tool-selection'
 import { mcpCatalogStore, type McpCatalogEntry } from '../../state/mcp'
+import { useBarMenu } from '../menu-bar'
 import { useStore } from '../useStore'
+import { MenuButton } from './MenuButton'
 import { Popover } from './Popover'
 import { SettingsButton } from './SettingsButton'
 import { ToolTree } from './ToolTree'
@@ -17,7 +18,7 @@ export function PromptTemplateMenu({
 	templates: PromptTemplate[]
 	onSelect: (template: PromptTemplate) => void
 }) {
-	const [open, setOpen] = useState(false)
+	const menu = useBarMenu('templates-menu__trigger')
 	const [query, setQuery] = useState('')
 
 	if (templates.length === 0) return null
@@ -33,21 +34,20 @@ export function PromptTemplateMenu({
 
 	return (
 		<Popover
-			open={open}
-			onClose={() => setOpen(false)}
+			open={menu.open}
+			onClose={menu.close}
 			width={300}
 			align="start"
+			flush
 			trigger={
-				<button
-					type="button"
-					className="chip"
-					onClick={() => setOpen((value) => !value)}
+				<MenuButton
+					block="templates-menu__trigger"
+					label="Templates"
 					title="Prompt templates"
-				>
-					<BookMarked size={12} />
-					<span className="chip__text">Templates</span>
-					<ChevronDown size={12} />
-				</button>
+					expanded={menu.open}
+					onClick={menu.toggle}
+					onHover={menu.hover}
+				/>
 			}
 		>
 			<div className="popover__header">
@@ -58,7 +58,7 @@ export function PromptTemplateMenu({
 					onChange={(event) => setQuery(event.target.value)}
 					autoFocus
 				/>
-				<SettingsButton section="templates" label="Manage templates" onClose={() => setOpen(false)} />
+				<SettingsButton section="templates" label="Manage templates" onClose={menu.close} />
 			</div>
 			<div className="popover__list">
 				<div className="popover__group">
@@ -71,7 +71,7 @@ export function PromptTemplateMenu({
 							className="popover__item popover__item--stacked"
 							onClick={() => {
 								onSelect(template)
-								setOpen(false)
+								menu.close()
 							}}
 						>
 							<span className="popover__item-main">{template.name}</span>
@@ -93,33 +93,34 @@ export function ToolsMenu({
 	onChange: (tools: ToolSettings) => void
 	disabledReason?: string
 }) {
-	const [open, setOpen] = useState(false)
+	const menu = useBarMenu('tools-menu__trigger')
 	const catalog = useStore(mcpCatalogStore)
 	const enabledCount = countEnabledTools(settings, catalog)
 
 	return (
 		<Popover
-			open={open}
-			onClose={() => setOpen(false)}
+			open={menu.open}
+			onClose={menu.close}
 			width={320}
 			align="start"
+			flush
 			trigger={
-				<button
-					type="button"
-					className={`chip${disabledReason ? ' chip--disabled' : ''}`}
-					onClick={() => setOpen((value) => !value)}
+				<MenuButton
+					block="tools-menu__trigger"
+					label="Tools"
+					count={enabledCount}
 					title={disabledReason ?? 'Tools the model may use'}
-				>
-					<Wrench size={12} />
-					<span className="chip__text">Tools</span>
-					<span className="chip__count">{enabledCount}</span>
-				</button>
+					expanded={menu.open}
+					muted={Boolean(disabledReason)}
+					onClick={menu.toggle}
+					onHover={menu.hover}
+				/>
 			}
 		>
 			{disabledReason ? (
 				<p className="popover__empty">{disabledReason}</p>
 			) : (
-				<ToolTree settings={settings} onChange={onChange} onClose={() => setOpen(false)} />
+				<ToolTree settings={settings} onChange={onChange} onClose={menu.close} />
 			)}
 		</Popover>
 	)

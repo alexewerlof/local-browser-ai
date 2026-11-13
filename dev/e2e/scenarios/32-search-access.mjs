@@ -90,9 +90,9 @@ export async function run(ctx) {
 		await page.waitForFunction(() => document.body.innerText.includes('According to the results'))
 
 		// The banner is gone and the page it waited for is in the chat, but a search is not a
-		// reference: the page list stays empty.
+		// reference: the Pages menu counts none.
 		assert.equal(await page.locator('.page-access').count(), 0)
-		assert.equal(await page.locator('.page-list__toggle').count(), 0)
+		assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '0')
 		assert.equal(await page.locator('.page-chip').count(), 0)
 		// The search attached its own page, so opening the folded steps offers no manual add.
 		await expandSteps(page)

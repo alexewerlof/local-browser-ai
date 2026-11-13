@@ -19,12 +19,18 @@ export async function run(ctx) {
 	assert.equal(await page.locator('.empty__title').isVisible(), true)
 	assert.match(await page.locator('.empty__subtitle').textContent(), /Right-click any page/i)
 
-	// The model chip reflects the configured model.
-	assert.match(await page.locator('.chip--model').textContent(), /fake-model/)
+	// The model menu states the model in use, on the bar itself.
+	assert.match(await page.locator('.model-menu__trigger').textContent(), /fake-model/)
 
-	// No page is in the chat, so the composer's page header says so and offers the add.
-	assert.match(await page.locator('.page-list__caption').textContent(), /0 pages/)
-	assert.match(await page.locator('.page-list__add').textContent(), /Add page/)
+	// The composer's menu bar is there before anything is added: Pages says how many pages the
+	// chat holds, and its menu is where the add lives.
+	assert.equal((await page.locator('.composer__menubar .menu-item').count()) >= 3, true)
+	assert.equal(await page.locator('.pages-menu__trigger .menu-item__count').textContent(), '0')
+	await page.locator('.pages-menu__trigger').click()
+	assert.equal(await page.locator('.popover__empty').textContent(), 'No pages in this chat.')
+	assert.equal(await page.locator('.pages-menu__add').getAttribute('aria-label'), 'Add page to chat')
+	await page.keyboard.press('Escape')
+	assert.equal(await page.locator('.popover').count(), 0)
 
 	// The context meter is present even before a page is added.
 	assert.equal(await page.locator('.meter').isVisible(), true)
