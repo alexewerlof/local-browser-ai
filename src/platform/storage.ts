@@ -10,30 +10,41 @@ export interface KeyValueStore {
 }
 
 class ChromeStore implements KeyValueStore {
+	#areaName: 'local' | 'session'
+
+	constructor(areaName: 'local' | 'session' = 'local') {
+		this.#areaName = areaName
+	}
+
+	#area(): chrome.storage.StorageArea | undefined {
+		return getChrome()?.storage?.[this.#areaName]
+	}
+
 	async get<T>(key: string, fallback: T): Promise<T> {
-		const chromeApi = getChrome()
-		if (!chromeApi?.storage?.local) return fallback
-		const result = await chromeApi.storage.local.get(key)
+		const area = this.#area()
+		if (!area) return fallback
+		const result = await area.get(key)
 		return key in result ? (result[key] as T) : fallback
 	}
 
 	async set(key: string, value: unknown): Promise<void> {
-		const chromeApi = getChrome()
-		if (!chromeApi?.storage?.local) return
-		await chromeApi.storage.local.set({ [key]: value })
+		const area = this.#area()
+		if (!area) return
+		await area.set({ [key]: value })
 	}
 
 	async remove(key: string): Promise<void> {
-		const chromeApi = getChrome()
-		if (!chromeApi?.storage?.local) return
-		await chromeApi.storage.local.remove(key)
+		const area = this.#area()
+		if (!area) return
+		await area.remove(key)
 	}
 
 	watch(key: string, listener: (value: unknown) => void): () => void {
 		const chromeApi = getChrome()
 		if (!chromeApi?.storage?.onChanged) return () => {}
-		const handler = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
-			if (areaName !== 'local') return
+		const areaName = this.#areaName
+		const handler = (changes: Record<string, chrome.storage.StorageChange>, changedArea: string) => {
+			if (changedArea !== areaName) return
 			const change = changes[key]
 			if (change) listener(change.newValue)
 		}
@@ -86,6 +97,15 @@ class WebStore implements KeyValueStore {
 
 export function createStore(): KeyValueStore {
 	return getChrome()?.storage?.local ? new ChromeStore() : new WebStore()
+}
+
+/**
+ * Session storage: gone when the browser closes, which is exactly how long a browser-owned
+ * id (a tab group id, say) means anything. A browser without the area falls back to the
+ * web store, where the value simply outlives its usefulness and is re-checked on use.
+ */
+export function createSessionStore(): KeyValueStore {
+	return getChrome()?.storage?.session ? new ChromeStore('session') : new WebStore()
 }
 
 export const STORAGE_KEYS = {

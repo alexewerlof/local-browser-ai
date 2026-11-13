@@ -96,6 +96,8 @@ export function chromeShim(config = {}) {
 		favIconUrl: config.tab?.favIconUrl ?? '',
 		// A tab that has finished loading, so anything waiting on the load resolves at once.
 		status: 'complete',
+		// Ungrouped, like `chrome.tabGroups.TAB_GROUP_ID_NONE`.
+		groupId: -1,
 	}
 
 	const defaultExtraction = {
@@ -155,12 +157,33 @@ export function chromeShim(config = {}) {
 		active: false,
 		url: new URL(path, location.href).toString(),
 		title: 'Settings',
+		groupId: -1,
 	}))
 	/** The fixture tab first, then anything a scenario or the app opened. */
-	const tabsById = () => [tab, ...otherTabs]
+	const tabsById = () => [tab, ...otherTabs].filter((entry) => !entry.closed)
 	let nextTabId = 600
+	/** Tab groups, as Chrome would hold them: one id per group, tabs point at it. */
+	const tabGroups = new Map()
+	let nextGroupId = 900
 	const updatedTabs = []
 	const focusedWindows = []
+
+	/** A tab a tool or the panel opened: real, findable and ungrouped. */
+	function openTab(url, extra = {}) {
+		const created = {
+			id: nextTabId++,
+			windowId: 2,
+			active: true,
+			status: 'complete',
+			title: url,
+			url,
+			favIconUrl: '',
+			groupId: -1,
+			...extra,
+		}
+		otherTabs.push(created)
+		return created
+	}
 
 	async function handleRequest(request) {
 		switch (request.type) {
@@ -182,7 +205,12 @@ export function chromeShim(config = {}) {
 			}
 			case 'page.focus': {
 				focusedPages.push({ tabId: request.tabId ?? null, url: request.url })
-				return { ok: true, value: { tabId: request.tabId ?? 999 } }
+				// A tab still showing the page is the user's own; one that is gone comes back as
+				// a tab the extension opened, which is what the panel groups.
+				const existing = tabsById().find((entry) => entry.id === request.tabId)
+				if (existing) return { ok: true, value: { tabId: existing.id, opened: false } }
+				const created = openTab(request.url)
+				return { ok: true, value: { tabId: created.id, opened: true } }
 			}
 			case 'tab.info':
 				return { ok: true, value: tabsById().find((entry) => entry.id === request.tabId) ?? tab }
@@ -204,32 +232,20 @@ export function chromeShim(config = {}) {
 				opened.push(request.url)
 				// A real tab, not a bare id: `tab.info` and `tab.extract` look it up, and a
 				// missing one silently falls back to the fixture tab.
-				const created = {
-					id: nextTabId++,
-					windowId: 2,
-					active: true,
-					status: 'complete',
-					title: request.url,
-					url: request.url,
-					favIconUrl: '',
-				}
-				otherTabs.push(created)
+				const created = openTab(request.url)
 				return { ok: true, value: { tabId: created.id } }
 			}
 			case 'search.query': {
-				searches.push({ text: request.text, disposition: request.disposition })
+				searches.push({
+					text: request.text,
+					disposition: request.disposition,
+					conversationId: request.conversationId,
+				})
 				// The worker works the results tab out of the tabs that appeared around the call;
 				// the shim creates one, so a search leaves a real tab behind like a browser does.
-				const results = {
-					id: nextTabId++,
-					windowId: 2,
-					active: true,
-					status: 'complete',
+				const results = openTab(`https://www.google.com/search?q=${encodeURIComponent(request.text)}`, {
 					title: `${request.text} - Search`,
-					url: `https://www.google.com/search?q=${encodeURIComponent(request.text)}`,
-					favIconUrl: '',
-				}
-				otherTabs.push(results)
+				})
 				return { ok: true, value: { disposition: request.disposition, tabId: results.id, url: results.url } }
 			}
 			default:
@@ -401,17 +417,40 @@ export function chromeShim(config = {}) {
 		},
 		tabs: {
 			// The attached tab first, then whatever the scenario says is already open.
-			async query() {
-				return tabsById()
+			async query(queryInfo = {}) {
+				const all = tabsById()
+				// `groupId` is the one filter the app relies on: it is how a stored group id
+				// is checked without the `tabGroups` permission.
+				if (typeof queryInfo.groupId === 'number') {
+					return all.filter((entry) => entry.groupId === queryInfo.groupId)
+				}
+				return all
 			},
 			async get(id) {
 				return tabsById().find((entry) => entry.id === id) ?? tab
 			},
 			async create({ url }) {
 				opened.push(url)
-				const created = { id: nextTabId++, windowId: 2, active: true, url, title: '', status: 'complete' }
-				otherTabs.push(created)
-				return created
+				return openTab(url)
+			},
+			/** Group tabs, creating the group when no live one is named — like Chrome. */
+			async group({ tabIds, groupId, createProperties } = {}) {
+				const ids = Array.isArray(tabIds) ? tabIds : [tabIds]
+				let target = groupId
+				if (target === undefined) {
+					target = nextGroupId++
+					const first = tabsById().find((entry) => entry.id === ids[0])
+					tabGroups.set(target, { id: target, windowId: createProperties?.windowId ?? first?.windowId ?? 1 })
+				} else if (!tabGroups.has(target)) {
+					// Chrome rejects an id that no longer names a group; the app recovers by
+					// asking for a new one.
+					throw new Error(`No group with id: ${target}`)
+				}
+				for (const id of ids) {
+					const entry = tabsById().find((candidate) => candidate.id === id)
+					if (entry) entry.groupId = target
+				}
+				return target
 			},
 			async update(id, props) {
 				const target = tabsById().find((entry) => entry.id === id)
@@ -458,6 +497,32 @@ export function chromeShim(config = {}) {
 		/** `tabs.update` calls, in order: the tab the app activated (and navigated, if any). */
 		updatedTabs,
 		focusedWindows,
+		/**
+		 * The tab groups on the strip, with the tabs each one holds.
+		 * A group with no tabs left is gone, because Chrome deletes it.
+		 */
+		get tabGroups() {
+			return [...tabGroups.values()]
+				.map((group) => ({
+					id: group.id,
+					windowId: group.windowId,
+					tabs: tabsById()
+						.filter((entry) => entry.groupId === group.id)
+						.map((entry) => entry.id),
+				}))
+				.filter((group) => group.tabs.length > 0)
+		},
+		/** Close every tab of a group, as clicking the group's X does. */
+		closeGroup(groupId) {
+			for (const entry of tabsById()) {
+				if (entry.groupId === groupId) entry.closed = true
+			}
+		},
+		/** Close one tab, so a card has to reopen its page. */
+		closeTab(tabId) {
+			const tabToClose = tabsById().find((entry) => entry.id === tabId)
+			if (tabToClose) tabToClose.closed = true
+		},
 		setExtraction(next) {
 			extraction = next
 		},
@@ -465,7 +530,14 @@ export function chromeShim(config = {}) {
 		addPage(nextTab = tab.id, nextExtraction) {
 			const descriptor = typeof nextTab === 'number' ? { id: nextTab } : nextTab
 			if (!tabsById().some((entry) => entry.id === descriptor.id)) {
-				otherTabs.push({ windowId: 2, active: false, title: 'Page', favIconUrl: '', ...descriptor })
+				otherTabs.push({
+					windowId: 2,
+					active: false,
+					title: 'Page',
+					favIconUrl: '',
+					groupId: -1,
+					...descriptor,
+				})
 			}
 			if (nextExtraction) extractionByTab.set(descriptor.id, nextExtraction)
 			if (!pendingTabs.includes(descriptor.id)) pendingTabs.push(descriptor.id)

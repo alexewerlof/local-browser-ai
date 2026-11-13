@@ -14,6 +14,7 @@ import type { TabAttachment } from '../browser/tools'
 import type { TabInfo } from '../browser/protocol'
 import { isHttpUrl } from '../core/util'
 import { getChrome } from '../platform/chrome'
+import { groupConversationTab } from './tab-group'
 
 /**
  * The tab the panel is looking at — what the composer's add button would capture.
@@ -214,9 +215,17 @@ export function readTabInfo(tabId?: number): Promise<TabInfo> {
 	return getTabInfo(tabId)
 }
 
-/** Bring the page behind a card back on screen, reopening it when its tab is gone. */
-export function focusPage(tabId: number | undefined, url: string): Promise<void> {
-	return focusPageInBrowser(tabId, url)
+/**
+ * Bring the page behind a card back on screen, reopening it when its tab is gone.
+ *
+ * A tab that had to be opened is the extension's, so it joins the chat's tab group; a tab
+ * that already showed the page is the user's own and is only brought forward.
+ */
+export async function focusPage(tabId: number | undefined, url: string, conversationId?: string): Promise<void> {
+	const result = await focusPageInBrowser(tabId, url)
+	if (result.opened && result.tabId !== undefined && conversationId) {
+		void groupConversationTab(result.tabId, conversationId)
+	}
 }
 
 export interface BrowserEventHandlers {

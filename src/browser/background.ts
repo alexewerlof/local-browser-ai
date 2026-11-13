@@ -2,7 +2,7 @@ import { AppError, toAppError } from '../providers/errors'
 import { readPendingOmniboxPrompt, normalizeOmniboxPrompt, OMNIBOX_SUGGESTION } from '../core/omnibox'
 import type { OmniboxPrompt } from '../core/omnibox'
 import { delay } from '../core/util'
-import { planSearch } from '../core/search'
+import { planSearch, readSearchTab, SEARCH_TABS_KEY, withSearchTab } from '../core/search'
 import { extractPageInPageContext, type InjectResult } from './extract/inject'
 import {
 	EVENT_FLAG,
@@ -10,6 +10,7 @@ import {
 	type BackgroundEvent,
 	type BackgroundRequest,
 	type BackgroundResponse,
+	type FocusPageResult,
 	type SearchDisposition,
 	type SearchResult,
 	type TabInfo,
@@ -399,14 +400,13 @@ async function runExtraction(tabId: number | undefined, mode: 'page' | 'selectio
 /** `chrome.search` is Chrome 87+/Edge only and missing in some forks. */
 const SEARCH_DISPOSITIONS = new Set<SearchDisposition>(['CURRENT_TAB', 'NEW_TAB', 'NEW_WINDOW'])
 const MAX_SEARCH_CHARS = 400
-/** The tab this extension last searched in, so a second search reuses it. */
-const SEARCH_TAB_KEY = 'searchTabId'
 
-async function rememberedSearchTab(): Promise<number | undefined> {
+/** The tab this chat last searched in, so a second search reuses it. */
+async function rememberedSearchTab(conversationId: string): Promise<number | undefined> {
 	try {
-		const stored = await chrome.storage.session.get(SEARCH_TAB_KEY)
-		const id = stored[SEARCH_TAB_KEY]
-		if (typeof id !== 'number') return undefined
+		const stored = await chrome.storage.session.get(SEARCH_TABS_KEY)
+		const id = readSearchTab(stored[SEARCH_TABS_KEY], conversationId)
+		if (id === undefined) return undefined
 		// A tab the user closed must not be navigated; `get` throws for it.
 		await chrome.tabs.get(id)
 		return id
@@ -415,10 +415,11 @@ async function rememberedSearchTab(): Promise<number | undefined> {
 	}
 }
 
-async function rememberSearchTab(tabId: number | undefined): Promise<void> {
+async function rememberSearchTab(conversationId: string, tabId: number): Promise<void> {
 	try {
-		if (tabId === undefined) await chrome.storage.session.remove(SEARCH_TAB_KEY)
-		else await chrome.storage.session.set({ [SEARCH_TAB_KEY]: tabId })
+		const stored = await chrome.storage.session.get(SEARCH_TABS_KEY)
+		const next = withSearchTab(stored[SEARCH_TABS_KEY], conversationId, tabId)
+		await chrome.storage.session.set({ [SEARCH_TABS_KEY]: next })
 	} catch {
 		// Losing the hint only costs one extra tab.
 	}
@@ -432,12 +433,14 @@ async function rememberSearchTab(tabId: number | undefined): Promise<void> {
  * offer to add that page; the model is still told nothing about it, because it cannot
  * read it and a URL in the tool result invites an answer from a page it never saw.
  *
- * A `NEW_TAB` search reuses the tab the previous search opened, because one search per
- * conversation is the normal case and a fresh tab each time litters the window. Reuse
- * needs `CURRENT_TAB` — Chrome navigates the active tab — so the remembered tab is
+ * A `NEW_TAB` search reuses the tab the previous search of **that chat** opened, because
+ * one search per conversation is the normal case and a fresh tab each time litters the
+ * window. Per chat, not per browser: navigating another chat's results tab would move it
+ * out of the group it belongs to, and the chat that opened it would lose its page.
+ * Reuse needs `CURRENT_TAB` — Chrome navigates the active tab — so the remembered tab is
  * activated first. `CURRENT_TAB` from the caller is left alone: that is the user's page.
  */
-async function runSearch(text: string, disposition: SearchDisposition): Promise<SearchResult> {
+async function runSearch(text: string, disposition: SearchDisposition, conversationId: string): Promise<SearchResult> {
 	const query = text.trim()
 	if (!query) throw new AppError('invalid-request', 'A search needs some text to look up.')
 	if (query.length > MAX_SEARCH_CHARS) {
@@ -452,7 +455,7 @@ async function runSearch(text: string, disposition: SearchDisposition): Promise<
 		throw new AppError('unsupported', 'This browser cannot search with the default search engine.')
 	}
 
-	const reusable = await rememberedSearchTab()
+	const reusable = await rememberedSearchTab(conversationId)
 	const plan = planSearch(disposition, reusable)
 	if (plan.tabId !== undefined) {
 		await chrome.tabs.update(plan.tabId, { active: true })
@@ -468,7 +471,9 @@ async function runSearch(text: string, disposition: SearchDisposition): Promise<
 	const before = await openTabIds()
 	await searchApi.query({ text: query, disposition })
 	const target = await searchTarget(before, disposition)
-	if (disposition === 'NEW_TAB') await rememberSearchTab(target.tabId)
+	if (disposition === 'NEW_TAB' && target.tabId !== undefined) {
+		await rememberSearchTab(conversationId, target.tabId)
+	}
 	return { disposition, ...target }
 }
 
@@ -541,8 +546,11 @@ async function activateTab(tab: chrome.tabs.Tab): Promise<void> {
  * The hint is the tab it was captured from, which is only useful while that tab still
  * shows the page: Chrome reuses tab ids, and a page can be reached from any tab. Fall
  * back to any open tab showing it, and only then open a new one.
+ *
+ * The answer says whether a tab had to be opened, because that is the difference between
+ * the user's own tab and the extension's: only the latter joins the chat's tab group.
  */
-async function focusPage(tabId: number | undefined, url: string): Promise<{ tabId?: number }> {
+async function focusPage(tabId: number | undefined, url: string): Promise<FocusPageResult> {
 	if (!/^https?:\/\//i.test(url)) {
 		throw new AppError('invalid-request', 'Only http and https links can be opened.')
 	}
@@ -551,7 +559,7 @@ async function focusPage(tabId: number | undefined, url: string): Promise<{ tabI
 			const tab = await chrome.tabs.get(tabId)
 			if (sameUrl(tab.url, url) || sameDocument(tab.url, url)) {
 				await activateTab(tab)
-				return { tabId: tab.id }
+				return { tabId: tab.id, opened: false }
 			}
 		} catch {
 			// The tab was closed; look for another one.
@@ -562,11 +570,11 @@ async function focusPage(tabId: number | undefined, url: string): Promise<{ tabI
 	const match = tabs.find((tab) => sameUrl(tab.url, url)) ?? tabs.find((tab) => sameDocument(tab.url, url))
 	if (match) {
 		await activateTab(match)
-		return { tabId: match.id }
+		return { tabId: match.id, opened: false }
 	}
 
 	const created = await chrome.tabs.create({ url })
-	return { tabId: created.id }
+	return { tabId: created.id, opened: true }
 }
 
 async function handleRequest(request: BackgroundRequest): Promise<unknown> {
@@ -598,7 +606,7 @@ async function handleRequest(request: BackgroundRequest): Promise<unknown> {
 			return { tabId: tab.id }
 		}
 		case 'search.query':
-			return runSearch(request.text, request.disposition)
+			return runSearch(request.text, request.disposition, request.conversationId)
 		default:
 			throw new AppError('invalid-request', 'Unknown request.')
 	}

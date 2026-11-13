@@ -37,9 +37,14 @@ export async function run(ctx) {
 		assert.equal(await page.locator('.tool[data-state="complete"]').count(), 1)
 
 		// The query ran through the default search engine, in a new tab unless the model
-		// asked for something else.
+		// asked for something else. The chat id rides along so only this chat's own
+		// results tab is ever reused.
 		const searches = await page.evaluate(() => window.__LB_AI_TEST__.searches)
-		assert.deepEqual(searches, [{ text: 'chrome mv3 search api', disposition: 'NEW_TAB' }])
+		assert.deepEqual(
+			searches.map(({ text, disposition }) => ({ text, disposition })),
+			[{ text: 'chrome mv3 search api', disposition: 'NEW_TAB' }],
+		)
+		assert.ok(searches[0].conversationId, 'a search names the chat that asked for it')
 
 		// The result carries the captured results, so the model answers from the page
 		// instead of telling the user to add the tab itself.

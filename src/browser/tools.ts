@@ -464,7 +464,9 @@ export function buildTools(
 				// it is the results tab that the add button on the card points at.
 				const target: SearchDisposition = 'NEW_TAB'
 				try {
-					const result = await searchWeb(query, target)
+					// The chat id lets the worker reuse this chat's own results tab, and keeps it
+					// out of another chat's tab group.
+					const result = await searchWeb(query, target, context.getConversationId())
 					if (result.tabId === undefined) {
 						return {
 							searched: true,

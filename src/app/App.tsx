@@ -99,7 +99,7 @@ export function App() {
 				pages={pages}
 				run={run}
 				onRegenerate={() => void regenerate()}
-				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}
+				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url, conversation.id)}
 			/>
 
 			{run.error && (
@@ -193,7 +193,7 @@ export function App() {
 				onSubmit={(text, promptTemplateId) => void submitPrompt(text, promptTemplateId)}
 				onStop={stopGeneration}
 				onContinue={resumeQueue}
-				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url)}
+				onOpenPage={(page) => void focusPage(page.tabIdHint, page.url, conversation.id)}
 				onAddCurrentPage={() => void addCurrentPage()}
 				onRemovePage={(page) => void removePage(page)}
 				onCompact={() => void compactNow()}

@@ -30,6 +30,7 @@ import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
 import { settingsStore } from './settings'
 import { requestApproval, recordToolTab, attachTabForTool } from './browser'
+import { groupConversationTab } from './tab-group'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
 import { deleteConversation, loadConversation, loadPages, saveConversation, savePage } from './database'
@@ -477,12 +478,27 @@ async function runTurn(assistantId: string, options: RunOptions = {}): Promise<v
 		const model = await createLanguageModel(selection.provider, selection.ref.modelId)
 
 		const toolsEnabled = hasEnabledTools(settings)
-		const builtInTools = buildTools(toolContext, enabledBuiltInTools(settings), settings.tools.autoApprove)
+		/**
+		 * The tools of this run, bound to the chat it answers. `getConversationId` is fixed
+		 * rather than read live: the user can open another chat while this one streams, and a
+		 * memory saved or a tab opened a second later still belongs to this run.
+		 */
+		const runTools: ToolContext = {
+			...toolContext,
+			getConversationId: () => runConversationId,
+			onToolTab: (toolCallId, tabId) => {
+				recordToolTab(toolCallId, tabId)
+				// A tab a tool opened is the extension's doing, not the user's: grouping it keeps
+				// this chat's transient tabs apart from everything they opened themselves.
+				void groupConversationTab(tabId, runConversationId)
+			},
+		}
+		const builtInTools = buildTools(runTools, enabledBuiltInTools(settings), settings.tools.autoApprove)
 
 		// MCP servers connect per turn: a server edited in Settings must never keep
 		// serving yesterday's tools. Failures become warnings, never exceptions.
 		mcpWarningsStore.set([])
-		mcpBundle = await buildMcpTools(toolContext, settings.tools.mcp, controller.signal)
+		mcpBundle = await buildMcpTools(runTools, settings.tools.mcp, controller.signal)
 		mcpWarningsStore.set(mcpBundle?.warnings ?? [])
 
 		const tools: ToolSet = { ...builtInTools, ...(mcpBundle?.tools ?? {}) }

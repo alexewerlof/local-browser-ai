@@ -2,7 +2,7 @@ import { AppError, toAppError } from '../providers/errors'
 import { getChrome } from '../platform/chrome'
 import type { OmniboxPrompt } from '../core/omnibox'
 import { extractPageInPageContext } from './extract/inject'
-import { EVENT_FLAG, RPC_FLAG, type BackgroundRequest, type TabInfo } from './protocol'
+import { EVENT_FLAG, RPC_FLAG, type BackgroundRequest, type FocusPageResult, type TabInfo } from './protocol'
 
 const TIMEOUT_MS = 20_000
 
@@ -96,8 +96,8 @@ export async function takePendingOmniboxPrompt(attempts = 3, delayMs = 120): Pro
 }
 
 /** Bring the page behind a card back on screen, reopening it when its tab is gone. */
-export async function focusPage(tabId: number | undefined, url: string): Promise<void> {
-	await callBackground({ type: 'page.focus', tabId, url })
+export async function focusPage(tabId: number | undefined, url: string): Promise<FocusPageResult> {
+	return (await callBackground({ type: 'page.focus', tabId, url })) as FocusPageResult
 }
 
 export async function getTabInfo(tabId?: number): Promise<TabInfo> {
@@ -120,12 +120,21 @@ export async function openUrl(url: string, newWindow = false): Promise<{ tabId?:
 /**
  * Search with the user's default search engine. The API returns no text, only the tab the
  * results opened in — which is best effort, so read that tab again before capturing it.
+ *
+ * The chat id goes with the call because Chrome can only reuse the tab of the *same*
+ * chat's earlier search: a shared results tab would be navigated out from under it.
  */
 export async function searchWeb(
 	text: string,
 	disposition: import('./protocol').SearchDisposition = 'NEW_TAB',
+	conversationId: string,
 ): Promise<import('./protocol').SearchResult> {
-	return (await callBackground({ type: 'search.query', text, disposition })) as import('./protocol').SearchResult
+	return (await callBackground({
+		type: 'search.query',
+		text,
+		disposition,
+		conversationId,
+	})) as import('./protocol').SearchResult
 }
 
 /** Subscribe to background events (page adds, context-menu selections). */

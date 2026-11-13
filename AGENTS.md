@@ -105,10 +105,24 @@ uses as the manual fallback; the button disappears once the tool reports `added:
 twice would only put a second copy in the chat.
 
 **A search reuses its tab.** `chrome.search.query` can only navigate the tab on screen or open a new one, so a `NEW_TAB`
-search reuses the tab this extension last searched in (`planSearch` in `src/core/search.ts`, `SEARCH_TAB_KEY` in
+search reuses the tab this chat last searched in (`planSearch` in `src/core/search.ts`, `SEARCH_TABS_KEY` in
 `chrome.storage.session`) by activating it and asking for `CURRENT_TAB`. Without that, one conversation leaves a row of
-results tabs behind. A caller that asks for `CURRENT_TAB` or `NEW_WINDOW` gets what it asked for: those are decisions
-about the user's window, not a request for "a" tab. The choice is a pure function so it can be tested without a browser.
+results tabs behind. The lookup is **per conversation**, because a shared results tab would be navigated out from under
+the chat that opened it — and out of that chat's tab group. A caller that asks for `CURRENT_TAB` or `NEW_WINDOW` gets
+what it asked for: those are decisions about the user's window, not a request for "a" tab. The choice is a pure function
+so it can be tested without a browser.
+
+**A chat's tool-opened tabs are one group.** `search_web` and a `url` read leave tabs behind that the extension opened,
+not the user, so each chat gets its own tab group: `groupConversationTab` (`src/state/tab-group.ts`) runs from
+`ToolContext.onToolTab` — the one hook every tool tab already passes through — and from a page card whose tab had to be
+reopened (`page.focus` reports `opened`, and a tab that already showed the page is the user's own and is left alone).
+Chrome cannot name a group in `tabs.create`, so grouping is a second call; that is also why nothing sets a title or a
+colour — those need the `tabGroups` permission, and an unnamed group already marks its tabs as not the user's. The map
+from chat to group is per window (a group cannot span windows) and lives in `chrome.storage.session` (`TAB_GROUPS_KEY`),
+because a group id only means anything for the browser session; every id read back is checked with
+`tabs.query({ groupId })`, and a group whose last tab was closed is replaced rather than reused. A tab the user has
+grouped themselves is never moved. The whole thing is best effort and always on: no setting, no permission, and a
+browser without `tabs.group` simply does not group.
 
 **A tool that captures must return the text.** A page captured during a run has no block in the prompt — `startTurn`
 claims pending pages into the _next_ user message, and the block is frozen — so `search_web` and a `url` read both hand

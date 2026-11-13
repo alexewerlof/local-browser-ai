@@ -22,6 +22,16 @@ export interface SearchResult {
 	url?: string
 }
 
+/**
+ * The tab showing a card's page, and whether it had to be opened again.
+ * A reopened tab is the extension's doing and joins the chat's tab group; a tab that was
+ * already there is the user's, and is left where it is.
+ */
+export interface FocusPageResult {
+	tabId?: number
+	opened: boolean
+}
+
 export type BackgroundRequest =
 	| { type: 'page.pending' }
 	| { type: 'prompt.pending' }
@@ -30,12 +40,12 @@ export type BackgroundRequest =
 	| { type: 'tab.extract'; tabId?: number }
 	| { type: 'tab.selection'; tabId?: number }
 	| { type: 'tab.open'; url: string; newWindow?: boolean }
-	| { type: 'search.query'; text: string; disposition: SearchDisposition }
+	| { type: 'search.query'; text: string; disposition: SearchDisposition; conversationId: string }
 
 export interface RequestResults {
 	'page.pending': { tabIds: number[] }
 	'prompt.pending': { prompt: OmniboxPrompt | null }
-	'page.focus': { tabId?: number }
+	'page.focus': FocusPageResult
 	'tab.info': TabInfo
 	'tab.extract': import('./extract/inject').InjectResult
 	'tab.selection': { text: string }
