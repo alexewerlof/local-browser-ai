@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { CircleAlert, CircleCheck, Plus, RefreshCw } from 'lucide-react'
+import { CircleAlert, CircleCheck, Plus, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { AppSettings, ModelDetails, ModelRef, ProviderSettings } from '../core/types'
+import { insecureEndpoint } from '../core/endpoint'
 import { resolveDefaultModel } from '../core/settings'
 import { createId } from '../core/util'
 import { DEFAULT_BASE_URL } from '../providers/registry'
@@ -176,6 +177,9 @@ function ProviderEditor({
 	const [error, setError] = useState<string | null>(null)
 	const [granted, setGranted] = useState<boolean | null>(null)
 
+	/** Plain HTTP to a remote host: the prompt leaves this machine readable. */
+	const insecure = insecureEndpoint(draft.baseURL)
+
 	const patch = (update: Partial<ProviderSettings>) => setDraft((current) => ({ ...current, ...update }))
 
 	/** Ask the server what it has. The table shows the answer; only a failure needs words. */
@@ -277,6 +281,16 @@ function ProviderEditor({
 						Check site access
 					</button>
 				</div>
+				{/* Directly under the address it is about: the risk is the transport, not the
+				    grant, so it shows even before Chrome has been asked for anything. */}
+				{insecure && (
+					<span className="url-warning">
+						<TriangleAlert size={14} />
+						<span>
+							<strong>{insecure.title}.</strong> {insecure.detail}
+						</span>
+					</span>
+				)}
 				{granted === true && (
 					<span className="url-access url-access--granted">
 						<CircleCheck size={14} />

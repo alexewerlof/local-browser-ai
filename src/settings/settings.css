@@ -530,6 +530,27 @@ body {
 	margin-inline-start: var(--space-2);
 }
 
+/* A plain-HTTP endpoint, said under the address that carries it: the heading names the
+ * problem and the sentence says what it exposes. Same shape as the host-access answer,
+ * in the warning tone, because it is about the connection rather than a missing grant. */
+.url-warning {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--warning);
+}
+
+.url-warning svg {
+	flex: none;
+	margin-block-start: 2px;
+}
+
+.url-warning strong {
+	font-weight: 500;
+}
+
 /* ----------------------------------------------------------------- model table */
 
 /* What the provider reported about its models. A real table because the columns are

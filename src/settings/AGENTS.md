@@ -91,6 +91,13 @@ Local rules:
   `.url-row` (input + `Check site access`) and, underneath, the answer (`Host access granted.` or
   `Chrome has not granted access to {host}.` with `Grant host access`). `Refresh` sits alone under the table. The row is
   a plain `<div>`, not `Field`, because a button inside that `<label>` would fire twice.
+- **A plain-HTTP address is a privacy warning, not a validation error.** Directly under `.url-row` (above the host
+  answer, so it shows before Chrome has been asked for anything) `.url-warning` names the host and says that every
+  device in between can read the prompt and any page attached to it, and that an https address, a VPN or a trusted
+  network is what makes it safe. The test is `insecureEndpoint(baseURL)` in `src/core/endpoint.ts` — http to a host off
+  this machine; loopback (`localhost`, `*.localhost`, 127/8, `::1`) is exempt because that traffic never leaves the
+  machine, so the ordinary local setup carries no badge. The copy lives in that module, never in the component; the
+  model picker renders the same warning as a glyph on the provider's heading.
 - The MCP server's headers are `Name`/`Value` rows (`HeaderRow` + `headersToRows`/`rowsToHeaders` in `src/core/mcp.ts`),
   not a textarea: one row per pair with a trash button, and an "Add header" button below. The helpers own validation (a
   fully blank row is dropped; a name without a value, an invalid name and a repeated name are row errors) so the

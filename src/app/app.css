@@ -1507,12 +1507,24 @@
 }
 
 .popover__group-label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
 	font-size: var(--text-xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var(--fg-faint);
 	padding: var(--space-2) var(--space-3);
+}
+
+/* A server reached over plain HTTP: the glyph sits before its name, and its tooltip says
+ * what the connection exposes. The models are the server's too, so the mark is the
+ * group's alone — a warning on every row would only repeat it down the list. */
+.popover__group-warning {
+	display: flex;
+	flex: none;
+	color: var(--warning);
 }
 
 /* Group heading with its settings gear on the trailing edge. */

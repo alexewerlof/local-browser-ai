@@ -74,8 +74,14 @@ Local rules:
   `aria-label`. The row's own accent tint is the only "this is the one in use" mark; a tick beside the name said the
   same thing twice and read as a second state icon. Each figure carries the catalog's `~` when it is a guess, as in
   Settings. Glyphs come from `ModalityIcon`, shared with the Settings table; a model whose server reported nothing shows
-  the same `—`, never a guess. The chip states capability only — the effort stays in the Thinking chip next to the model
-  chip.
+  the same `—`, never a guess. **A provider reached over plain HTTP carries one `TriangleAlert` before its name on the
+  group heading** (`popover__group-warning`, `--warning`), tooltipped
+  `Unencrypted traffic exposes your prompt and attached pages. Only use over VPN or trusted networks.` — the mark is the
+  server's alone, because every model under that heading is reached the same way and a warning on each row would only
+  repeat it down the list. A loopback address carries none, because its traffic does not leave the machine. **The
+  sentence never names the host**: the address is already on screen in the row above it. It is
+  `insecureEndpoint(provider.baseURL).summary` from `src/core/endpoint.ts`, the module that also words Settings → Model
+  Providers. The chip states capability only — the effort stays in the Thinking chip next to the model chip.
 - `StepsGroup` owns the transcript's steps: `ReasoningBlock` and `ToolCallCard` are rows inside it, flat (no card border
   or background), and the whole group folds into one `.steps__summary` line once the run ends — unless a row still needs
   the user. The rail in `.steps__list` is what makes the rows one flow; do not give a row its own surface again.

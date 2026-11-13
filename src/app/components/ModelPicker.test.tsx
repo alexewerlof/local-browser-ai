@@ -2,10 +2,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import type { AppSettings, ModelRef, ProviderSettings } from '../../core/types'
+import { insecureEndpoint } from '../../core/endpoint'
 import { defaultSettings } from '../../core/settings'
 import { ModelPicker } from './ModelPicker'
 
 afterEach(cleanup)
+
+/** The sentence a mark carries; `endpoint.test.ts` is what pins its exact wording. */
+const SECURITY_WARNING = insecureEndpoint('http://mac-mini.localdomain:8080/v1')?.summary
 
 function provider(overrides: Partial<ProviderSettings> = {}): ProviderSettings {
 	return {
@@ -183,5 +187,25 @@ describe('ModelPicker', () => {
 		expect(rows(container).map((row) => row.querySelector('.popover__item-main')?.textContent)).toEqual([
 			'Qwen3.6-27B-MTP',
 		])
+	})
+
+	it('marks a provider reached over plain HTTP, and only the one off this machine', () => {
+		const { container } = openPicker([
+			provider({ id: 'lan', label: 'Mac mini server', baseURL: 'http://mac-mini.localdomain:8080/v1' }),
+			provider({ id: 'local', label: 'This machine', baseURL: 'http://127.0.0.1:9931/v1' }),
+		])
+
+		const labels = [...container.querySelectorAll<HTMLElement>('.popover__group-label')]
+		// The glyph is not text, so the heading still reads as the server's name.
+		expect(labels.map((label) => label.textContent)).toEqual(['Mac mini server', 'This machine'])
+
+		const warnings = container.querySelectorAll('.popover__group-warning')
+		expect(warnings).toHaveLength(1)
+		expect(warnings[0]?.getAttribute('aria-label')).toBe(SECURITY_WARNING)
+		expect(warnings[0]?.getAttribute('title')).toBe(SECURITY_WARNING)
+		expect(labels[0]?.contains(warnings[0] as Node)).toBe(true)
+
+		// The heading says it once for the whole group: a mark on every row would repeat it.
+		expect(container.querySelector('.popover__item-warning')).toBeNull()
 	})
 })

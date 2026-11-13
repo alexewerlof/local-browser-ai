@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, ChevronDown, CircleCheck, MessageCircleMore, Sparkles, Star } from 'lucide-react'
+import { ArrowRight, ChevronDown, CircleCheck, MessageCircleMore, Sparkles, Star, TriangleAlert } from 'lucide-react'
 import type { AppSettings, ModelModality, ModelRef } from '../../core/types'
+import { insecureEndpoint } from '../../core/endpoint'
 import {
 	getModelInfo,
 	isContextWindowEstimated,
@@ -90,6 +91,7 @@ export function ModelPicker({
 		return settings.providers
 			.map((provider) => ({
 				provider,
+				insecure: insecureEndpoint(provider.baseURL),
 				models: provider.models
 					.filter(
 						(modelId) =>
@@ -146,9 +148,23 @@ export function ModelPicker({
 			</div>
 			<div className="popover__list">
 				{groups.length === 0 && <p className="popover__empty">No models. Add a provider in Settings.</p>}
-				{groups.map(({ provider, models }) => (
+				{groups.map(({ provider, insecure, models }) => (
 					<div key={provider.id} className="popover__group">
-						<div className="popover__group-label">{provider.label}</div>
+						<div className="popover__group-label">
+							{/* The warning belongs to the server, not to a model: every model in the group is
+							    reached the same way, so the group's heading is where it is said once. */}
+							{insecure && (
+								<span
+									className="popover__group-warning"
+									role="img"
+									aria-label={insecure.summary}
+									title={insecure.summary}
+								>
+									<TriangleAlert size={12} />
+								</span>
+							)}
+							<span className="popover__group-name">{provider.label}</span>
+						</div>
 						{models.map(
 							({
 								modelId,
