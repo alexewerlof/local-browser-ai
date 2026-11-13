@@ -41,6 +41,15 @@ describe('estimateMessageTokens', () => {
 		expect(tokens).toBeGreaterThanOrEqual(20)
 	})
 
+	it('counts the open tab note, because it is sent with the message', () => {
+		const plain = message([{ type: 'text', text: 'what is this?' }])
+		const noted: ChatMessage = {
+			...plain,
+			tab: { title: 'Example Pricing', url: 'https://example.com/pricing' },
+		}
+		expect(estimateMessageTokens(noted)).toBeGreaterThan(estimateMessageTokens(plain))
+	})
+
 	it('counts tool inputs and outputs', () => {
 		const withOutput = estimateMessageTokens(
 			message([

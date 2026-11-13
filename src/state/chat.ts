@@ -9,6 +9,7 @@ import type {
 	ModelRef,
 	PageRefPart,
 	PageSnapshot,
+	PromptTab,
 	ProviderSettings,
 	Usage,
 } from '../core/types'
@@ -29,7 +30,7 @@ import { getModelInfo, modelContextWindow, normalizeThinking, type ModelInfo } f
 import { AppError, toAppError } from '../providers/errors'
 import { buildProviderOptions, createLanguageModel } from '../providers/registry'
 import { settingsStore } from './settings'
-import { requestApproval, recordToolTab, attachTabForTool } from './browser'
+import { requestApproval, recordToolTab, attachTabForTool, refreshActiveTab } from './browser'
 import { groupConversationTab } from './tab-group'
 import { memoryAccess, memoryStore } from './memory'
 import { buildMcpTools, enabledMcpServers, mcpWarningsStore, type McpToolBundle } from './mcp'
@@ -800,6 +801,23 @@ function withTitle(conversation: Conversation): Conversation {
 
 /* ------------------------------------------------------------------- prompts */
 
+/**
+ * The tab to name in the prompt about to be sent.
+ *
+ * Read fresh rather than taken from `activeTabStore`, which only moves on tab events: after a
+ * reload it can be a moment behind, and the note is about the moment the user pressed Submit.
+ * A page the chat already holds is named by its handle, so the model reads what it has
+ * instead of asking the user to add a second copy of it.
+ */
+async function promptTab(): Promise<PromptTab | undefined> {
+	const tab = await refreshActiveTab()
+	if (!tab) return undefined
+	const attached = findAttachedPage(tab.url)
+	return attached
+		? { title: tab.title, url: tab.url, pageHandle: attached.handle }
+		: { title: tab.title, url: tab.url }
+}
+
 /** Bind the pages that are waiting to the turn that is about to start. */
 async function claimPendingPages(messageId: string): Promise<PageSnapshot[]> {
 	const waiting = pendingPages()
@@ -812,7 +830,7 @@ async function claimPendingPages(messageId: string): Promise<PageSnapshot[]> {
 }
 
 /** Append a user turn plus its empty assistant answer and run it. Assumes idle. */
-async function startTurn(content: string, promptTemplateId?: string): Promise<void> {
+async function startTurn(content: string, promptTemplateId?: string, tab?: PromptTab): Promise<void> {
 	const conversation = conversationStore.get()
 	const userMessageId = createId('msg')
 	// Pages added since the last turn join this one. The block is written into the prompt
@@ -828,6 +846,7 @@ async function startTurn(content: string, promptTemplateId?: string): Promise<vo
 		createdAt: now(),
 		status: 'complete',
 		promptTemplateId,
+		tab,
 	}
 	const assistantMessage: ChatMessage = {
 		id: createId('msg'),
@@ -857,18 +876,21 @@ async function startTurn(content: string, promptTemplateId?: string): Promise<vo
 export async function submitPrompt(text: string, promptTemplateId?: string): Promise<void> {
 	const content = text.trim()
 	if (!content) return
+	// Read the tab before the branch below. A queued prompt runs minutes later, so the note has
+	// to describe what the user was looking at when they pressed Submit, not what replaced it.
+	const tab = await promptTab()
 	// Typing and sending is an explicit intent to keep the loop moving.
 	queuePausedStore.set(false)
 
 	if (draining || runStore.get().status !== 'idle') {
-		await enqueuePrompt(conversationStore.get().id, content, promptTemplateId)
+		await enqueuePrompt(conversationStore.get().id, content, { promptTemplateId, tab })
 		// The run may have gone idle while the queue write was in flight, and its own
 		// drain has already passed. Ask for another pass; a live drain ignores this.
 		void drainQueue()
 		return
 	}
 
-	await startTurn(content, promptTemplateId)
+	await startTurn(content, promptTemplateId, tab)
 }
 
 /**
@@ -898,7 +920,7 @@ async function drainQueue(): Promise<void> {
 				await restorePromptFront(conversationId, next)
 				break
 			}
-			await startTurn(next.text, next.promptTemplateId)
+			await startTurn(next.text, next.promptTemplateId, next.tab)
 		}
 	} finally {
 		draining = false

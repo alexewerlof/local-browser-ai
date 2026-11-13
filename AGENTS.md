@@ -177,6 +177,19 @@ and tags each match, which is how two pages get compared in one call. Adding a p
 call tools or the page tool is disabled — a block without a tool is an outline nobody can read. `npm run bench` prints
 the block's cost per page shape; run it before changing the layout.
 
+**The panel names the tab beside it, in one line.** A side panel cannot see the page next to it, so every prompt carries
+`[Open tab: "Title" URL — not in this chat]`, or `— in this chat as p1` when the chat already holds that page: the title
+and URL only, never the text, so the model can say what the user is reading and read the handle or the `url` only when
+the answer needs it. There is no setting and no page is added behind the user's back — a `url` read still opens a tab
+and asks. `promptTab()` in `chat.ts` reads the tab at Submit (`refreshActiveTab`, not `activeTabStore`, which only moves
+on tab events) and stores the note on the user message, which is what makes a prompt queued for minutes describe the
+page the user was on when they pressed Submit, not the one there when the queue drains. It rides the turn rather than
+the system prompt because a tab changes while the conversation does not: in the prompt it would rewrite every token
+before it on each switch and cost the provider's cache. `describeOpenTabHint` states the rule once per request, in the
+same shape as `## MCP tools`, and its `read_page` sentence is dropped when the model has no tools — an offer it cannot
+act on is worse than the plain "ask the user". `47-open-tab-note` is the scenario: turn 1 says "not in this chat", the
+same page is then added, and turn 2 says `p1` while turn 1 stays byte-identical.
+
 Page adds are serialized through one chain in `bootstrap.ts` (`queuePageAdd`): `addPage` returns early while a capture
 is running, and the boot drain, the context-menu nudge and an omnibox prompt can all ask for one in the same tick.
 

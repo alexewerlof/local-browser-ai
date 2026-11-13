@@ -33,10 +33,33 @@ describe('prompt queue', () => {
 		expect(await enqueuePrompt('queue-blank', '   ')).toBeNull()
 		expect(queueStore.get()).toHaveLength(0)
 
-		const item = await enqueuePrompt('queue-blank', '  hello  ', 'template-1')
+		const item = await enqueuePrompt('queue-blank', '  hello  ', { promptTemplateId: 'template-1' })
 		expect(item?.text).toBe('hello')
 		expect(item?.promptTemplateId).toBe('template-1')
 		expect(texts()).toEqual(['hello'])
+	})
+
+	it('keeps the tab that was on screen when the prompt was sent', async () => {
+		await useQueue('queue-tab')
+		const tab = { title: 'Example Pricing', url: 'https://example.com/pricing' }
+		await enqueuePrompt('queue-tab', 'hold this', { tab })
+
+		// The queue outlives the tab: a reload must still describe the page the user was on.
+		bindQueue('queue-tab')
+		await loadQueueFor('queue-tab')
+		expect(queueStore.get()[0]?.tab).toEqual(tab)
+	})
+
+	it('drops a malformed tab and keeps the prompt', async () => {
+		await useQueue('queue-bad-tab')
+		await enqueuePrompt('queue-bad-tab', 'still here', {
+			// A handle that is not a string is dropped on its own; the note survives without it.
+			tab: { title: 'Pricing', url: 'https://example.com/', pageHandle: 7 as unknown as string },
+		})
+
+		bindQueue('queue-bad-tab')
+		await loadQueueFor('queue-bad-tab')
+		expect(queueStore.get()[0]?.tab).toEqual({ title: 'Pricing', url: 'https://example.com/' })
 	})
 
 	it('drains in the order the prompts were queued', async () => {

@@ -13,7 +13,7 @@
 # or pipeline stage gets a line here in the same change that adds it.
 
 meta:
-    version: 16
+    version: 17
     updated: 2026-11-13
     status: contract
     shipped: false
@@ -40,7 +40,7 @@ harness:
 # The assembled prompt and the token accounting around it.
 context:
     context: the assembled prompt sent to the model; code ContextPart, buildContext, ContextSnapshot; ui Context, Context settings; not history, page, memory
-    context-part: one labelled slice with its own token count; code ContextPart, system, environment, memory, page, summary, history, mcp; ui System prompt, Language, Memory; not block, chunk
+    context-part: one labelled slice with its own token count; code ContextPart, system, environment, tab, memory, page, summary, history, mcp; ui System prompt, Language, Open tab, Memory; not block, chunk
     context-window: the most tokens one request can hold; code ModelInfo.contextWindow, contextWindowOverride; ui Context window, Context window override; not limit, max tokens, capacity
     usable-window: what is left for input after the output reserve; code TokenBudget.usable, createBudget; ui usable context window; not budget, limit
     output-reserve: the share of the window held back for the answer; code outputReserveRatio; ui Reserve for the answer; not output budget, headroom
@@ -53,6 +53,7 @@ context:
     keep-recent-turns: how many newest turns compaction must leave alone; code keepRecentTurns, turnStarts; ui Keep recent turns; not buffer, window
     reasoning-effort: how much hidden reasoning the model may spend; code ThinkingSelection, ThinkingMenu, thinkingForModel, ProviderSettings.modelThinking; ui Reasoning effort, Reasoning, Thinking…, Default; not thinking level, thought level
     draft-token-count: the live estimate of the unsent prompt's cost; code composer__count, estimateTokens; ui N tok; not usage, meter
+    open-tab: the line naming the tab the user was looking at when they sent a prompt, frozen onto that turn and replayed verbatim; the title and URL only, never the page's text, and a page the chat already holds is named by its handle so the model reads it instead of asking for it again; it rides the turn rather than the prompt because a tab changes while the conversation does not, and a prefix that moved on every switch would cost the cache; read at Submit, so a queued prompt describes the tab the user was on when they sent it, not the one there when the queue drains; code PromptTab, prompt-tab.ts, renderPromptTab, describeOpenTabHint, normalizePromptTab, refreshActiveTab, ChatMessage.tab, QueuedPrompt.tab; ui Open tab; not current page, active page, context of the tab, tab bar
 
 # Pages the user adds to a chat, from capture to the prompt.
 page:

@@ -72,6 +72,21 @@ export interface PageRefPart {
 	pageId: string
 }
 
+/**
+ * The tab the user was looking at when they sent a turn.
+ *
+ * Its title and URL only, never the page's text: the note exists so the model can say what
+ * the user is reading, and read the page only if the answer needs it. `pageHandle` is set
+ * when the chat already holds that page, which is the difference between "read p1" and
+ * "ask the user to add it".
+ */
+export interface PromptTab {
+	title: string
+	url: string
+	/** The handle of the page this chat already holds for that URL, e.g. `p1`. */
+	pageHandle?: string
+}
+
 export type MessagePart = TextPart | ReasoningPart | ToolCallPart | ErrorPart | PageRefPart
 
 export type MessageStatus = 'streaming' | 'complete' | 'aborted' | 'error'
@@ -95,6 +110,15 @@ export interface ChatMessage {
 	durationMs?: number
 	/** The prompt template that filled the draft when this user message was sent. */
 	promptTemplateId?: string
+	/**
+	 * The tab open beside the panel when this user message was sent, frozen at submit.
+	 *
+	 * It rides the message instead of the system prompt because a tab changes while the
+	 * conversation does not: in the system prompt it would rewrite every token before it on
+	 * each tab switch and cost the provider its cached prefix, while here it only ever lands
+	 * at the end, once, and is replayed verbatim like a page block.
+	 */
+	tab?: PromptTab
 }
 
 /* --------------------------------------------------------------- page context */
@@ -215,6 +239,8 @@ export interface QueuedPrompt {
 	text: string
 	/** The template that was active when the prompt was queued, so draining keeps it. */
 	promptTemplateId?: string
+	/** The tab on screen when the user pressed Submit, not the one there when it drains. */
+	tab?: PromptTab
 	createdAt: number
 }
 

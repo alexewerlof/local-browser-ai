@@ -39,7 +39,11 @@ export async function run(ctx) {
 
 		const firstTurn = (await waitForRequests(server, 1)).messages.at(-1)
 		assert.match(firstTurn.content, /## Page p2 — Standing desk — Garden/)
-		assert.doesNotMatch(firstTurn.content, /Example Pricing/)
+		// The title alone is no longer enough: the open-tab note names the tab beside the panel,
+		// which is this very page. What must be absent is its block, and the note must say the
+		// page is not in the chat, because the one copy of it was taken back.
+		assert.doesNotMatch(firstTurn.content, /## Page p1 — Example Pricing/)
+		assert.match(firstTurn.content, /\[Open tab: "Example Pricing" [^\]]* — not in this chat\]/)
 
 		// The page that did reach the turn is part of the transcript now: no trash can.
 		await page.waitForFunction(() => document.querySelectorAll('.pages-menu__item--pending').length === 0)
@@ -56,6 +60,8 @@ export async function run(ctx) {
 		const secondTurn = (await waitForRequests(server, 2)).messages.at(-1)
 		assert.match(secondTurn.content, /## Page p3 — Example Pricing/)
 		assert.doesNotMatch(secondTurn.content, /## Page p2 — Example Pricing/)
+		// The page that was added again is the chat's now, so the note points at its handle.
+		assert.match(secondTurn.content, /\[Open tab: "Example Pricing" [^\]]* — in this chat as p3\]/)
 	} finally {
 		await server.close()
 	}

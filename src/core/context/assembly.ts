@@ -3,10 +3,11 @@ import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageRefPart, P
 import { describeEnvironment } from './environment'
 import { describeMemoryInjection, memoryInjectionLimit, selectMemoryInjection } from '../memory'
 import { pageBlocksTokens } from './page-block'
+import { describeOpenTabHint, renderPromptTab } from './prompt-tab'
 import { estimateMessagesTokens, estimateTokens, type TokenBudget } from './tokens'
 
 export interface ContextPart {
-	id: 'system' | 'environment' | 'memory' | 'page' | 'summary' | 'history' | 'mcp'
+	id: 'system' | 'environment' | 'tab' | 'memory' | 'page' | 'summary' | 'history' | 'mcp'
 	label: string
 	tokens: number
 	/** Extra explanation shown in the context panel. */
@@ -101,6 +102,9 @@ export function archivedPages(conversation: Conversation, pages: PageSnapshot[])
  * The block rides a message instead of the system prompt on purpose: adding a page must
  * not rewrite anything that came before it, or every turn would invalidate the cache.
  * `emitted` guarantees a block appears once even if two messages reference the page.
+ *
+ * The open-tab note rides here for the same reason: it describes one moment, so it belongs
+ * to the turn it was sent with rather than to a prefix that every later turn shares.
  */
 function userMessage(message: ChatMessage, byId: Map<string, PageSnapshot>, emitted: Set<string>): ModelMessage | null {
 	const blocks: string[] = []
@@ -110,7 +114,8 @@ function userMessage(message: ChatMessage, byId: Map<string, PageSnapshot>, emit
 		const block = byId.get(part.pageId)?.block
 		if (block) blocks.push(block)
 	}
-	const content = [...blocks, messageText(message)].filter(Boolean).join('\n\n')
+	const tab = message.tab ? renderPromptTab(message.tab) : ''
+	const content = [...blocks, tab, messageText(message)].filter(Boolean).join('\n\n')
 	return content ? { role: 'user', content } : null
 }
 
@@ -218,6 +223,18 @@ export function buildContext(options: BuildContextOptions): AssembledContext {
 			detail: 'Language preferences reported by the browser, and the language of the pages.',
 		})
 	}
+
+	// How to treat the per-turn open-tab note, said once. It is unconditional even when no
+	// note is in the prompt: the prompt must not depend on the tab, or every switch would
+	// rewrite the prefix that came before it.
+	const tabHint = describeOpenTabHint({ toolsEnabled: options.toolsEnabled })
+	systemParts.push(tabHint)
+	parts.push({
+		id: 'tab',
+		label: 'Open tab',
+		tokens: estimateTokens(tabHint),
+		detail: 'Names the tab beside the panel, by title and URL, so the model knows what the user is reading. The page text is not sent.',
+	})
 
 	// Memory is always the user's, never a page's, so it goes before the MCP note. It gets
 	// its own budget: compaction cannot shrink it, so an unbounded block would leave the

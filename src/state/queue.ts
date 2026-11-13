@@ -11,7 +11,8 @@
  */
 
 import { Store } from '../core/store'
-import type { QueuedPrompt } from '../core/types'
+import type { PromptTab, QueuedPrompt } from '../core/types'
+import { normalizePromptTab } from '../core/context/prompt-tab'
 import { createId, now } from '../core/util'
 import { loadQueue, saveQueue } from './database'
 
@@ -47,14 +48,17 @@ function normalizeQueue(value: unknown): QueuedPrompt[] {
 		if (typeof item.id !== 'string' || typeof item.text !== 'string') return []
 		const text = item.text.trim()
 		if (!text) return []
-		return [
-			{
-				id: item.id,
-				text,
-				promptTemplateId: typeof item.promptTemplateId === 'string' ? item.promptTemplateId : undefined,
-				createdAt: typeof item.createdAt === 'number' ? item.createdAt : now(),
-			},
-		]
+		const queued: QueuedPrompt = {
+			id: item.id,
+			text,
+			promptTemplateId: typeof item.promptTemplateId === 'string' ? item.promptTemplateId : undefined,
+			createdAt: typeof item.createdAt === 'number' ? item.createdAt : now(),
+		}
+		// The tab was named when the prompt was sent, so it is replayed as it was; only a
+		// malformed entry is dropped, and the turn goes without a note rather than a broken one.
+		const tab = normalizePromptTab(item.tab)
+		if (tab) queued.tab = tab
+		return [queued]
 	})
 }
 
@@ -88,18 +92,26 @@ export async function loadQueueFor(conversationId: string): Promise<void> {
 	if (merged.length !== stored.length) await persist(conversationId, merged)
 }
 
+/** What a queued prompt keeps from the moment it was submitted. */
+export interface QueuedPromptOptions {
+	promptTemplateId?: string
+	/** The tab on screen at submit: the queue drains later, when it may well be gone. */
+	tab?: PromptTab
+}
+
 /** Append a prompt to the conversation's queue. Blank prompts are ignored. */
 export async function enqueuePrompt(
 	conversationId: string,
 	text: string,
-	promptTemplateId?: string,
+	options: QueuedPromptOptions = {},
 ): Promise<QueuedPrompt | null> {
 	const content = text.trim()
 	if (!content) return null
 	if (activeConversationId !== conversationId) return null
 
 	const item: QueuedPrompt = { id: createId('queued'), text: content, createdAt: now() }
-	if (promptTemplateId) item.promptTemplateId = promptTemplateId
+	if (options.promptTemplateId) item.promptTemplateId = options.promptTemplateId
+	if (options.tab) item.tab = options.tab
 
 	await commitQueue(conversationId, [...queueStore.get(), item])
 	return item

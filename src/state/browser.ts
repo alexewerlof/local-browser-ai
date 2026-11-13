@@ -38,33 +38,45 @@ function readableTab(tab: chrome.tabs.Tab): TabInfo | null {
 }
 
 /**
- * Keep `activeTabStore` on the tab on screen.
+ * Read the tab on screen now, and keep `activeTabStore` on it.
  *
  * The panel is an extension page, so `chrome.tabs` answers here directly, and the `tabs`
  * permission already carries the URL, title and favicon — no worker round trip and no
- * prompt. Returns an unsubscribe function.
+ * prompt. Never throws: a tab that cannot be read is simply no tab.
+ */
+export async function refreshActiveTab(): Promise<TabInfo | null> {
+	const chromeApi = getChrome()
+	if (!chromeApi?.tabs?.query) return null
+	try {
+		const [tab] = await chromeApi.tabs.query({ active: true, currentWindow: true })
+		const info = tab ? readableTab(tab) : null
+		activeTabStore.set(info)
+		return info
+	} catch {
+		activeTabStore.set(null)
+		return null
+	}
+}
+
+/**
+ * Keep `activeTabStore` on the tab on screen.
+ *
+ * Tab events only. The store is what the composer labels its add button with, while a
+ * prompt reads the tab for itself at submit, so a store that is a moment behind can never
+ * describe the wrong page in a request. Returns an unsubscribe function.
  */
 export function initActiveTabTracking(): () => void {
 	const chromeApi = getChrome()
 	if (!chromeApi?.tabs?.query) return () => {}
 
-	const refresh = async (): Promise<void> => {
-		try {
-			const [tab] = await chromeApi.tabs.query({ active: true, currentWindow: true })
-			activeTabStore.set(tab ? readableTab(tab) : null)
-		} catch {
-			activeTabStore.set(null)
-		}
-	}
-
-	const onActivated = () => void refresh()
+	const onActivated = () => void refreshActiveTab()
 	// A tab keeps its id across a navigation but changes the origin the add button asks
 	// access for, so both the new URL and the end of the load re-read it.
 	const onUpdated = (_tabId: number, info: { url?: string; status?: string }) => {
-		if (info.url || info.status === 'complete') void refresh()
+		if (info.url || info.status === 'complete') void refreshActiveTab()
 	}
 
-	void refresh()
+	void refreshActiveTab()
 	chromeApi.tabs.onActivated?.addListener(onActivated)
 	chromeApi.tabs.onUpdated?.addListener(onUpdated)
 	chromeApi.windows?.onFocusChanged?.addListener(onActivated)

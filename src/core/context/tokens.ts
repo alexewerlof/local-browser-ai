@@ -1,4 +1,5 @@
 import type { ChatMessage } from '../types'
+import { renderPromptTab } from './prompt-tab'
 
 const CJK_RANGES =
 	/[\u1100-\u11ff\u2e80-\u2eff\u3000-\u303f\u3040-\u30ff\u3130-\u318f\u3400-\u4dbf\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7af\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef]/
@@ -44,6 +45,9 @@ export function estimateMessageTokens(message: ChatMessage): number {
 				break
 		}
 	}
+	// A tab note is part of what this message contributes, exactly like its text, so the
+	// history row and the compaction plan see the same cost the request pays.
+	if (message.tab) total += estimateTokens(renderPromptTab(message.tab))
 	return total
 }
 

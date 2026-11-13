@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildContext, messagesAfterSummary, messageText, pagesForPrompt, toModelMessages } from './assembly'
+import { describeOpenTabHint } from './prompt-tab'
 import { createBudget } from './tokens'
-import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageSnapshot } from '../types'
+import type { AppSettings, ChatMessage, Conversation, MemoryItem, PageSnapshot, PromptTab } from '../types'
 import { defaultSettings } from '../settings'
 
 const budget = createBudget(20_000, 0.2, 0.75)
@@ -439,6 +440,74 @@ describe('messageText', () => {
 				status: 'complete',
 			}),
 		).toBe('hello')
+	})
+})
+
+describe('buildContext open tab', () => {
+	const tab: PromptTab = { title: 'Example Pricing', url: 'https://example.com/pricing' }
+
+	const withTab = (message: ChatMessage, note: PromptTab): ChatMessage => ({ ...message, tab: note })
+
+	it('puts the note after the page blocks and before the prompt itself', () => {
+		const entry = page()
+		const messages = toModelMessages(
+			conversation({ messages: [withTab(userMessage('m1', 'what is this?', [entry]), tab)] }),
+			[entry],
+		)
+		const content = messages[0]?.content as string
+		expect(content).toContain(entry.block)
+		expect(content.indexOf(entry.block)).toBeLessThan(content.indexOf('[Open tab:'))
+		expect(content.indexOf('[Open tab:')).toBeLessThan(content.indexOf('what is this?'))
+	})
+
+	it('freezes the note with the turn that sent it', () => {
+		const messages = toModelMessages(
+			conversation({
+				messages: [
+					withTab(userMessage('m1', 'one'), tab),
+					assistantMessage('a1', 'first'),
+					withTab(userMessage('m2', 'two'), { ...tab, pageHandle: 'p1' }),
+				],
+			}),
+		)
+		// The page joined the chat between the two prompts; the earlier turn is untouched, so
+		// adding a page cannot rewrite what was already sent.
+		expect(messages[0]?.content).toContain('— not in this chat]')
+		expect(messages[2]?.content).toContain('— in this chat as p1]')
+	})
+
+	it('sends no note for a turn without a tab', () => {
+		const messages = toModelMessages(conversation({ messages: [userMessage('m1', 'plain')] }))
+		expect(messages[0]?.content).toBe('plain')
+	})
+
+	it('explains the note in the prompt, as its own part', () => {
+		const context = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			pages: [],
+			query: '',
+			toolsEnabled: true,
+		})
+		const ids = context.parts.map((part) => part.id)
+		expect(ids.indexOf('tab')).toBeGreaterThan(ids.indexOf('system'))
+		expect(ids.indexOf('tab')).toBeLessThan(ids.indexOf('history'))
+		expect(context.system).toContain(describeOpenTabHint({ toolsEnabled: true }))
+		expect(context.parts.find((part) => part.id === 'tab')?.label).toBe('Open tab')
+	})
+
+	it('keeps the hint when the model has no tools, without offering a page read', () => {
+		const context = buildContext({
+			conversation: conversation(),
+			settings: defaultSettings(),
+			budget,
+			pages: [],
+			query: '',
+			toolsEnabled: false,
+		})
+		expect(context.system).toContain(describeOpenTabHint({ toolsEnabled: false }))
+		expect(context.system).not.toContain(describeOpenTabHint({ toolsEnabled: true }))
 	})
 })
 
